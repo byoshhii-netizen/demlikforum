@@ -1,0 +1,1 @@
+{"provider":"node","install":{"cmd":"npm install"},"build":{"cmd":"echo ok"},"start":{"cmd":"node server.js"}}
