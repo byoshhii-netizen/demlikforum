@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demlik Forum</title>
+  <meta name="description" content="Fikirlerin buluştuğu, hikayelerin yeşerdiği topluluk platformu. Forum, kitap ve grup oluştur." />
+  <meta property="og:title" content="Demlik Forum" />
+  <meta property="og:description" content="Fikirlerin buluştuğu, hikayelerin yeşerdiği topluluk platformu." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://demlikforum.up.railway.app" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Demlik Forum" />
+  <meta name="twitter:description" content="Fikirlerin buluştuğu, hikayelerin yeşerdiği topluluk platformu." />
+  <link rel="icon" href="/demlik.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a class="nav-brand" href="/" data-link>
+        <img src="/demlik.png" alt="Demlik" style="height:36px;width:auto;object-fit:contain" />
+      </a>
+      <div class="nav-links">
+        <a href="/" data-link class="nav-link">Ana Sayfa</a>
+        <a href="/forum" data-link class="nav-link">Forumlar</a>
+        <a href="/kitaplar" data-link class="nav-link">Kitaplar</a>
+        <a href="/gruplar" data-link class="nav-link">Gruplar</a>
+      </div>
+      <div class="nav-auth" id="nav-auth">
+        <a href="/kayit" data-link class="btn btn-primary btn-sm">Kayıt Ol</a>
+        <a href="/giris" data-link class="btn btn-outline btn-sm">Giriş Yap</a>
+      </div>
+      <div class="nav-user hidden" id="nav-user" style="display:flex;align-items:center;gap:8px">
+        <div style="position:relative" id="new-btn-wrap">
+          <button class="btn btn-primary btn-sm" id="nav-new-btn"><i class="fas fa-plus"></i> Yeni</button>
+          <div id="new-dropdown" class="dropdown-menu hidden" style="right:0;top:calc(100% + 8px);min-width:160px">
+            <button class="dropdown-item" id="nav-new-forum"><i class="fas fa-comments"></i> Forum</button>
+            <button class="dropdown-item" id="nav-new-book"><i class="fas fa-book"></i> Kitap</button>
+            <button class="dropdown-item" id="nav-new-group"><i class="fas fa-users"></i> Grup</button>
+          </div>
+        </div>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <button class="nav-user-btn" id="nav-user-btn">
+            <img id="nav-avatar" src="" alt="" class="nav-avatar" />
+            <span id="nav-username"></span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="dropdown-menu" id="dropdown-menu">
+            <a href="#" id="dropdown-profile" data-link class="dropdown-item"><i class="fas fa-user"></i> Profilim</a>
+            <a href="/ayarlar" data-link class="dropdown-item"><i class="fas fa-cog"></i> Ayarlar</a>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item text-danger" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</button>
+          </div>
+        </div>
+      </div>
+      <button class="nav-mobile-toggle" id="mobile-toggle">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+    <div class="mobile-menu hidden" id="mobile-menu">
+      <a href="/" data-link class="mobile-nav-link">Ana Sayfa</a>
+      <a href="/forum" data-link class="mobile-nav-link">Forumlar</a>
+      <a href="/kitaplar" data-link class="mobile-nav-link">Kitaplar</a>
+      <a href="/gruplar" data-link class="mobile-nav-link">Gruplar</a>
+    </div>
+  </nav>
+
+  <!-- APP -->
+  <div id="app"></div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="modal-close" id="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast-container"></div>
+
+  <!-- FOOTER -->
+  <footer style="text-align:center;padding:20px;font-size:12px;color:#525252;border-top:1px solid rgba(220,38,38,0.1);margin-top:40px">
+    Created By. İsmail DEMİRCAN &nbsp;&#169;&nbsp;Copyright 2026
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

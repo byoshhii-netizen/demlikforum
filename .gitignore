@@ -1,0 +1,5 @@
+node_modules/
+persistent/
+*.db
+*.sqlite
+.env
