@@ -1,270 +1,286 @@
-﻿const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
+﻿const { Pool } = require('pg');
+const crypto = require('crypto');
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'persistent', 'data');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway')
+    ? { rejectUnauthorized: false }
+    : false,
+});
 
-const db = new Database(path.join(DATA_DIR, 'forum.db'));
-
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-db.exec(`
-CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  avatar TEXT DEFAULT '',
-  bio TEXT DEFAULT '',
-  links TEXT DEFAULT '[]',
-  level_id INTEGER DEFAULT 1,
-  show_level_badge INTEGER DEFAULT 1,
-  show_level_color INTEGER DEFAULT 1,
-  is_vip INTEGER DEFAULT 0,
-  is_plus INTEGER DEFAULT 0,
-  name_color TEXT DEFAULT '',
-  banned INTEGER DEFAULT 0,
-  ban_type TEXT DEFAULT '',
-  banned_ip TEXT DEFAULT '',
-  ip TEXT DEFAULT '',
-  kvkk_accepted INTEGER DEFAULT 0,
-  forum_count INTEGER DEFAULT 0,
-  book_count INTEGER DEFAULT 0,
-  comment_count INTEGER DEFAULT 0,
-  created_at DATETIME DEFAULT (datetime('now','localtime')),
-  last_active DATETIME DEFAULT (datetime('now','localtime'))
-);
-
-CREATE TABLE IF NOT EXISTS levels (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  icon TEXT DEFAULT 'fas fa-star',
-  color TEXT DEFAULT '#dc2626',
-  min_forums INTEGER DEFAULT 0,
-  min_books INTEGER DEFAULT 0,
-  min_comments INTEGER DEFAULT 0,
-  order_num INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS settings (
-  key TEXT PRIMARY KEY,
-  value TEXT
-);
-
-CREATE TABLE IF NOT EXISTS forums (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  banner_image TEXT DEFAULT '',
-  slug TEXT UNIQUE,
-  allow_comments INTEGER DEFAULT 1,
-  views INTEGER DEFAULT 0,
-  created_at DATETIME DEFAULT (datetime('now','localtime')),
-  updated_at DATETIME DEFAULT (datetime('now','localtime')),
-  FOREIGN KEY(user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS forum_views (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  forum_id INTEGER,
-  ip TEXT,
-  view_count INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS forum_likes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  forum_id INTEGER,
-  user_id INTEGER,
-  UNIQUE(forum_id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS forum_comments (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  forum_id INTEGER,
-  user_id INTEGER,
-  content TEXT NOT NULL,
-  created_at DATETIME DEFAULT (datetime('now','localtime')),
-  FOREIGN KEY(forum_id) REFERENCES forums(id),
-  FOREIGN KEY(user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS books (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER,
-  title TEXT NOT NULL,
-  preface TEXT DEFAULT '',
-  cover_image TEXT DEFAULT '',
-  slug TEXT UNIQUE,
-  page_count INTEGER DEFAULT 0,
-  created_at DATETIME DEFAULT (datetime('now','localtime')),
-  updated_at DATETIME DEFAULT (datetime('now','localtime')),
-  FOREIGN KEY(user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS book_chapters (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  book_id INTEGER,
-  title TEXT NOT NULL,
-  order_num INTEGER DEFAULT 0,
-  FOREIGN KEY(book_id) REFERENCES books(id)
-);
-
-CREATE TABLE IF NOT EXISTS book_pages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  book_id INTEGER,
-  chapter_id INTEGER,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  page_num INTEGER DEFAULT 1,
-  slug TEXT UNIQUE,
-  created_at DATETIME DEFAULT (datetime('now','localtime')),
-  FOREIGN KEY(book_id) REFERENCES books(id),
-  FOREIGN KEY(chapter_id) REFERENCES book_chapters(id)
-);
-
-CREATE TABLE IF NOT EXISTS groups (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  slug TEXT UNIQUE,
-  description TEXT DEFAULT '',
-  cover_image TEXT DEFAULT '',
-  owner_id INTEGER,
-  type TEXT DEFAULT 'public',
-  allow_chat INTEGER DEFAULT 1,
-  allow_photos INTEGER DEFAULT 1,
-  invite_only INTEGER DEFAULT 0,
-  member_count INTEGER DEFAULT 0,
-  created_at DATETIME DEFAULT (datetime('now','localtime')),
-  FOREIGN KEY(owner_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS group_members (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  group_id INTEGER,
-  user_id INTEGER,
-  role TEXT DEFAULT 'member',
-  joined_at DATETIME DEFAULT (datetime('now','localtime')),
-  UNIQUE(group_id, user_id),
-  FOREIGN KEY(group_id) REFERENCES groups(id),
-  FOREIGN KEY(user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS moderator_permissions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  group_id INTEGER,
-  user_id INTEGER,
-  can_delete_messages INTEGER DEFAULT 0,
-  can_ban_members INTEGER DEFAULT 0,
-  can_edit_group INTEGER DEFAULT 0,
-  can_manage_invites INTEGER DEFAULT 0,
-  UNIQUE(group_id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS group_messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  group_id INTEGER,
-  user_id INTEGER,
-  content TEXT,
-  image_url TEXT DEFAULT '',
-  created_at DATETIME DEFAULT (datetime('now','localtime')),
-  FOREIGN KEY(group_id) REFERENCES groups(id),
-  FOREIGN KEY(user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS group_invites (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  group_id INTEGER,
-  invite_code TEXT UNIQUE,
-  created_by INTEGER,
-  created_at DATETIME DEFAULT (datetime('now','localtime'))
-);
-
-CREATE TABLE IF NOT EXISTS system_logs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  actor TEXT,
-  action TEXT,
-  target TEXT DEFAULT '',
-  detail TEXT DEFAULT '',
-  ip TEXT DEFAULT '',
-  created_at DATETIME DEFAULT (datetime('now','localtime'))
-);
-
-CREATE TABLE IF NOT EXISTS forum_comment_likes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  comment_id INTEGER,
-  user_id INTEGER,
-  UNIQUE(comment_id, user_id),
-  FOREIGN KEY(comment_id) REFERENCES forum_comments(id),
-  FOREIGN KEY(user_id) REFERENCES users(id)
-);
-
-CREATE TABLE IF NOT EXISTS tags (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT UNIQUE NOT NULL,
-  color TEXT DEFAULT '#dc2626',
-  is_system INTEGER DEFAULT 1
-);
-
-CREATE TABLE IF NOT EXISTS forum_tags (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  forum_id INTEGER,
-  tag_id INTEGER,
-  UNIQUE(forum_id, tag_id),
-  FOREIGN KEY(forum_id) REFERENCES forums(id),
-  FOREIGN KEY(tag_id) REFERENCES tags(id)
-);
-`);
-
-// image_url kolonu book_pages tablosuna ekle (tablo zaten varsa ALTER TABLE ile)
-try { db.exec("ALTER TABLE book_pages ADD COLUMN image_url TEXT DEFAULT ''"); } catch {}
-try { db.exec("ALTER TABLE forums ADD COLUMN custom_tags TEXT DEFAULT ''"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN min_book_pages INTEGER DEFAULT 0"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN require_any INTEGER DEFAULT 0"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_forums INTEGER DEFAULT -1"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_books INTEGER DEFAULT -1"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_book_pages INTEGER DEFAULT -1"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_forums_vip INTEGER DEFAULT -1"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_books_vip INTEGER DEFAULT -1"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_book_pages_vip INTEGER DEFAULT -1"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_forums_plus INTEGER DEFAULT -1"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_books_plus INTEGER DEFAULT -1"); } catch {}
-try { db.exec("ALTER TABLE levels ADD COLUMN daily_book_pages_plus INTEGER DEFAULT -1"); } catch {}
-
-const levelCount = db.prepare('SELECT COUNT(*) as c FROM levels').get().c;
-if (levelCount === 0) {
-  const insertLevel = db.prepare('INSERT INTO levels (name, icon, color, min_forums, min_books, min_comments, order_num) VALUES (?,?,?,?,?,?,?)');
-  insertLevel.run('Yeni Üye', 'fas fa-seedling', '#6b7280', 0, 0, 0, 1);
-  insertLevel.run('Aktif Üye', 'fas fa-fire', '#f97316', 5, 1, 10, 2);
-  insertLevel.run('Katkıcı', 'fas fa-pen', '#3b82f6', 15, 3, 30, 3);
-  insertLevel.run('Uzman', 'fas fa-crown', '#8b5cf6', 30, 5, 60, 4);
-  insertLevel.run('Efsane', 'fas fa-dragon', '#dc2626', 50, 10, 100, 5);
+async function query(text, params) {
+  const client = await pool.connect();
+  try {
+    return await client.query(text, params);
+  } finally {
+    client.release();
+  }
 }
 
-const tagCount = db.prepare('SELECT COUNT(*) as c FROM tags').get().c;
-if (tagCount === 0) {
-  const insertTag = db.prepare('INSERT INTO tags (name, color, is_system) VALUES (?,?,1)');
-  insertTag.run('Genel', '#3b82f6');
-  insertTag.run('Soru', '#f97316');
-  insertTag.run('Tartışma', '#8b5cf6');
-  insertTag.run('Haber', '#dc2626');
-  insertTag.run('Yardım', '#10b981');
-  insertTag.run('Teknoloji', '#06b6d4');
-  insertTag.run('Sanat', '#ec4899');
-  insertTag.run('Edebiyat', '#6366f1');
-}
+async function initDb() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id BIGSERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      avatar TEXT DEFAULT '',
+      bio TEXT DEFAULT '',
+      links TEXT DEFAULT '[]',
+      level_id INTEGER DEFAULT 1,
+      show_level_badge INTEGER DEFAULT 1,
+      show_level_color INTEGER DEFAULT 1,
+      is_vip INTEGER DEFAULT 0,
+      is_plus INTEGER DEFAULT 0,
+      name_color TEXT DEFAULT '',
+      banned INTEGER DEFAULT 0,
+      ban_type TEXT DEFAULT '',
+      banned_ip TEXT DEFAULT '',
+      ip TEXT DEFAULT '',
+      kvkk_accepted INTEGER DEFAULT 0,
+      forum_count INTEGER DEFAULT 0,
+      book_count INTEGER DEFAULT 0,
+      comment_count INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      last_active TIMESTAMP DEFAULT NOW()
+    );
 
-const adminPw = db.prepare('SELECT value FROM settings WHERE key=?').get('admin_password');
-if (!adminPw) {
-  const crypto = require('crypto');
-  db.prepare('INSERT INTO settings (key,value) VALUES (?,?)').run('admin_password', crypto.createHash('sha256').update('admin123').digest('hex'));
-}
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
 
-const kvkk = db.prepare('SELECT value FROM settings WHERE key=?').get('kvkk_text');
-if (!kvkk) {
-  db.prepare('INSERT INTO settings (key,value) VALUES (?,?)').run('kvkk_text', `KİŞİSEL VERİLERİN KORUNMASI KANUNU (KVKK) AYDINLATMA METNİ
+    CREATE TABLE IF NOT EXISTS levels (
+      id BIGSERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      icon TEXT DEFAULT 'fas fa-star',
+      color TEXT DEFAULT '#dc2626',
+      min_forums INTEGER DEFAULT 0,
+      min_books INTEGER DEFAULT 0,
+      min_comments INTEGER DEFAULT 0,
+      min_book_pages INTEGER DEFAULT 0,
+      require_any INTEGER DEFAULT 0,
+      order_num INTEGER DEFAULT 0,
+      daily_forums INTEGER DEFAULT -1,
+      daily_books INTEGER DEFAULT -1,
+      daily_book_pages INTEGER DEFAULT -1,
+      daily_forums_vip INTEGER DEFAULT -1,
+      daily_books_vip INTEGER DEFAULT -1,
+      daily_book_pages_vip INTEGER DEFAULT -1,
+      daily_forums_plus INTEGER DEFAULT -1,
+      daily_books_plus INTEGER DEFAULT -1,
+      daily_book_pages_plus INTEGER DEFAULT -1
+    );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS forums (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      banner_image TEXT DEFAULT '',
+      slug TEXT UNIQUE,
+      allow_comments INTEGER DEFAULT 1,
+      custom_tags TEXT DEFAULT '',
+      views INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS forum_views (
+      id BIGSERIAL PRIMARY KEY,
+      forum_id BIGINT,
+      ip TEXT,
+      view_count INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS forum_likes (
+      id BIGSERIAL PRIMARY KEY,
+      forum_id BIGINT,
+      user_id BIGINT,
+      UNIQUE(forum_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS forum_comments (
+      id BIGSERIAL PRIMARY KEY,
+      forum_id BIGINT,
+      user_id BIGINT,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(forum_id) REFERENCES forums(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS forum_comment_likes (
+      id BIGSERIAL PRIMARY KEY,
+      comment_id BIGINT,
+      user_id BIGINT,
+      UNIQUE(comment_id, user_id),
+      FOREIGN KEY(comment_id) REFERENCES forum_comments(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS tags (
+      id BIGSERIAL PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      color TEXT DEFAULT '#dc2626',
+      is_system INTEGER DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS forum_tags (
+      id BIGSERIAL PRIMARY KEY,
+      forum_id BIGINT,
+      tag_id BIGINT,
+      UNIQUE(forum_id, tag_id),
+      FOREIGN KEY(forum_id) REFERENCES forums(id) ON DELETE CASCADE,
+      FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS books (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT,
+      title TEXT NOT NULL,
+      preface TEXT DEFAULT '',
+      cover_image TEXT DEFAULT '',
+      slug TEXT UNIQUE,
+      page_count INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS book_chapters (
+      id BIGSERIAL PRIMARY KEY,
+      book_id BIGINT,
+      title TEXT NOT NULL,
+      order_num INTEGER DEFAULT 0,
+      FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS book_pages (
+      id BIGSERIAL PRIMARY KEY,
+      book_id BIGINT,
+      chapter_id BIGINT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      page_num INTEGER DEFAULT 1,
+      slug TEXT UNIQUE,
+      image_url TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE CASCADE,
+      FOREIGN KEY(chapter_id) REFERENCES book_chapters(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS groups (
+      id BIGSERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT UNIQUE,
+      description TEXT DEFAULT '',
+      cover_image TEXT DEFAULT '',
+      owner_id BIGINT,
+      type TEXT DEFAULT 'public',
+      allow_chat INTEGER DEFAULT 1,
+      allow_photos INTEGER DEFAULT 1,
+      invite_only INTEGER DEFAULT 0,
+      member_count INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS group_members (
+      id BIGSERIAL PRIMARY KEY,
+      group_id BIGINT,
+      user_id BIGINT,
+      role TEXT DEFAULT 'member',
+      joined_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(group_id, user_id),
+      FOREIGN KEY(group_id) REFERENCES groups(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS moderator_permissions (
+      id BIGSERIAL PRIMARY KEY,
+      group_id BIGINT,
+      user_id BIGINT,
+      can_delete_messages INTEGER DEFAULT 0,
+      can_ban_members INTEGER DEFAULT 0,
+      can_edit_group INTEGER DEFAULT 0,
+      can_manage_invites INTEGER DEFAULT 0,
+      UNIQUE(group_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS group_messages (
+      id BIGSERIAL PRIMARY KEY,
+      group_id BIGINT,
+      user_id BIGINT,
+      content TEXT,
+      image_url TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(group_id) REFERENCES groups(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS group_invites (
+      id BIGSERIAL PRIMARY KEY,
+      group_id BIGINT,
+      invite_code TEXT UNIQUE,
+      created_by BIGINT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS system_logs (
+      id BIGSERIAL PRIMARY KEY,
+      actor TEXT,
+      action TEXT,
+      target TEXT DEFAULT '',
+      detail TEXT DEFAULT '',
+      ip TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
+  // Seed default levels
+  const { rows: lvRows } = await query('SELECT COUNT(*) as c FROM levels');
+  if (parseInt(lvRows[0].c) === 0) {
+    const ins = 'INSERT INTO levels (name,icon,color,min_forums,min_books,min_comments,order_num) VALUES ($1,$2,$3,$4,$5,$6,$7)';
+    await query(ins, ['Yeni Üye',   'fas fa-seedling', '#6b7280', 0,  0,  0,   1]);
+    await query(ins, ['Aktif Üye',  'fas fa-fire',     '#f97316', 5,  1,  10,  2]);
+    await query(ins, ['Katkıcı',    'fas fa-pen',      '#3b82f6', 15, 3,  30,  3]);
+    await query(ins, ['Uzman',      'fas fa-crown',    '#8b5cf6', 30, 5,  60,  4]);
+    await query(ins, ['Efsane',     'fas fa-dragon',   '#dc2626', 50, 10, 100, 5]);
+  }
+
+  // Seed default tags
+  const { rows: tagRows } = await query('SELECT COUNT(*) as c FROM tags');
+  if (parseInt(tagRows[0].c) === 0) {
+    const ins = 'INSERT INTO tags (name,color,is_system) VALUES ($1,$2,1)';
+    await query(ins, ['Genel',     '#3b82f6']);
+    await query(ins, ['Soru',      '#f97316']);
+    await query(ins, ['Tartışma',  '#8b5cf6']);
+    await query(ins, ['Haber',     '#dc2626']);
+    await query(ins, ['Yardım',    '#10b981']);
+    await query(ins, ['Teknoloji', '#06b6d4']);
+    await query(ins, ['Sanat',     '#ec4899']);
+    await query(ins, ['Edebiyat',  '#6366f1']);
+  }
+
+  // Seed admin password
+  const { rows: pwRows } = await query("SELECT value FROM settings WHERE key='admin_password'");
+  if (pwRows.length === 0) {
+    const hash = crypto.createHash('sha256').update('admin123').digest('hex');
+    await query('INSERT INTO settings (key,value) VALUES ($1,$2)', ['admin_password', hash]);
+  }
+
+  // Seed KVKK
+  const { rows: kvkkRows } = await query("SELECT value FROM settings WHERE key='kvkk_text'");
+  if (kvkkRows.length === 0) {
+    await query('INSERT INTO settings (key,value) VALUES ($1,$2)', ['kvkk_text', `KİŞİSEL VERİLERİN KORUNMASI KANUNU (KVKK) AYDINLATMA METNİ
 
 Demlik Forum olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında kişisel verilerinizin işlenmesine ilişkin sizi bilgilendirmek isteriz.
 
@@ -284,7 +300,10 @@ Kişisel verileriniz yasal yükümlülükler dışında üçüncü kişilerle pa
 KVKK'nın 11. maddesi kapsamında; kişisel verilerinize erişim, düzeltme, silme ve işlemenin kısıtlanmasını talep etme haklarına sahipsiniz.
 
 6. İLETİŞİM
-Talepleriniz için platform üzerinden iletişime geçebilirsiniz.`);
+Talepleriniz için platform üzerinden iletişime geçebilirsiniz.`]);
+  }
+
+  console.log('PostgreSQL bağlantısı ve tablolar hazır.');
 }
 
-module.exports = db;
+module.exports = { query, pool, initDb };

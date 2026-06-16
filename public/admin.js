@@ -758,6 +758,25 @@ async function renderSettings(main) {
           <div id="kvkk-msg" class="form-error" style="margin-top:8px"></div>
         </div>
       </div>
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-header"><i class="fas fa-shoe-prints"></i> Footer Ayarları</div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px 16px">
+            <label style="white-space:nowrap;margin:0">"Created By" Yazısı</label>
+            <label class="checkbox-label" style="margin:0">
+              <input type="checkbox" id="footer-created-cb" ${settings.footer_created_visible !== '0' ? 'checked' : ''} />
+              <span style="color:var(--text-secondary);font-size:13px">Göster (Created By. İsmail DEMİRCAN)</span>
+            </label>
+            <label style="white-space:nowrap;margin:0">Copyright Metni</label>
+            <input type="text" id="footer-copyright-text" value="${escHtml(settings.footer_copyright_text || '©\u00a0Copyright 2026')}" placeholder="© Copyright 2026" />
+          </div>
+          <div style="margin-top:6px;font-size:12px;color:var(--text-muted)">
+            Not: Copyright metni her zaman görünür. Sadece "Created By" kısmını açıp kapatabilirsiniz.
+          </div>
+          <button class="btn btn-primary" style="margin-top:14px" id="save-footer">Kaydet</button>
+          <div id="footer-msg" class="form-error" style="margin-top:8px"></div>
+        </div>
+      </div>
     </div>`;
 
   $('#save-admin-pw').addEventListener('click', async () => {
@@ -786,5 +805,16 @@ async function renderSettings(main) {
       toast('KVKK metni güncellendi');
       $('#kvkk-msg').style.color = '#4ade80'; $('#kvkk-msg').textContent = 'Kaydedildi ✓';
     } catch (e) { $('#kvkk-msg').textContent = e.message; }
+  });
+
+  $('#save-footer').addEventListener('click', async () => {
+    const createdVisible = $('#footer-created-cb').checked ? '1' : '0';
+    const copyrightText = $('#footer-copyright-text').value.trim() || '©\u00a0Copyright 2026';
+    try {
+      await adminApi('/settings', { method: 'POST', body: JSON.stringify({ key: 'footer_created_visible', value: createdVisible }) });
+      await adminApi('/settings', { method: 'POST', body: JSON.stringify({ key: 'footer_copyright_text', value: copyrightText }) });
+      toast('Footer ayarları kaydedildi');
+      $('#footer-msg').style.color = '#4ade80'; $('#footer-msg').textContent = 'Kaydedildi ✓';
+    } catch (e) { $('#footer-msg').textContent = e.message; }
   });
 }

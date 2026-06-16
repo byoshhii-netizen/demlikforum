@@ -1706,7 +1706,13 @@ function renderRegister(app) {
       <div class="auth-title">Kayıt Ol</div>
       <p class="auth-subtitle">Topluluğa katıl</p>
       <div class="form-group"><label>Kullanıcı Adı</label><input type="text" id="reg-username" placeholder="..." /></div>
-      <div class="form-group"><label>E-posta</label><input type="email" id="reg-email" placeholder="..." /></div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px">
+          E-posta
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400;font-style:italic">Sallayabilirsiniz. Zaten umursamıyoruz&nbsp;: )</span>
+        </label>
+        <input type="email" id="reg-email" placeholder="..." />
+      </div>
       <div class="form-group"><label>Şifre</label><input type="password" id="reg-pw" placeholder="••••••" /></div>
       <div class="form-group">
         <label class="checkbox-label">
@@ -1759,6 +1765,22 @@ function renderNotFound(app) {
 
 async function init() {
   await initAuth();
+  // Footer ayarlarını yükle
+  try {
+    const ps = await fetch('/api/public-settings').then(r => r.json());
+    const footer = document.getElementById('site-footer');
+    if (footer) {
+      // "Created By" kısmı açık/kapalı
+      const createdVisible = ps.footer_created_visible !== '0';
+      // Copyright metni (özelleştirilebilir)
+      const copyrightText = ps.footer_copyright_text || '©&nbsp;Copyright 2026';
+      if (createdVisible) {
+        footer.innerHTML = `Created By. İsmail DEMİRCAN &nbsp;${copyrightText}`;
+      } else {
+        footer.innerHTML = copyrightText;
+      }
+    }
+  } catch {}
   renderRoute(location.pathname);
 }
 
