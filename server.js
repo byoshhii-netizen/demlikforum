@@ -5,6 +5,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const slugify = require('slugify');
+const rateLimit = require('express-rate-limit');
 const { query, initDb } = require('./database');
 
 const app = express();
@@ -15,7 +16,57 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 app.use(express.json());
 app.use('/uploads', express.static(UPLOAD_DIR));
 
+// Cloudflare proxy arkasındaysa gerçek IP'yi al
+app.set('trust proxy', 1);
+
 const SITE_URL = process.env.SITE_URL || 'https://demlikforum.up.railway.app';
+
+// ===== RATE LIMITERS =====
+
+// Genel API: dakikada 120 istek
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Çok fazla istek. Lütfen bekleyin.' },
+});
+
+// Auth (login/register): 15 dakikada 10 deneme
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Çok fazla giriş denemesi. 15 dakika bekleyin.' },
+});
+
+// Upload: dakikada 10 yükleme
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Çok fazla yükleme. Lütfen bekleyin.' },
+});
+
+// İçerik oluşturma (forum/kitap/mesaj): dakikada 20
+const createLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Çok hızlı içerik oluşturuyorsunuz. Yavaşlayın.' },
+});
+
+app.use('/api/', generalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/upload', uploadLimiter);
+app.use('/api/group/:slug/upload', uploadLimiter);
+app.use('/api/forums', createLimiter);
+app.use('/api/books', createLimiter);
+app.use('/api/group/:slug/messages', createLimiter);
 
 function escapeHtml(str) {
   if (!str) return '';
