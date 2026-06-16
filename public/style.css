@@ -36,7 +36,8 @@ body {
 
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
-img { max-width: 100%; }
+img { max-width: 100%; height: auto; display: block; }
+* { box-sizing: border-box; min-width: 0; }
 input, textarea, select {
   font-family: inherit;
   font-size: 14px;
@@ -178,7 +179,6 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 @media (max-width: 1024px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
-
 /* ===== CARDS ===== */
 .card {
   background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
@@ -339,12 +339,12 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .progress-fill { height: 100%; background: var(--grad-red); border-radius: 4px; transition: width 0.4s; }
 
 /* ===== FORUM DETAIL ===== */
-.forum-detail { max-width: 800px; margin: 0 auto; }
-.forum-detail-header { margin-bottom: 24px; }
-.forum-detail-title { font-size: 28px; font-weight: 800; margin-bottom: 12px; }
+.forum-detail { max-width: 800px; margin: 0 auto; overflow: hidden; }
+.forum-detail-header { margin-bottom: 24px; overflow: hidden; }
+.forum-detail-title { font-size: 28px; font-weight: 800; margin-bottom: 12px; word-break: break-word; overflow-wrap: anywhere; }
 .forum-detail-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); }
 .forum-detail-banner { width: 100%; border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; aspect-ratio: 16/6; object-fit: cover; }
-.forum-detail-content { font-size: 15px; line-height: 1.8; color: var(--text-primary); white-space: pre-wrap; margin-bottom: 32px; word-break: break-word; overflow-wrap: anywhere; max-width: 100%; }
+.forum-detail-content { font-size: 15px; line-height: 1.8; color: var(--text-primary); white-space: pre-wrap; margin-bottom: 32px; word-break: break-word; overflow-wrap: anywhere; max-width: 100%; overflow: hidden; }
 .forum-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
 .forum-action-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); transition: all 0.2s; }
 .forum-action-btn:hover, .forum-action-btn.active { border-color: var(--border-hover); color: var(--accent-red2); background: rgba(220,38,38,0.05); }
