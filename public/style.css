@@ -30,6 +30,8 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -342,7 +344,7 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .forum-detail-title { font-size: 28px; font-weight: 800; margin-bottom: 12px; }
 .forum-detail-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); }
 .forum-detail-banner { width: 100%; border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; aspect-ratio: 16/6; object-fit: cover; }
-.forum-detail-content { font-size: 15px; line-height: 1.8; color: var(--text-primary); white-space: pre-wrap; margin-bottom: 32px; }
+.forum-detail-content { font-size: 15px; line-height: 1.8; color: var(--text-primary); white-space: pre-wrap; margin-bottom: 32px; word-break: break-word; overflow-wrap: anywhere; max-width: 100%; }
 .forum-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
 .forum-action-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); transition: all 0.2s; }
 .forum-action-btn:hover, .forum-action-btn.active { border-color: var(--border-hover); color: var(--accent-red2); background: rgba(220,38,38,0.05); }
@@ -357,7 +359,7 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .comment-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .comment-author { font-size: 13px; font-weight: 600; }
 .comment-time { font-size: 11px; color: var(--text-muted); }
-.comment-content { font-size: 14px; color: var(--text-primary); white-space: pre-wrap; }
+.comment-content { font-size: 14px; color: var(--text-primary); white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 .comment-form { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 24px; }
 .comment-form textarea { flex: 1; min-height: 80px; }
 

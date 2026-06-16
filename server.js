@@ -6,15 +6,35 @@ const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const slugify = require('slugify');
 const rateLimit = require('express-rate-limit');
+const cloudinary = require('cloudinary').v2;
 const { query, initDb } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Cloudinary config — Railway'de CLOUDINARY_URL env var olarak ekle
+// Format: cloudinary://API_KEY:API_SECRET@CLOUD_NAME
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config({ secure: true });
+} else if (process.env.CLOUDINARY_CLOUD_NAME) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+  });
+}
+
+const USE_CLOUDINARY = !!(process.env.CLOUDINARY_URL || process.env.CLOUDINARY_CLOUD_NAME);
+
+// Fallback: local disk (Railway volume veya geliştirme)
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/data/uploads';
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+if (!USE_CLOUDINARY) {
+  try { if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
+}
 
 app.use(express.json());
-app.use('/uploads', express.static(UPLOAD_DIR));
+if (!USE_CLOUDINARY) app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Cloudflare proxy arkasındaysa gerçek IP'yi al
 app.set('trust proxy', 1);
@@ -188,14 +208,37 @@ async function checkDailyLimit(userId, user, type) {
 }
 
 // ===== MULTER / UPLOAD =====
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, uuidv4() + ext);
-  }
-});
+// Memory storage — Cloudinary varsa RAM'den upload, yoksa disk'e yaz
+const storage = USE_CLOUDINARY
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+      filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, uuidv4() + ext);
+      }
+    });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Yükleme helper'ı — Cloudinary ya da disk
+async function handleUpload(file) {
+  if (USE_CLOUDINARY) {
+    return new Promise((resolve, reject) => {
+      const ext = path.extname(file.originalname).replace('.', '') || 'jpg';
+      const public_id = 'demlik/' + uuidv4();
+      cloudinary.uploader.upload_stream(
+        { public_id, resource_type: 'image', format: ext, quality: 'auto', fetch_format: 'auto' },
+        (err, result) => {
+          if (err) reject(err);
+          else resolve(result.secure_url);
+        }
+      ).end(file.buffer);
+    });
+  } else {
+    // Disk'e kaydet (zaten multer yazdı)
+    return '/uploads/' + file.filename;
+  }
+}
 
 // ===== ROBOTS & SITEMAP =====
 app.get('/robots.txt', (req, res) => {
@@ -840,7 +883,12 @@ app.post('/api/group/:slug/upload', authMiddleware, upload.single('image'), asyn
   const { rows } = await query('SELECT allow_photos FROM groups WHERE slug=$1', [req.params.slug]);
   if (!rows.length || !rows[0].allow_photos) return res.status(403).json({ error: 'Fotoğraf yükleme kapalı' });
   if (!req.file) return res.status(400).json({ error: 'Dosya bulunamadı' });
-  res.json({ url: '/uploads/' + req.file.filename });
+  try {
+    const url = await handleUpload(req.file);
+    res.json({ url });
+  } catch (e) {
+    res.status(500).json({ error: 'Yükleme hatası: ' + e.message });
+  }
 });
 
 // ===== PROFILE =====
@@ -861,16 +909,21 @@ app.get('/api/profile/:username', async (req, res) => {
 
 app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
   const { bio, links, name_color, show_level_badge, show_level_color } = req.body;
-  const avatar = req.file ? '/uploads/' + req.file.filename : undefined;
-  const user = req.user;
-  const newAvatar = avatar !== undefined ? avatar : user.avatar;
-  const newLinks = links ? (typeof links === 'string' ? links : JSON.stringify(links)) : user.links;
+  let newAvatar = req.user.avatar;
+  if (req.file) {
+    try {
+      newAvatar = await handleUpload(req.file);
+    } catch (e) {
+      return res.status(500).json({ error: 'Avatar yükleme hatası: ' + e.message });
+    }
+  }
+  const newLinks = links ? (typeof links === 'string' ? links : JSON.stringify(links)) : req.user.links;
   await query('UPDATE users SET bio=$1,links=$2,name_color=$3,show_level_badge=$4,show_level_color=$5,avatar=$6 WHERE id=$7',
-    [bio??user.bio, newLinks, name_color??user.name_color,
-     show_level_badge!==undefined?(show_level_badge?1:0):user.show_level_badge,
-     show_level_color!==undefined?(show_level_color?1:0):user.show_level_color,
-     newAvatar, user.id]);
-  const { rows } = await query('SELECT * FROM users WHERE id=$1', [user.id]);
+    [bio??req.user.bio, newLinks, name_color??req.user.name_color,
+     show_level_badge!==undefined?(show_level_badge?1:0):req.user.show_level_badge,
+     show_level_color!==undefined?(show_level_color?1:0):req.user.show_level_color,
+     newAvatar, req.user.id]);
+  const { rows } = await query('SELECT * FROM users WHERE id=$1', [req.user.id]);
   res.json(sanitizeUser(rows[0]));
 });
 
@@ -885,7 +938,12 @@ app.put('/api/profile/password', authMiddleware, async (req, res) => {
 
 app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Dosya bulunamadı' });
-  res.json({ url: '/uploads/' + req.file.filename });
+  try {
+    const url = await handleUpload(req.file);
+    res.json({ url });
+  } catch (e) {
+    res.status(500).json({ error: 'Yükleme hatası: ' + e.message });
+  }
 });
 
 // ===== ADMIN =====
