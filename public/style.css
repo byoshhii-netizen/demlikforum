@@ -20,7 +20,7 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; overflow-x: hidden; }
+html { scroll-behavior: smooth; overflow-x: hidden; max-width: 100vw; }
 
 body {
   background: var(--bg-primary);
@@ -32,12 +32,30 @@ body {
   overflow-x: hidden;
   word-break: break-word;
   overflow-wrap: anywhere;
+  max-width: 100vw;
 }
 
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
 img { max-width: 100%; height: auto; display: block; }
 * { box-sizing: border-box; min-width: 0; }
+
+/* Global taşma önleme */
+#app, .container, .page, .card, .card-body,
+.forum-card, .book-card, .group-card,
+.comment, .comment-body,
+.chat-msg, .chat-msg-body, .chat-msg-text,
+.forum-detail, .forum-detail-content,
+.profile-header, .profile-info {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Flex ve grid taşma */
+.flex, [style*="display:flex"], [style*="display: flex"] {
+  min-width: 0;
+}
 input, textarea, select {
   font-family: inherit;
   font-size: 14px;
@@ -408,9 +426,10 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .chat-msg-time { font-size: 11px; color: var(--text-muted); }
 .chat-msg-text { font-size: 14px; color: var(--text-primary); background: var(--bg-card2); padding: 8px 12px; border-radius: 0 8px 8px 8px; display: inline-block; max-width: 100%; word-break: break-word; }
 .chat-msg-img { max-width: 200px; border-radius: 8px; margin-top: 4px; cursor: pointer; }
-.chat-input-bar { border-top: 1px solid var(--border); padding: 12px; display: flex; gap: 8px; }
-.chat-input-bar input { flex: 1; }
+.chat-input-bar { border-top: 1px solid var(--border); padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+.chat-input-bar input { flex: 1; min-width: 0; }
 .chat-input-bar button { flex-shrink: 0; }
+.chat-input-bar label { flex-shrink: 0; cursor: pointer; }
 .group-sidebar-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
 .member-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
 .member-item:last-child { border-bottom: none; }
@@ -946,4 +965,71 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
   .fdm-bubble { width: calc(100vw - 32px); max-width: 320px; }
   #floating-dm { bottom: 72px; right: 8px; }
   .fdm-toggle-btn { bottom: 72px; right: 8px; }
+}
+
+/* ===== MOBİL TAŞMA - KAPSAMLI FİX ===== */
+@media (max-width: 768px) {
+  /* Genel taşma engeli */
+  body, html { overflow-x: hidden !important; }
+  
+  /* Tüm içerik konteynerleri */
+  .container { padding: 0 12px !important; overflow: hidden; }
+  
+  /* Flex içlerinde min-width zorunlu */
+  .nav-container, .forum-card-meta, .profile-links,
+  .profile-stats, .forum-actions, .section-header,
+  .chat-msg, .chat-msg-body, .comment, .comment-body,
+  .forum-detail-meta { flex-wrap: wrap !important; }
+
+  /* Metinler taşmasın */
+  .forum-card-title, .forum-card-preview,
+  .book-title, .book-desc, .group-name, .group-desc,
+  .forum-detail-title, .forum-detail-content,
+  .comment-content, .chat-msg-text,
+  .profile-username, .page-reader-title,
+  .page-reader-content { 
+    word-break: break-word !important; 
+    overflow-wrap: anywhere !important;
+    max-width: 100% !important;
+  }
+
+  /* Resimler taşmasın */
+  img { max-width: 100% !important; height: auto !important; }
+  
+  /* Grid tek kolon */
+  .grid-2, .grid-3, .form-row { grid-template-columns: 1fr !important; }
+  
+  /* Grup detay */
+  .group-detail-layout { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .chat-container { height: 380px !important; }
+  
+  /* Forum meta kayma */
+  .forum-detail-meta { gap: 8px !important; font-size: 12px !important; }
+  .forum-detail-meta span { flex-shrink: 0; }
+  
+  /* Profil */
+  .profile-header { flex-direction: column !important; }
+  
+  /* Kitap detay */
+  .book-detail-header { flex-direction: column !important; }
+  .book-detail-cover { width: 100% !important; max-width: 160px !important; align-self: center !important; }
+
+  /* Textarea ve input iOS zoom engeli */
+  input, textarea, select { font-size: 16px !important; }
+
+  /* Forum card banner */
+  .forum-card { flex-direction: column !important; }
+  .forum-card-accent { width: 100% !important; height: 3px !important; }
+  .forum-card-banner { width: 100% !important; height: 140px !important; min-height: unset !important; }
+
+  /* Sayfa okuyucu */
+  .page-nav { flex-direction: column !important; }
+  .page-nav-btn { width: 100% !important; }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 36px !important; }
+  .page-title { font-size: 20px !important; }
+  .forum-detail-title { font-size: 18px !important; }
+  .btn { font-size: 13px !important; }
 }

@@ -106,7 +106,7 @@ function userDisplayName(u) {
 
 function avatarImg(u, cls = 'avatar-sm') {
   if (u && u.avatar) return `<img src="${escHtml(u.avatar)}" class="${cls}" alt="" />`;
-  return `<div class="${cls} avatar-placeholder"><i class="fas fa-user"></i></div>`;
+  return `<div class="${cls} avatar-placeholder" style="font-size:0.75em;font-weight:700;color:var(--text-muted)">?</div>`;
 }
 
 function navigate(path, push = true) {
@@ -245,7 +245,7 @@ $('#nav-new-btn')?.addEventListener('click', e => {
 });
 $('#nav-new-forum')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/forum'); setTimeout(() => { if (currentUser) showNewForumModal(); else navigate('/giris'); }, 100); });
 $('#nav-new-book')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/kitaplar'); setTimeout(() => { if (currentUser) showNewBookModal(); else navigate('/giris'); }, 100); });
-$('#nav-new-group')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/gruplar'); setTimeout(() => { if (currentUser) showNewGroupModal(); else navigate('/giris'); }, 100); });
+$('#nav-new-group')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/gruplar'); });
 $('#logout-btn').addEventListener('click', async () => {
   try { await api('/auth/logout', { method: 'POST' }); } catch {}
   currentToken = null; currentUser = null;
@@ -1223,11 +1223,12 @@ async function renderGroupDetail(app, slug) {
       <div>
         ${group.allow_chat ? `
           <div class="chat-container">
-            <div class="chat-messages" id="chat-messages">${messages.map(m => chatMsgHTML(m)).join('')}</div>
+            <div class="chat-messages" id="chat-messages">${messages.map(m => chatMsgHTML(m, isOwner || isMod)).join('')}</div>
+            ${(window._chatCanMod = isOwner || isMod, '')}
             ${canSend ? `<div class="chat-input-bar">
-              <input id="chat-input" type="text" placeholder="Mesaj yaz..." />
-              ${group.allow_photos ? `<label class="btn btn-ghost btn-sm" for="chat-img-input" title="Fotoğraf gönder"><i class="fas fa-image"></i></label><input id="chat-img-input" type="file" accept="image/*" style="display:none" />` : ''}
-              <button class="btn btn-primary btn-sm" id="send-msg-btn"><i class="fas fa-paper-plane"></i></button>
+              ${group.allow_photos ? `<label class="btn btn-ghost btn-sm" for="chat-img-input" title="Fotoğraf gönder" style="flex-shrink:0"><i class="fas fa-image"></i></label><input id="chat-img-input" type="file" accept="image/*" style="display:none" />` : ''}
+              <input id="chat-input" type="text" placeholder="Mesaj yaz..." style="flex:1;min-width:0" />
+              <button class="btn btn-primary btn-sm" id="send-msg-btn" style="flex-shrink:0"><i class="fas fa-paper-plane"></i></button>
             </div>` : (currentUser && !isMember ? `<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:13px">Mesaj göndermek için gruba katılın.</div>` : `<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:13px">Giriş yaparak katılabilirsiniz.</div>`)}
           </div>` : `<div class="card card-body" style="text-align:center;color:var(--text-muted)"><i class="fas fa-comment-slash" style="font-size:32px;margin-bottom:8px;display:block"></i>Sohbet kapatılmış.</div>`}
       </div>
@@ -1267,7 +1268,7 @@ async function renderGroupDetail(app, slug) {
       if (!content) return;
       try {
         const msg = await api('/group/' + slug + '/messages', { method: 'POST', body: JSON.stringify({ content }) });
-        $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(msg));
+        $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(msg, window._chatCanMod));
         input.value = '';
         chatEl.scrollTop = chatEl.scrollHeight;
       } catch (e) { toast(e.message, 'error'); }
@@ -1281,7 +1282,7 @@ async function renderGroupDetail(app, slug) {
       try {
         const r = await apiForm('/group/' + slug + '/upload', fd);
         const msg = await api('/group/' + slug + '/messages', { method: 'POST', body: JSON.stringify({ content: '', image_url: r.url }) });
-        $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(msg));
+        $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(msg, window._chatCanMod));
         chatEl.scrollTop = chatEl.scrollHeight;
       } catch (e) { toast(e.message, 'error'); }
       e.target.value = '';
@@ -1294,7 +1295,7 @@ async function renderGroupDetail(app, slug) {
         const newMsgs = await api('/group/' + slug + '/messages');
         const newest = newMsgs.filter(m => m.id > lastId);
         if (newest.length) {
-          newest.forEach(m => { $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(m)); });
+          newest.forEach(m => { $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(m, window._chatCanMod)); });
           lastId = newest[newest.length - 1].id;
           const chatEl2 = $('#chat-messages');
           if (chatEl2) chatEl2.scrollTop = chatEl2.scrollHeight;
@@ -1382,10 +1383,11 @@ async function renderGroupDetail(app, slug) {
   });
 }
 
-function chatMsgHTML(m) {
-  const canDel = currentUser && (currentUser.id === m.user_id);
+function chatMsgHTML(m, canModDelete = false) {
+  const isOwn = currentUser && currentUser.id === m.user_id;
+  const canDel = isOwn || canModDelete;
   return `<div class="chat-msg">
-    ${m.avatar ? `<img src="${escHtml(m.avatar)}" class="chat-msg-avatar" alt="" />` : `<div class="chat-msg-avatar avatar-placeholder"><i class="fas fa-user" style="font-size:12px"></i></div>`}
+    ${m.avatar ? `<img src="${escHtml(m.avatar)}" class="chat-msg-avatar" alt="" />` : `<div class="chat-msg-avatar avatar-placeholder" style="font-size:11px;font-weight:700">?</div>`}
     <div class="chat-msg-body">
       <div class="chat-msg-meta">
         <span class="chat-msg-name">${escHtml(m.username || 'Silindi')}</span>
