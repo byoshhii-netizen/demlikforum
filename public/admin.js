@@ -195,11 +195,14 @@ function showEditUserModal(user) {
     <div class="form-group">
       <label class="checkbox-label"><input type="checkbox" id="eu-vip" ${user.is_vip ? 'checked' : ''} /> VIP</label>
       <label class="checkbox-label" style="margin-top:6px"><input type="checkbox" id="eu-plus" ${user.is_plus ? 'checked' : ''} /> Plus</label>
+      <label class="checkbox-label" style="margin-top:6px"><input type="checkbox" id="eu-admin" ${user.is_admin ? 'checked' : ''} /> <i class="fas fa-shield-alt" style="color:#5865F2"></i> Demlik Yetkilisi (Admin)</label>
     </div>
     <button class="btn btn-primary" id="eu-submit" style="width:100%">Kaydet</button>
     <div id="eu-error" class="form-error" style="margin-top:8px"></div>
   `);
   $('#eu-submit').addEventListener('click', async () => {
+    const wasAdmin = !!user.is_admin;
+    const isAdmin = $('#eu-admin').checked;
     const body = {
       username: $('#eu-username').value.trim(),
       email: $('#eu-email').value.trim(),
@@ -212,6 +215,9 @@ function showEditUserModal(user) {
     if (pw) body.password = pw;
     try {
       await adminApi('/user/' + user.id, { method: 'PUT', body: JSON.stringify(body) });
+      if (isAdmin !== wasAdmin) {
+        await adminApi('/user/' + user.id + '/set-admin', { method: 'POST', body: JSON.stringify({ is_admin: isAdmin }) });
+      }
       toast('Kullanıcı güncellendi'); hideModal(); loadSection('users');
     } catch (e) { $('#eu-error').textContent = e.message; }
   });

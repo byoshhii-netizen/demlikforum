@@ -107,7 +107,7 @@ function generateToken(userId) {
 
 function sanitizeUser(u) {
   if (!u) return null;
-  const { password_hash, ...rest } = u;
+  const { password_hash, spotify_token, spotify_refresh, ...rest } = u;
   return rest;
 }
 
@@ -1192,6 +1192,131 @@ app.get('/api/public-settings', async (req, res) => {
     const { rows } = await query('SELECT value FROM settings WHERE key=$1', [k]);
     result[k] = rows[0]?.value || null;
   }
+  res.json(result);
+});
+
+// ===== ADMİN YETKİLİ YÖNETİMİ =====
+app.post('/api/admin/user/:id/set-admin', adminMiddleware, async (req, res) => {
+  const { is_admin } = req.body;
+  const { rows } = await query('SELECT * FROM users WHERE id=$1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+  const adminSince = is_admin ? 'NOW()' : 'NULL';
+  await query(`UPDATE users SET is_admin=$1, admin_since=${adminSince} WHERE id=$2`, [is_admin ? 1 : 0, req.params.id]);
+  await logAction('admin', is_admin ? 'grant_admin' : 'revoke_admin', rows[0].username);
+  res.json({ ok: true });
+});
+
+// ===== SPOTİFY OAuth =====
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
+const SPOTIFY_REDIRECT = (process.env.SITE_URL || 'https://demlikforum.up.railway.app') + '/api/spotify/callback';
+
+app.get('/api/spotify/connect', authMiddleware, (req, res) => {
+  const scopes = 'user-read-currently-playing user-read-playback-state';
+  const url = `https://accounts.spotify.com/authorize?response_type=code&client_id=${SPOTIFY_CLIENT_ID}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT)}&state=${req.user.id}`;
+  res.redirect(url);
+});
+
+app.get('/api/spotify/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.redirect('/ayarlar?spotify=error');
+  const userId = parseInt(state);
+  if (!userId) return res.redirect('/ayarlar?spotify=error');
+  try {
+    const tokenRes = await new Promise((resolve, reject) => {
+      const body = `grant_type=authorization_code&code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT)}`;
+      const auth = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64');
+      const options = {
+        hostname: 'accounts.spotify.com', path: '/api/token', method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${auth}`, 'Content-Length': Buffer.byteLength(body) }
+      };
+      const req2 = require('https').request(options, r => {
+        let d = ''; r.on('data', c => d += c);
+        r.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(e); } });
+      });
+      req2.on('error', reject); req2.write(body); req2.end();
+    });
+    if (!tokenRes.access_token) return res.redirect('/ayarlar?spotify=error');
+    const expires = Date.now() + (tokenRes.expires_in * 1000);
+    await query('UPDATE users SET spotify_token=$1, spotify_refresh=$2, spotify_expires=$3, spotify_show=1 WHERE id=$4',
+      [tokenRes.access_token, tokenRes.refresh_token || '', expires, userId]);
+    res.redirect('/ayarlar?spotify=ok');
+  } catch (e) {
+    res.redirect('/ayarlar?spotify=error');
+  }
+});
+
+app.post('/api/spotify/disconnect', authMiddleware, async (req, res) => {
+  await query("UPDATE users SET spotify_token='', spotify_refresh='', spotify_expires=0 WHERE id=$1", [req.user.id]);
+  res.json({ ok: true });
+});
+
+app.put('/api/spotify/visibility', authMiddleware, async (req, res) => {
+  const { show } = req.body;
+  await query('UPDATE users SET spotify_show=$1 WHERE id=$2', [show ? 1 : 0, req.user.id]);
+  res.json({ ok: true });
+});
+
+async function refreshSpotifyToken(userId, refreshToken) {
+  return new Promise((resolve, reject) => {
+    const body = `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`;
+    const auth = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64');
+    const options = {
+      hostname: 'accounts.spotify.com', path: '/api/token', method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${auth}`, 'Content-Length': Buffer.byteLength(body) }
+    };
+    const req2 = require('https').request(options, r => {
+      let d = ''; r.on('data', c => d += c);
+      r.on('end', async () => {
+        try {
+          const data = JSON.parse(d);
+          if (data.access_token) {
+            const expires = Date.now() + (data.expires_in * 1000);
+            await query('UPDATE users SET spotify_token=$1, spotify_expires=$2 WHERE id=$3', [data.access_token, expires, userId]);
+            resolve(data.access_token);
+          } else { reject(new Error('refresh failed')); }
+        } catch (e) { reject(e); }
+      });
+    });
+    req2.on('error', reject); req2.write(body); req2.end();
+  });
+}
+
+app.get('/api/spotify/now-playing/:username', async (req, res) => {
+  const { rows } = await query('SELECT spotify_token, spotify_refresh, spotify_expires, spotify_show FROM users WHERE username=$1', [req.params.username]);
+  if (!rows.length || !rows[0].spotify_token || !rows[0].spotify_show) return res.json({ playing: false });
+  let token = rows[0].spotify_token;
+  const uid_rows = await query('SELECT id FROM users WHERE username=$1', [req.params.username]);
+  const uid = uid_rows.rows[0]?.id;
+  // Token süresi dolmuşsa yenile
+  if (Date.now() > parseInt(rows[0].spotify_expires) - 60000) {
+    try { token = await refreshSpotifyToken(uid, rows[0].spotify_refresh); } catch { return res.json({ playing: false }); }
+  }
+  // Spotify API'den şu an çalınanı al
+  const result = await new Promise(resolve => {
+    const options = {
+      hostname: 'api.spotify.com', path: '/v1/me/player/currently-playing',
+      headers: { 'Authorization': `Bearer ${token}` }
+    };
+    const req2 = require('https').request(options, r => {
+      let d = ''; r.on('data', c => d += c);
+      r.on('end', () => {
+        if (r.statusCode === 204 || !d) return resolve({ playing: false });
+        try {
+          const data = JSON.parse(d);
+          if (!data.item || !data.is_playing) return resolve({ playing: false });
+          resolve({
+            playing: true,
+            title: data.item.name,
+            artist: data.item.artists.map(a => a.name).join(', '),
+            album_art: data.item.album?.images?.[0]?.url || '',
+            url: data.item.external_urls?.spotify || ''
+          });
+        } catch { resolve({ playing: false }); }
+      });
+    });
+    req2.on('error', () => resolve({ playing: false })); req2.end();
+  });
   res.json(result);
 });
 

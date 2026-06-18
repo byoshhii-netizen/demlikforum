@@ -101,7 +101,8 @@ function escHtml(s) {
 function userDisplayName(u) {
   if (!u) return 'Silindi';
   const color = (u.show_level_color !== 0 && u.name_color) ? `style="color:${escHtml(u.name_color)}"` : '';
-  return `<span class="user-badge" ${color}>${escHtml(u.username)}${u.is_vip ? ' <i class="fas fa-gem user-vip" title="VIP"></i>' : ''}${u.is_plus ? ' <i class="fas fa-plus user-plus" title="Plus"></i>' : ''}</span>`;
+  const adminBadge = u.is_admin ? ` <i class="fas fa-shield-alt user-admin" title="Demlik Yetkilisi" data-admin-since="${escHtml(u.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:13px"></i>` : '';
+  return `<span class="user-badge" ${color}>${escHtml(u.username)}${u.is_vip ? ' <i class="fas fa-gem user-vip" title="VIP"></i>' : ''}${u.is_plus ? ' <i class="fas fa-plus user-plus" title="Plus"></i>' : ''}${adminBadge}</span>`;
 }
 
 function avatarImg(u, cls = 'avatar-sm') {
@@ -1545,6 +1546,7 @@ async function renderProfile(app, username) {
           <div class="profile-stat"><div class="profile-stat-num">${user.comment_count}</div><div class="profile-stat-label">Yorum</div></div>
         </div>
         ${isOwn ? `<a href="/ayarlar" data-link class="btn btn-outline btn-sm" style="margin-top:16px"><i class="fas fa-cog"></i> Profili Düzenle</a>` : ''}
+        <div id="spotify-widget-${escHtml(user.username)}"></div>
       </div>
     </div>
 
@@ -1572,6 +1574,9 @@ async function renderProfile(app, username) {
       ['forums', 'books', 'groups'].forEach(name => $('#tab-' + name).classList.toggle('hidden', name !== btn.dataset.tab));
     });
   });
+
+  // Spotify widget yükle
+  renderSpotifyWidget(username, `spotify-widget-${username}`);
 }
 
 async function renderSettings(app) {
@@ -1585,12 +1590,18 @@ async function renderSettings(app) {
         <div class="settings-nav-item active" data-section="profile"><i class="fas fa-user"></i> Profil</div>
         <div class="settings-nav-item" data-section="password"><i class="fas fa-lock"></i> Şifre</div>
         <div class="settings-nav-item" data-section="appearance"><i class="fas fa-palette"></i> Görünüm</div>
+        <div class="settings-nav-item" data-section="spotify"><i class="fab fa-spotify" style="color:#1ED760"></i> Spotify</div>
       </div>
       <div id="settings-content"></div>
     </div>
   </div>`;
 
   renderSettingsSection('profile');
+
+  // Spotify callback param kontrolü
+  const urlParams = new URLSearchParams(location.search);
+  if (urlParams.get('spotify') === 'ok') { toast('Spotify bağlandı! 🎵'); history.replaceState({}, '', '/ayarlar'); }
+  if (urlParams.get('spotify') === 'error') { toast('Spotify bağlantısı başarısız', 'error'); history.replaceState({}, '', '/ayarlar'); }
 
   $$('.settings-nav-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -1725,6 +1736,58 @@ function renderSettingsSection(section) {
         currentUser = updated; updateNavUI();
         toast('Görünüm güncellendi');
       } catch (e) { $('#appear-msg').textContent = e.message; }
+    });
+  } else if (section === 'spotify') {
+    const hasSpotify = !!(currentUser.spotify_token || currentUser.spotify_expires > 0);
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span><i class="fab fa-spotify" style="color:#1ED760;margin-right:6px"></i>Spotify Entegrasyonu</span>
+        </div>
+        <div class="card-body">
+          ${hasSpotify ? `
+            <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(30,215,96,0.08);border:1px solid rgba(30,215,96,0.2);border-radius:8px;margin-bottom:16px">
+              <i class="fab fa-spotify" style="color:#1ED760;font-size:24px"></i>
+              <div>
+                <div style="font-weight:600;color:var(--text-primary)">Spotify Bağlı</div>
+                <div style="font-size:12px;color:var(--text-muted)">Şu an çaldığın müzik profilinde gösterilebilir</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="spotify-show-cb" ${currentUser.spotify_show ? 'checked' : ''} />
+                Şu an dinlediğimi profilimde göster
+              </label>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" id="spotify-save-vis">Kaydet</button>
+              <button class="btn btn-danger" id="spotify-disconnect">Bağlantıyı Kes</button>
+            </div>
+          ` : `
+            <div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px">
+              Spotify hesabını bağlayarak profilinde şu an dinlediğin müziği gösterebilirsin — tıpkı Discord gibi.
+            </div>
+            <a href="/api/spotify/connect" class="btn btn-primary" style="background:linear-gradient(135deg,#1ED760,#17a84a);border:none;text-decoration:none">
+              <i class="fab fa-spotify"></i> Spotify Hesabını Bağla
+            </a>
+          `}
+          <div id="spotify-msg" class="form-error mt-4"></div>
+        </div>
+      </div>`;
+    $('#spotify-save-vis')?.addEventListener('click', async () => {
+      try {
+        await api('/spotify/visibility', { method: 'PUT', body: JSON.stringify({ show: $('#spotify-show-cb').checked }) });
+        currentUser.spotify_show = $('#spotify-show-cb').checked ? 1 : 0;
+        toast('Kaydedildi');
+      } catch (e) { $('#spotify-msg').textContent = e.message; }
+    });
+    $('#spotify-disconnect')?.addEventListener('click', async () => {
+      try {
+        await api('/spotify/disconnect', { method: 'POST' });
+        currentUser.spotify_token = ''; currentUser.spotify_expires = 0;
+        toast('Spotify bağlantısı kesildi');
+        renderSettingsSection('spotify');
+      } catch (e) { $('#spotify-msg').textContent = e.message; }
     });
   }
 }
@@ -2635,3 +2698,47 @@ function blockItemHTML(b) {
   window.openFdmChat = openFdmChat;
   window.closeFdm = closeFdm;
 })();
+
+// ===== ADMİN KALKAN POPUP =====
+document.addEventListener('click', e => {
+  const shield = e.target.closest('.user-admin');
+  if (!shield) { const p = document.getElementById('admin-shield-popup'); if (p) p.remove(); return; }
+  e.stopPropagation();
+  const existing = document.getElementById('admin-shield-popup');
+  if (existing) { existing.remove(); return; }
+  const since = shield.dataset.adminSince;
+  const sinceText = since ? new Date(since).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'bilinmiyor';
+  const popup = document.createElement('div');
+  popup.id = 'admin-shield-popup';
+  popup.style.cssText = `position:fixed;z-index:99999;background:#1a1a2e;border:1px solid #5865F2;border-radius:10px;padding:12px 16px;max-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.6);animation:fadeIn 0.15s ease`;
+  popup.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><i class="fas fa-shield-alt" style="color:#5865F2;font-size:16px"></i><span style="font-weight:700;color:#e0e0ff;font-size:14px">Demlik Yetkilisi</span></div><div style="font-size:13px;font-weight:600;color:#c0c8ff;margin-bottom:4px">Demlik yetkili hesabı.</div><div style="font-size:12px;color:#8888aa">Bu kullanıcı ${sinceText} tarihinde yetkili oldu.</div>`;
+  const rect = shield.getBoundingClientRect();
+  document.body.appendChild(popup);
+  const pw = popup.offsetWidth, ph = popup.offsetHeight;
+  let left = rect.left, top = rect.bottom + 8;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (top + ph > window.innerHeight - 8) top = rect.top - ph - 8;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+});
+
+// ===== SPOTİFY PROFİL WIDGET =====
+async function renderSpotifyWidget(username, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  try {
+    const data = await fetch('/api/spotify/now-playing/' + encodeURIComponent(username)).then(r => r.json());
+    if (!data.playing) { container.innerHTML = ''; return; }
+    container.innerHTML = `<div style="display:flex;align-items:center;gap:10px;background:rgba(30,215,96,0.08);border:1px solid rgba(30,215,96,0.25);border-radius:10px;padding:10px 14px;margin-top:12px;cursor:pointer" onclick="window.open('${escHtml(data.url)}','_blank')">
+      <img src="${escHtml(data.album_art)}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0" />
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <i class="fab fa-spotify" style="color:#1ED760;font-size:13px"></i>
+          <span style="font-size:10px;color:#1ED760;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Şu an dinliyor</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(data.title)}</div>
+        <div style="font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(data.artist)}</div>
+      </div>
+    </div>`;
+  } catch {}
+}
