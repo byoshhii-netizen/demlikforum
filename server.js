@@ -816,7 +816,7 @@ app.post('/api/group/:slug/messages', authMiddleware, async (req, res) => {
   const { rows: m } = await query('SELECT id FROM group_members WHERE group_id=$1 AND user_id=$2', [group.id, req.user.id]);
   if (!m.length) return res.status(403).json({ error: 'Üye değilsiniz' });
   const { content, image_url } = req.body;
-  if (!content && !image_url) return res.status(400).json({ error: 'Mesaj boş olamaz' });
+  if (!content?.trim() && !image_url) return res.status(400).json({ error: 'Mesaj boş olamaz' });
   const { rows } = await query('INSERT INTO group_messages (group_id,user_id,content,image_url) VALUES ($1,$2,$3,$4) RETURNING id',
     [group.id, req.user.id, content||'', image_url||'']);
   const { rows: msg } = await query(`SELECT gm.*, u.username, u.avatar, u.name_color, u.is_vip FROM group_messages gm LEFT JOIN users u ON gm.user_id=u.id WHERE gm.id=$1`, [rows[0].id]);
@@ -1490,7 +1490,7 @@ app.post('/api/conversation/:username/messages', authMiddleware, upload.single('
   if (req.file) {
     try { image_url = await handleUpload(req.file); } catch (e) {}
   }
-  if (!content && !image_url && !shared_forum_id) return res.status(400).json({ error: 'Mesaj boş olamaz' });
+  if (!content?.trim() && !image_url && !shared_forum_id) return res.status(400).json({ error: 'Mesaj boş olamaz' });
   const { rows: msgRows } = await query(
     'INSERT INTO dm_messages (conversation_id, sender_id, content, image_url, shared_forum_id, reply_to_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
     [conv.id, uid, content||'', image_url, shared_forum_id||null, reply_to_id||null]
