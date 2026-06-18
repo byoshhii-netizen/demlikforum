@@ -832,7 +832,11 @@ app.delete('/api/group/:slug/messages/:id', authMiddleware, async (req, res) => 
   const msg = msgRows[0];
   const { rows: member } = await query('SELECT role FROM group_members WHERE group_id=$1 AND user_id=$2', [group.id, req.user.id]);
   const { rows: perm } = await query('SELECT * FROM moderator_permissions WHERE group_id=$1 AND user_id=$2', [group.id, req.user.id]);
-  const canDelete = msg.user_id==req.user.id || group.owner_id==req.user.id || (member[0]?.role==='moderator' && perm[0]?.can_delete_messages);
+  const isMod = member[0]?.role === 'moderator' || member[0]?.role === 'owner';
+  // Kendi mesajı, grup sahibi veya moderatör (yetki kaydı yoksa da moderatöre izin ver)
+  const canDelete = msg.user_id == req.user.id
+    || group.owner_id == req.user.id
+    || isMod;
   if (!canDelete) return res.status(403).json({ error: 'Yetki yok' });
   await query('DELETE FROM group_messages WHERE id=$1', [msg.id]);
   res.json({ ok: true });

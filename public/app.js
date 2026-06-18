@@ -2028,13 +2028,21 @@ async function renderDMChat(username) {
     reader.readAsDataURL(file);
   });
 
+  let sending = false;
   async function sendDmMessage() {
+    if (sending) return;
     const content = $('#dm-input')?.value.trim();
     if (!content && !pendingImg) return;
+    sending = true;
+    const sendBtn = $('#dm-send-btn');
+    if (sendBtn) sendBtn.disabled = true;
     const fd = new FormData();
     if (content) fd.append('content', content);
     if (replyToId) fd.append('reply_to_id', replyToId);
     if (pendingImg) fd.append('image', pendingImg);
+    if ($('#dm-input')) $('#dm-input').value = '';
+    clearReply();
+    clearDmImg();
     try {
       const msg = await apiForm(`/conversation/${encodeURIComponent(username)}/messages`, fd);
       const msgsEl = $('#dm-messages');
@@ -2042,13 +2050,10 @@ async function renderDMChat(username) {
         msgsEl.insertAdjacentHTML('beforeend', dmMessageHTML(msg, currentUser.id, false));
         msgsEl.scrollTop = msgsEl.scrollHeight;
       }
-      if ($('#dm-input')) $('#dm-input').value = '';
-      clearReply();
-      clearDmImg();
-      // Sidebar'ı güncelle
       const convItem = $(`.dm-conv-item[data-username="${CSS.escape(username)}"]`);
       if (convItem) convItem.querySelector('.dm-conv-last').textContent = content || '📷 Fotoğraf';
     } catch (e) { toast(e.message, 'error'); }
+    finally { sending = false; if (sendBtn) sendBtn.disabled = false; }
   }
 
   $('#dm-send-btn')?.addEventListener('click', sendDmMessage);
@@ -2370,3 +2375,201 @@ function blockItemHTML(b) {
     <button class="btn btn-outline btn-sm friend-unblock" data-username="${escHtml(b.username)}">Engeli Kaldır</button>
   </div>`;
 }
+
+// ===== FLOATING DM WIDGET =====
+(function() {
+  let fdmOpen = false;
+  let fdmUsername = null;
+  let fdmMinimized = false;
+  let fdmSending = false;
+  let fdmReplyId = null;
+  let fdmPendingImg = null;
+
+  function fdm$$(sel) { return document.querySelectorAll(sel); }
+  function fdm$(sel) { return document.querySelector(sel); }
+
+  function getContainer() { return fdm$('#floating-dm'); }
+
+  function renderToggleBtn() {
+    const container = getContainer();
+    if (!container) return;
+    if (!currentUser) { container.style.display = 'none'; return; }
+    container.style.display = 'flex';
+    if (!fdm$('#fdm-toggle')) {
+      const btn = document.createElement('button');
+      btn.id = 'fdm-toggle';
+      btn.className = 'fdm-toggle-btn';
+      btn.innerHTML = '<i class="fas fa-comments"></i>';
+      btn.title = 'Mesajlar';
+      btn.addEventListener('click', () => {
+        if (fdmOpen) closeFdm();
+        else openFdmList();
+      });
+      document.body.appendChild(btn);
+    }
+  }
+
+  function closeFdm() {
+    fdmOpen = false;
+    fdmUsername = null;
+    const container = getContainer();
+    if (container) container.innerHTML = '';
+  }
+
+  async function openFdmList() {
+    fdmOpen = true;
+    fdmUsername = null;
+    const container = getContainer();
+    if (!container) return;
+    let convs = [];
+    try { convs = await api('/conversations'); } catch {}
+    container.innerHTML = `<div class="fdm-bubble">
+      <div class="fdm-header" id="fdm-header-list">
+        <i class="fas fa-comments" style="color:var(--accent-red);font-size:14px"></i>
+        <span class="fdm-name">Mesajlar</span>
+        <div class="fdm-actions">
+          <button id="fdm-new" title="Yeni mesaj"><i class="fas fa-edit"></i></button>
+          <button id="fdm-close" title="Kapat"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+      <div class="fdm-messages" id="fdm-list" style="padding:0">
+        ${convs.length === 0
+          ? '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Henüz mesaj yok</div>'
+          : convs.map(c => `<div class="fdm-conv-row" data-username="${escHtml(c.other_username)}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+            ${c.other_avatar ? `<img src="${escHtml(c.other_avatar)}" class="fdm-avatar" />` : `<div class="fdm-avatar avatar-placeholder"><i class="fas fa-user" style="font-size:11px"></i></div>`}
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.other_username)}</div>
+              <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((c.last_message||'').substring(0,30))}</div>
+            </div>
+            ${parseInt(c.unread_count) > 0 ? `<span style="background:var(--accent-red);color:#fff;font-size:10px;padding:1px 5px;border-radius:10px">${c.unread_count}</span>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+    fdm$('#fdm-close')?.addEventListener('click', closeFdm);
+    fdm$('#fdm-new')?.addEventListener('click', () => {
+      const u = prompt('Kullanıcı adı:');
+      if (u) openFdmChat(u.trim());
+    });
+    fdm$$('.fdm-conv-row').forEach(el => {
+      el.addEventListener('click', () => openFdmChat(el.dataset.username));
+    });
+  }
+
+  async function openFdmChat(username) {
+    fdmUsername = username;
+    fdmMinimized = false;
+    const container = getContainer();
+    if (!container) return;
+    container.innerHTML = `<div class="fdm-bubble" id="fdm-bubble">
+      <div class="fdm-header" id="fdm-header-chat">
+        <div class="fdm-avatar avatar-placeholder" id="fdm-other-avatar"><i class="fas fa-user" style="font-size:11px"></i></div>
+        <span class="fdm-name" id="fdm-other-name">${escHtml(username)}</span>
+        <div class="fdm-actions">
+          <button id="fdm-minimize" title="Küçült"><i class="fas fa-minus"></i></button>
+          <button id="fdm-back" title="Geri"><i class="fas fa-arrow-left"></i></button>
+          <button id="fdm-fullscreen" title="Tam ekran"><i class="fas fa-expand"></i></button>
+          <button id="fdm-close" title="Kapat"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+      <div class="fdm-messages" id="fdm-msgs"><div style="text-align:center;padding:20px"><div class="spinner"></div></div></div>
+      <div class="fdm-input-bar">
+        <textarea id="fdm-input" placeholder="Mesaj..." rows="1"></textarea>
+        <button class="btn btn-primary btn-sm" id="fdm-send"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>`;
+
+    fdm$('#fdm-close')?.addEventListener('click', closeFdm);
+    fdm$('#fdm-back')?.addEventListener('click', openFdmList);
+    fdm$('#fdm-fullscreen')?.addEventListener('click', () => { navigate('/mesajlar/' + username); closeFdm(); });
+    fdm$('#fdm-minimize')?.addEventListener('click', () => {
+      fdmMinimized = !fdmMinimized;
+      const bubble = fdm$('#fdm-bubble');
+      if (bubble) bubble.classList.toggle('minimized', fdmMinimized);
+      const icon = fdm$('#fdm-minimize i');
+      if (icon) icon.className = fdmMinimized ? 'fas fa-chevron-up' : 'fas fa-minus';
+    });
+    fdm$('#fdm-header-chat')?.addEventListener('click', e => {
+      if (e.target.closest('.fdm-actions')) return;
+      fdmMinimized = !fdmMinimized;
+      const bubble = fdm$('#fdm-bubble');
+      if (bubble) bubble.classList.toggle('minimized', fdmMinimized);
+    });
+
+    // Mesajları yükle
+    try {
+      const data = await api(`/conversation/${encodeURIComponent(username)}`);
+      const { other, messages } = data;
+      if (other.avatar) {
+        const av = fdm$('#fdm-other-avatar');
+        if (av) av.outerHTML = `<img src="${escHtml(other.avatar)}" class="fdm-avatar" id="fdm-other-avatar" />`;
+      }
+      const msgsEl = fdm$('#fdm-msgs');
+      if (msgsEl) {
+        msgsEl.innerHTML = messages.map(m => fdmMsgHTML(m)).join('');
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+      }
+    } catch (e) {
+      const msgsEl = fdm$('#fdm-msgs');
+      if (msgsEl) msgsEl.innerHTML = `<div style="color:var(--accent-red2);font-size:12px;padding:12px">${e.message}</div>`;
+    }
+
+    async function fdmSendMsg() {
+      if (fdmSending) return;
+      const input = fdm$('#fdm-input');
+      const content = input?.value.trim();
+      if (!content) return;
+      fdmSending = true;
+      input.value = '';
+      try {
+        const fd = new FormData();
+        fd.append('content', content);
+        const msg = await apiForm(`/conversation/${encodeURIComponent(username)}/messages`, fd);
+        const msgsEl = fdm$('#fdm-msgs');
+        if (msgsEl) {
+          msgsEl.insertAdjacentHTML('beforeend', fdmMsgHTML(msg));
+          msgsEl.scrollTop = msgsEl.scrollHeight;
+        }
+      } catch (e) { toast(e.message, 'error'); }
+      finally { fdmSending = false; }
+    }
+
+    fdm$('#fdm-send')?.addEventListener('click', fdmSendMsg);
+    fdm$('#fdm-input')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fdmSendMsg(); }
+    });
+    fdm$('#fdm-input')?.addEventListener('input', e => {
+      e.target.style.height = 'auto';
+      e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
+    });
+  }
+
+  function fdmMsgHTML(m) {
+    const isOwn = currentUser && m.sender_id == currentUser.id;
+    const deleted = m.deleted_for_all;
+    if (!deleted && ((isOwn && m.deleted_by_sender) || (!isOwn && m.deleted_by_receiver))) return '';
+    return `<div style="display:flex;flex-direction:column;align-items:${isOwn ? 'flex-end' : 'flex-start'};gap:2px;margin-bottom:4px">
+      <div style="max-width:80%;padding:7px 11px;border-radius:${isOwn ? '12px 4px 12px 12px' : '4px 12px 12px 12px'};font-size:13px;word-break:break-word;
+        background:${isOwn ? 'rgba(220,38,38,0.15)' : 'var(--bg-card2)'};
+        border:1px solid ${isOwn ? 'rgba(220,38,38,0.3)' : 'var(--border)'};
+        color:${deleted ? 'var(--text-muted)' : 'var(--text-primary)'}">
+        ${deleted ? '<i>Mesaj silindi</i>' : (m.shared_forum_id ? `<span style="color:var(--accent-red2);cursor:pointer" onclick="navigate('/forum/${escHtml(m.forum_slug||'')}');closeFdm()">📎 ${escHtml(m.forum_title||'Forum')}</span>` : escHtml(m.content || ''))}
+      </div>
+      <span style="font-size:10px;color:var(--text-muted)">${timeAgo(m.created_at)}</span>
+    </div>`;
+  }
+
+  // Auth değişince toggle butonunu güncelle
+  const origUpdateNav = window.updateNavUI;
+  window.updateNavUI = function() {
+    if (origUpdateNav) origUpdateNav.apply(this, arguments);
+    setTimeout(renderToggleBtn, 100);
+  };
+
+  // İlk yüklemede
+  setTimeout(renderToggleBtn, 500);
+
+  // Dışarıya aç
+  window.openFdmChat = openFdmChat;
+  window.closeFdm = closeFdm;
+})();
