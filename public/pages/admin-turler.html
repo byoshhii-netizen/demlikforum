@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oyun Türleri – Admin</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"><a href="/admin" style="color:var(--text-muted);font-size:13px">← Admin Panel</a></header>
+    <main class="page-content" style="max-width:600px">
+      <div class="page-header"><div class="page-title">🏷️ Oyun Türleri</div></div>
+      <div class="card" style="padding:20px;margin-bottom:20px">
+        <div style="display:flex;gap:10px">
+          <input type="text" id="newGenre" class="form-control" placeholder="Yeni tür adı...">
+          <button class="btn btn-primary" onclick="addGenre()">+ Ekle</button>
+        </div>
+      </div>
+      <div class="card">
+        <div id="genreList" style="padding:8px"></div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('admin');
+async function load() {
+  const res = await (await fetch('/api/admin/turler')).json();
+  document.getElementById('genreList').innerHTML = res.genres?.length ? res.genres.map(g => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border)">
+      <span style="font-weight:500">${g.name}</span>
+      <button class="btn btn-danger btn-sm" onclick="deleteGenre('${g.id}','${g.name}')">Sil</button>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:24px;color:var(--text-muted)">Tür yok</div>';
+}
+async function addGenre() {
+  const name = document.getElementById('newGenre').value.trim();
+  if (!name) return;
+  await api('/api/admin/turler', { method: 'POST', body: { name } });
+  document.getElementById('newGenre').value = '';
+  toast('Tür eklendi', 'success');
+  load();
+}
+async function deleteGenre(id, name) {
+  if (!confirm(`"${name}" türünü silmek istiyor musunuz?`)) return;
+  await api(`/api/admin/turler/${id}`, { method: 'DELETE' });
+  toast('Tür silindi', 'info');
+  load();
+}
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Platform Ayarları – Admin</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"><a href="/admin" style="color:var(--text-muted);font-size:13px">← Admin Panel</a></header>
+    <main class="page-content" style="max-width:600px">
+      <div class="page-header"><div class="page-title">⚙️ Platform Ayarları</div></div>
+      <div id="alertBox"></div>
+      <div class="card" style="padding:24px">
+        <div class="form-group">
+          <label>Ücretsiz İndirme Limiti</label>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Geliştiriciler kaç indirmeden sonra ücretli satış yapabilsin?</div>
+          <input class="form-control" type="number" id="freeLimit" min="0" placeholder="500">
+        </div>
+        <div class="form-group">
+          <label>Platform Adı</label>
+          <input class="form-control" id="platformName" value="Demlik Platform">
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Ayarları Kaydet</button>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('admin');
+async function load() {
+  const res = await (await fetch('/api/admin/ayarlar')).json();
+  const s = res.settings || {};
+  document.getElementById('freeLimit').value = s.free_limit_downloads || 500;
+  document.getElementById('platformName').value = s.platform_name || 'Demlik Platform';
+}
+async function saveSettings() {
+  const settings = [
+    { key: 'free_limit_downloads', value: document.getElementById('freeLimit').value },
+    { key: 'platform_name', value: document.getElementById('platformName').value }
+  ];
+  for (const s of settings) {
+    await api('/api/admin/ayarlar', { method: 'PUT', body: s });
+  }
+  toast('Ayarlar kaydedildi!', 'success');
+}
+load();
+</script>
+</body>
+</html>

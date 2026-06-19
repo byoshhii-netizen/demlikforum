@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oyun Yönetimi – Admin</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"><a href="/admin" style="color:var(--text-muted);font-size:13px">← Admin Panel</a></header>
+    <main class="page-content">
+      <div class="page-header"><div class="page-title">🎮 Oyun Yönetimi</div></div>
+      <div class="tabs">
+        <div class="tab active" onclick="filterGames('',this)">Tümü</div>
+        <div class="tab" onclick="filterGames('ucretsiz',this)">Ücretsiz</div>
+        <div class="tab" onclick="filterGames('ucretli',this)">Ücretli</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <input type="text" id="searchInput" class="form-control" style="max-width:300px" placeholder="Oyun ara...">
+      </div>
+      <div class="table-wrap card">
+        <table>
+          <thead><tr><th>Oyun</th><th>Geliştirici</th><th>Tür</th><th>Fiyat</th><th>İndirme</th><th>Durum</th><th>İşlem</th></tr></thead>
+          <tbody id="gamesTable"><tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Yükleniyor...</td></tr></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Oyun Düzenle Modal -->
+<div class="modal-overlay" id="gameModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Oyun Düzenle</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('admin');
+let currentTip = '';
+let searchTimer;
+let currentGameId = null;
+
+async function load() {
+  const search = document.getElementById('searchInput').value;
+  const res = await (await fetch(`/api/admin/oyunlar?search=${encodeURIComponent(search)}&tip=${currentTip}`)).json();
+  const tbody = document.getElementById('gamesTable');
+  tbody.innerHTML = res.games?.length ? res.games.map(g => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${g.logo_url ? `<img src="${g.logo_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">` : '🎮'}
+          <div>
+            <div style="font-weight:600">${g.title}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${g.publisher_name || '-'}</div>
+          </div>
+        </div>
+      </td>
+      <td>${g.team_name || g.dev_username || '-'}</td>
+      <td>${g.genre_name || '-'}</td>
+      <td style="color:${g.is_free ? '#27ae60' : 'var(--red-primary)'};font-weight:600">${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price).toFixed(2)}</td>
+      <td>${g.download_count || 0}</td>
+      <td>
+        ${g.is_published ? '<span class="badge badge-green">Yayında</span>' : '<span class="badge badge-gray">Taslak</span>'}
+        ${g.is_hidden ? '<span class="badge badge-yellow" style="margin-left:2px">Gizli</span>' : ''}
+        ${g.is_purchase_disabled ? '<span class="badge badge-red" style="margin-left:2px">Satış Kapalı</span>' : ''}
+      </td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="openGame('${g.id}')">Düzenle</button>
+        <a href="/oyun/${g.id}" target="_blank" class="btn btn-secondary btn-sm" style="margin-left:4px">👁️</a>
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">Oyun bulunamadı</td></tr>';
+}
+
+function filterGames(tip, el) {
+  currentTip = tip;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  load();
+}
+
+async function openGame(id) {
+  currentGameId = id;
+  const res = await (await fetch(`/api/admin/oyunlar/${id}`)).json();
+  const g = res.game;
+  const genreRes = await (await fetch('/api/oyunlar/meta/turler')).json();
+  const genreOpts = genreRes.genres?.map(genre => `<option value="${genre.id}" ${g.genre_id === genre.id ? 'selected' : ''}>${genre.name}</option>`).join('') || '';
+
+  document.getElementById('modalTitle').textContent = g.title;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>Oyun Adı</label><input class="form-control" id="edit_title" value="${g.title || ''}"></div>
+    <div class="form-group"><label>Açıklama</label><textarea class="form-control" id="edit_desc" rows="4">${g.description || ''}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Yayıncı</label><input class="form-control" id="edit_publisher" value="${g.publisher_name || ''}"></div>
+      <div class="form-group"><label>Yaş Sınırı</label><input class="form-control" type="number" id="edit_age" value="${g.age_rating || 0}"></div>
+      <div class="form-group"><label>Tür</label><select class="form-control" id="edit_genre"><option value="">Seçin</option>${genreOpts}</select></div>
+      <div class="form-group"><label>Fiyat (₺)</label><input class="form-control" type="number" id="edit_price" value="${g.price || 0}" step="0.01"></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div class="checkbox-group"><input type="checkbox" id="edit_free" ${g.is_free ? 'checked' : ''}><label for="edit_free">Ücretsiz</label></div>
+      <div class="checkbox-group"><input type="checkbox" id="edit_hidden" ${g.is_hidden ? 'checked' : ''}><label for="edit_hidden">Kütüphanede Gizle</label></div>
+      <div class="checkbox-group"><input type="checkbox" id="edit_purchase_disabled" ${g.is_purchase_disabled ? 'checked' : ''}><label for="edit_purchase_disabled">Satın Almayı Kapat</label></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="saveGame()">💾 Kaydet</button>
+      <button class="btn btn-secondary" onclick="togglePublish('${id}', ${g.is_published})">${g.is_published ? '🔒 Yayından Kaldır' : '🚀 Yayınla'}</button>
+      <button class="btn btn-danger" onclick="deleteGame('${id}','${g.title}')">🗑️ Sil</button>
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+    </div>
+  `;
+  document.getElementById('gameModal').classList.add('open');
+}
+
+async function saveGame() {
+  try {
+    await api(`/api/admin/oyunlar/${currentGameId}`, {
+      method: 'PUT',
+      body: {
+        title: document.getElementById('edit_title').value,
+        description: document.getElementById('edit_desc').value,
+        publisher_name: document.getElementById('edit_publisher').value,
+        age_rating: document.getElementById('edit_age').value,
+        price: document.getElementById('edit_price').value,
+        genre_id: document.getElementById('edit_genre').value,
+        is_free: document.getElementById('edit_free').checked,
+        is_hidden: document.getElementById('edit_hidden').checked,
+        is_purchase_disabled: document.getElementById('edit_purchase_disabled').checked
+      }
+    });
+    toast('Oyun güncellendi!', 'success');
+    closeModal(); load();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function togglePublish(id, isPublished) {
+  await api(`/api/admin/oyunlar/${id}`, { method: 'PUT', body: { is_hidden: isPublished } });
+  toast('Güncellendi', 'success');
+  closeModal(); load();
+}
+
+async function deleteGame(id, title) {
+  if (!confirm(`"${title}" oyununu silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) return;
+  await api(`/api/admin/oyunlar/${id}`, { method: 'DELETE' });
+  toast('Oyun silindi', 'info');
+  closeModal(); load();
+}
+
+function closeModal() { document.getElementById('gameModal').classList.remove('open'); }
+
+document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(load, 400); });
+load();
+</script>
+</body>
+</html>

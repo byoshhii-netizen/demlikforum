@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kütüphane – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.lib-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; }
+.lib-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  overflow:hidden; cursor:pointer; transition:all 0.2s; position:relative;
+}
+.lib-card:hover { transform:translateY(-3px); }
+.lib-card.installed { border-color:var(--border); }
+.lib-card.installed:hover { border-color:var(--red-primary); }
+.lib-card.not-installed { filter:grayscale(0.8); opacity:0.55; }
+.lib-card.not-installed:hover { filter:grayscale(0.4); opacity:0.75; }
+.lib-card-banner { width:100%; aspect-ratio:4/3; background:var(--bg-hover); overflow:hidden; }
+.lib-card-banner img { width:100%; height:100%; object-fit:cover; }
+.lib-card-info { padding:10px; }
+.lib-card-title { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lib-card-status { font-size:11px; margin-top:4px; }
+.lib-card-status.installed { color:#27ae60; }
+.lib-card-status.not-installed { color:var(--text-muted); }
+.play-overlay {
+  position:absolute; inset:0; background:rgba(0,0,0,0.7);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:0.2s; border-radius:var(--radius);
+}
+.lib-card:hover .play-overlay { opacity:1; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <input type="text" id="libSearch" placeholder="🔍 Kütüphanede ara..." style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);border-radius:20px;padding:8px 16px;font-size:13px;outline:none;width:280px">
+      <div class="topbar-actions">
+        <button class="btn btn-secondary btn-sm" onclick="filterLib('all')" id="fAll">Tümü</button>
+        <button class="btn btn-secondary btn-sm" onclick="filterLib('installed')" id="fInst">Yüklü</button>
+        <button class="btn btn-secondary btn-sm" onclick="filterLib('notinstalled')" id="fNot">Yüklenmemiş</button>
+      </div>
+    </header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-title">📚 Kütüphanem</div>
+        <div class="page-subtitle" id="libCount">Yükleniyor...</div>
+      </div>
+      <div class="lib-grid" id="libGrid"></div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('kutuphane');
+let allGames = [];
+let activeFilter = 'all';
+
+async function loadLibrary() {
+  const res = await (await fetch('/api/oyunlar/kutuphane/liste')).json();
+  allGames = res.games || [];
+  document.getElementById('libCount').textContent = `${allGames.length} oyun`;
+  renderGames();
+}
+
+function filterLib(f) {
+  activeFilter = f;
+  ['fAll','fInst','fNot'].forEach(id => document.getElementById(id).className = 'btn btn-secondary btn-sm');
+  const activeBtn = { all: 'fAll', installed: 'fInst', notinstalled: 'fNot' }[f];
+  document.getElementById(activeBtn).className = 'btn btn-primary btn-sm';
+  renderGames();
+}
+
+function renderGames() {
+  const search = document.getElementById('libSearch').value.toLowerCase();
+  let games = allGames.filter(g => {
+    const matchSearch = !search || g.title.toLowerCase().includes(search);
+    const matchFilter = activeFilter === 'all' ||
+      (activeFilter === 'installed' && g.is_installed) ||
+      (activeFilter === 'notinstalled' && !g.is_installed);
+    return matchSearch && matchFilter;
+  });
+
+  document.getElementById('libGrid').innerHTML = games.length ? games.map(g => `
+    <div class="lib-card ${g.is_installed ? 'installed' : 'not-installed'}" onclick="location.href='/oyun/${g.id}'">
+      <div class="lib-card-banner">
+        ${g.logo_url ? `<img src="${g.logo_url}" alt="${g.title}">` : `<div style="background:var(--bg-hover);width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px">🎮</div>`}
+      </div>
+      <div class="play-overlay">
+        <span style="font-size:28px">${g.is_installed ? '▶' : '⬇️'}</span>
+      </div>
+      <div class="lib-card-info">
+        <div class="lib-card-title">${g.title}</div>
+        <div class="lib-card-status ${g.is_installed ? 'installed' : 'not-installed'}">
+          ${g.is_installed ? '✓ Yüklü' : '● Yüklenmemiş'}
+        </div>
+      </div>
+    </div>
+  `).join('') : '<div style="color:var(--text-muted);padding:40px;text-align:center">🎮 Oyun bulunamadı</div>';
+}
+
+document.getElementById('libSearch').addEventListener('input', renderGames);
+document.getElementById('fAll').className = 'btn btn-primary btn-sm';
+loadLibrary();
+</script>
+</body>
+</html>

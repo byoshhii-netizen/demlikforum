@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ayarlar – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"></header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-title">⚙️ Ayarlar</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+        <a href="/ayarlar/profil" class="card" style="padding:20px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red-primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:36px">👤</span>
+          <div><div style="font-weight:700">Profil</div><div style="font-size:13px;color:var(--text-muted)">Avatar, bio, gizlilik</div></div>
+        </a>
+        <a href="/ayarlar/engellenenler" class="card" style="padding:20px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red-primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:36px">🚫</span>
+          <div><div style="font-weight:700">Engellenenler</div><div style="font-size:13px;color:var(--text-muted)">Engellediğin kullanıcılar</div></div>
+        </a>
+        <a href="/ayarlar/aile-denetimi" class="card" style="padding:20px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red-primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:36px">👨‍👩‍👧</span>
+          <div><div style="font-weight:700">Aile Denetimi</div><div style="font-size:13px;color:var(--text-muted)">Çocuk hesabı kısıtlamaları</div></div>
+        </a>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>renderSidebar();</script>
+</body>
+</html>

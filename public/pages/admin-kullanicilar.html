@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kullanıcılar – Admin</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"><a href="/admin" style="color:var(--text-muted);font-size:13px">← Admin Panel</a></header>
+    <main class="page-content">
+      <div class="page-header"><div class="page-title">👥 Kullanıcı Yönetimi</div></div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <input type="text" id="searchInput" class="form-control" style="max-width:280px" placeholder="Kullanıcı ara...">
+        <select id="roleFilter" class="form-control" style="max-width:160px">
+          <option value="">Tüm Roller</option>
+          <option value="user">Kullanıcı</option>
+          <option value="developer">Geliştirici</option>
+          <option value="admin">Admin</option>
+        </select>
+        <span id="totalCount" style="align-self:center;font-size:13px;color:var(--text-muted)"></span>
+      </div>
+      <div class="table-wrap card">
+        <table>
+          <thead><tr><th>Kullanıcı</th><th>Rol</th><th>IP</th><th>Durum</th><th>Kayıt</th><th>İşlemler</th></tr></thead>
+          <tbody id="usersTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted)">Yükleniyor...</td></tr></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Kullanıcı Detay Modal -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Kullanıcı Detayı</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('admin');
+let searchTimer;
+
+async function load() {
+  const search = document.getElementById('searchInput').value;
+  const role = document.getElementById('roleFilter').value;
+  const res = await (await fetch(`/api/admin/kullanicilar?search=${encodeURIComponent(search)}&role=${role}`)).json();
+  document.getElementById('totalCount').textContent = `${res.total || 0} kullanıcı`;
+  const tbody = document.getElementById('usersTable');
+  tbody.innerHTML = res.users?.length ? res.users.map(u => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="user-avatar" style="width:32px;height:32px;font-size:12px">
+            ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover">` : u.username[0].toUpperCase()}
+          </div>
+          <div>
+            <div style="font-weight:600">${u.username}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${u.email}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <span class="badge ${u.role === 'admin' ? 'badge-red' : u.role === 'developer' ? 'badge-blue' : 'badge-gray'}">
+          ${u.role === 'admin' ? '⚙️ Admin' : u.role === 'developer' ? '👨‍💻 Geliştirici' : '🎮 Kullanıcı'}
+        </span>
+      </td>
+      <td><code style="font-size:11px;color:var(--text-muted)">${u.last_ip || '-'}</code></td>
+      <td>
+        ${u.is_banned ? '<span class="badge badge-red">Banlı</span>' : '<span class="badge badge-green">Aktif</span>'}
+        ${u.message_blocked ? '<span class="badge badge-yellow" style="margin-left:2px">Mesaj Engel</span>' : ''}
+      </td>
+      <td>${new Date(u.created_at).toLocaleDateString('tr-TR')}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openUser('${u.id}')">Yönet</button></td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Kullanıcı bulunamadı</td></tr>';
+}
+
+async function openUser(id) {
+  const res = await (await fetch(`/api/admin/kullanicilar/${id}`)).json();
+  const u = res.user;
+  document.getElementById('modalTitle').textContent = u.username + ' – Yönetim';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:16px">
+      <div><b>Kullanıcı Adı:</b><br>${u.username}</div>
+      <div><b>E-posta:</b><br>${u.email}</div>
+      <div><b>Rol:</b><br>${u.role}</div>
+      <div><b>IP:</b><br><code>${u.last_ip || '-'}</code></div>
+      <div><b>Konum:</b><br>${u.last_location || '-'}</div>
+      <div><b>Kayıt:</b><br>${new Date(u.created_at).toLocaleString('tr-TR')}</div>
+      ${u.team_name ? `<div><b>Ekip:</b><br>${u.team_name}</div>` : ''}
+      ${u.developer_score !== undefined && u.developer_score !== null ? `<div><b>Geliştirici Puanı:</b><br>${u.developer_score}</div>` : ''}
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${u.is_banned
+        ? `<button class="btn btn-success btn-sm" onclick="doAction('${u.id}','unban')">✓ Banı Kaldır</button>`
+        : `<button class="btn btn-danger btn-sm" onclick="banUser('${u.id}')">🚫 Banla</button>`}
+      ${u.message_blocked
+        ? `<button class="btn btn-secondary btn-sm" onclick="doAction('${u.id}','message_unblock')">💬 Mesaj Engelini Kaldır</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="doAction('${u.id}','message_block')">💬 Mesaj Engelle</button>`}
+      ${u.friend_blocked
+        ? `<button class="btn btn-secondary btn-sm" onclick="doAction('${u.id}','friend_unblock')">👥 Arkadaşlık Engelini Kaldır</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="doAction('${u.id}','friend_block')">👥 Arkadaşlık Engelle</button>`}
+      ${u.role === 'developer' ? (u.payment_unlocked
+        ? `<button class="btn btn-secondary btn-sm" onclick="togglePayment('${u.id}',false)">💰 Ücret Kilidini Kapat</button>`
+        : `<button class="btn btn-success btn-sm" onclick="togglePayment('${u.id}',true)">💰 Ücret Kilidini Aç</button>`) : ''}
+      ${u.game_upload_blocked
+        ? `<button class="btn btn-secondary btn-sm" onclick="doAction('${u.id}','game_upload_unblock')">⬆️ Oyun Yükle Engelini Kaldır</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="doAction('${u.id}','game_upload_block')">⬆️ Oyun Yüklemeyi Engelle</button>`}
+      <a href="/profil/${u.username}" target="_blank" class="btn btn-secondary btn-sm">👤 Profil</a>
+    </div>
+  `;
+  document.getElementById('userModal').classList.add('open');
+}
+
+async function banUser(id) {
+  const reason = prompt('Ban nedeni:');
+  if (reason === null) return;
+  await api(`/api/admin/kullanicilar/${id}/engelle`, { method: 'POST', body: { action: 'ban', reason } });
+  toast('Kullanıcı banlandı', 'info');
+  closeModal(); load();
+}
+
+async function doAction(id, action) {
+  await api(`/api/admin/kullanicilar/${id}/engelle`, { method: 'POST', body: { action } });
+  toast('İşlem tamamlandı', 'success');
+  closeModal(); load();
+}
+
+async function togglePayment(id, unlock) {
+  await api(`/api/admin/kullanicilar/${id}/ucret-kilidi`, { method: 'POST', body: { unlock } });
+  toast(unlock ? 'Ücret kilidi açıldı!' : 'Ücret kilidi kapatıldı', 'success');
+  closeModal(); load();
+}
+
+function closeModal() { document.getElementById('userModal').classList.remove('open'); }
+
+document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(load, 400); });
+document.getElementById('roleFilter').addEventListener('change', load);
+load();
+</script>
+</body>
+</html>

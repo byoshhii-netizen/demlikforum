@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arkadaşlar – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"></header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-title">👥 Arkadaşlar</div>
+      </div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('friends',this)">Arkadaşlarım</div>
+        <div class="tab" onclick="switchTab('requests',this)">İstekler <span id="reqBadge"></span></div>
+        <div class="tab" onclick="switchTab('messages',this)">Mesajlar</div>
+      </div>
+
+      <!-- Arkadaşlar -->
+      <div id="tab-friends">
+        <div id="friendsList"></div>
+      </div>
+
+      <!-- İstekler -->
+      <div id="tab-requests" style="display:none">
+        <div id="requestsList"></div>
+      </div>
+
+      <!-- Mesajlar -->
+      <div id="tab-messages" style="display:none">
+        <div id="msgList"></div>
+        <div id="msgChat" style="display:none;margin-top:16px">
+          <div class="card" style="padding:0">
+            <div id="msgHistory" style="height:360px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px"></div>
+            <div style="padding:12px;border-top:1px solid var(--border);display:flex;gap:10px">
+              <input type="text" id="msgInput" class="form-control" placeholder="Mesajınızı yazın..." style="flex:1">
+              <button class="btn btn-primary" onclick="sendMsg()">Gönder</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('arkadaslar');
+let activeChatUserId = null;
+let currentUserId = null;
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['friends','requests','messages'].forEach(t => document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none');
+  if (name === 'requests') loadRequests();
+  if (name === 'messages') loadConversations();
+}
+
+async function loadFriends() {
+  const u = await loadSession();
+  currentUserId = u.userId;
+  const res = await (await fetch('/api/arkadaslar')).json();
+  const friends = res.friends || [];
+  document.getElementById('friendsList').innerHTML = friends.length ? `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      ${friends.map(f => `
+        <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px">
+          <div class="user-avatar" style="width:44px;height:44px">
+            ${f.avatar_url ? `<img src="${f.avatar_url}">` : f.username[0].toUpperCase()}
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:14px">${f.username}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${f.role === 'developer' ? '👨‍💻 Geliştirici' : '🎮 Kullanıcı'}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="openChat('${f.id}','${f.username}')">💬</button>
+            <a href="/profil/${f.username}" class="btn btn-secondary btn-sm">👤</a>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  ` : `<div style="text-align:center;padding:40px;color:var(--text-muted)">Henüz arkadaşın yok.<br>Profil sayfalarından arkadaşlık isteği gönderebilirsin.</div>`;
+}
+
+async function loadRequests() {
+  const res = await (await fetch('/api/arkadaslar/istekler')).json();
+  const reqs = res.requests || [];
+  document.getElementById('reqBadge').textContent = reqs.length ? `(${reqs.length})` : '';
+  document.getElementById('requestsList').innerHTML = reqs.length ? reqs.map(r => `
+    <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <div class="user-avatar">${r.username[0].toUpperCase()}</div>
+      <div style="flex:1"><div style="font-weight:600">${r.username}</div><div style="font-size:12px;color:var(--text-muted)">${timeAgo(r.created_at)}</div></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-success btn-sm" onclick="acceptReq('${r.id}')">✓ Kabul</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectReq('${r.id}')">✗ Reddet</button>
+      </div>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:32px;color:var(--text-muted)">Bekleyen istek yok</div>';
+}
+
+async function acceptReq(id) {
+  await api(`/api/arkadaslar/kabul/${id}`, { method: 'POST' });
+  toast('Arkadaşlık kabul edildi', 'success');
+  loadRequests(); loadFriends();
+}
+async function rejectReq(id) {
+  await api(`/api/arkadaslar/${id}`, { method: 'DELETE' });
+  toast('İstek reddedildi', 'info');
+  loadRequests();
+}
+
+async function loadConversations() {
+  const res = await (await fetch('/api/mesajlar/konusmalar')).json();
+  const convs = res.conversations || [];
+  document.getElementById('msgList').innerHTML = convs.length ? convs.map(c => `
+    <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer" onclick="openChat('${c.other_user}','${c.username}')">
+      <div class="user-avatar">${c.username[0].toUpperCase()}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${c.username}</div>
+        <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px">${c.last_message}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted)">${timeAgo(c.created_at)}</div>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:32px;color:var(--text-muted)">Henüz mesaj yok</div>';
+}
+
+async function openChat(userId, username) {
+  activeChatUserId = userId;
+  document.getElementById('msgChat').style.display = 'block';
+  document.getElementById('msgChat').scrollIntoView({ behavior: 'smooth' });
+  const res = await (await fetch(`/api/mesajlar/${userId}`)).json();
+  const msgs = res.messages || [];
+  document.getElementById('msgHistory').innerHTML = msgs.map(m => `
+    <div style="display:flex;justify-content:${m.sender_id === currentUserId ? 'flex-end' : 'flex-start'}">
+      <div style="background:${m.sender_id === currentUserId ? 'var(--red-dark)' : 'var(--bg-hover)'};padding:8px 12px;border-radius:12px;max-width:70%;font-size:13px;line-height:1.5">
+        ${m.content}
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:4px;text-align:right">${timeAgo(m.created_at)}</div>
+      </div>
+    </div>
+  `).join('');
+  const h = document.getElementById('msgHistory');
+  h.scrollTop = h.scrollHeight;
+}
+
+async function sendMsg() {
+  const input = document.getElementById('msgInput');
+  const content = input.value.trim();
+  if (!content || !activeChatUserId) return;
+  input.value = '';
+  try {
+    const res = await api(`/api/mesajlar/${activeChatUserId}`, { method: 'POST', body: { content } });
+    if (res.filtered) toast('Mesajınız filtrelendi (küfür)', 'warning');
+    openChat(activeChatUserId, '');
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+document.getElementById('msgInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMsg(); });
+
+loadFriends();
+</script>
+</body>
+</html>

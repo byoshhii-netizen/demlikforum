@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard – Geliştirici Paneli</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <span style="font-weight:700;color:var(--red-primary)">👨‍💻 Geliştirici Paneli</span>
+      <div class="topbar-actions">
+        <a href="/gelistirici/oyun-yukle" class="btn btn-primary btn-sm">+ Oyun Yükle</a>
+      </div>
+    </header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-title">📊 Dashboard</div>
+        <div class="page-subtitle" id="devTeamName">Yükleniyor...</div>
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card red"><div class="stat-label">Toplam Oyun</div><div class="stat-value" id="statGames">-</div></div>
+        <div class="stat-card green"><div class="stat-label">Toplam İndirme</div><div class="stat-value" id="statDownloads">-</div></div>
+        <div class="stat-card blue"><div class="stat-label">Kütüphane Ekleme</div><div class="stat-value" id="statLibrary">-</div></div>
+        <div class="stat-card yellow"><div class="stat-label">Geliştirici Puanı</div><div class="stat-value" id="statScore">-</div></div>
+      </div>
+
+      <div id="paymentAlert"></div>
+
+      <div class="page-header" style="margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="page-title" style="font-size:18px">🎮 Oyunlarım</div>
+          <a href="/gelistirici/oyun-yukle" class="btn btn-primary btn-sm">+ Yeni Oyun</a>
+        </div>
+      </div>
+
+      <div class="table-wrap card">
+        <table>
+          <thead><tr><th>Oyun</th><th>Durum</th><th>İndirme</th><th>Fiyat</th><th>Tarih</th><th>İşlem</th></tr></thead>
+          <tbody id="gamesTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted)">Yükleniyor...</td></tr></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('dev-dashboard');
+async function load() {
+  const u = await loadSession();
+  if (!u.loggedIn || (u.role !== 'developer' && u.role !== 'admin')) return window.location.href = '/gelistirici';
+
+  const res = await (await fetch('/api/gelistirici/dashboard')).json();
+  document.getElementById('devTeamName').textContent = res.profile?.team_name || '';
+  document.getElementById('statGames').textContent = res.stats.totalGames;
+  document.getElementById('statDownloads').textContent = res.stats.totalDownloads;
+  document.getElementById('statLibrary').textContent = res.stats.totalLibrary;
+  document.getElementById('statScore').textContent = res.stats.developerScore;
+
+  if (!res.profile?.payment_unlocked) {
+    const freeLimit = 500; // varsayılan
+    document.getElementById('paymentAlert').innerHTML = `
+      <div class="alert alert-info">
+        💡 <b>Ücretlendirme Bilgisi:</b> İlk oyununuz ${freeLimit} indirmeyi geçtiğinde ücretli satışa başlayabilirsiniz.
+        (Şu an: ${res.stats.totalDownloads} / ${freeLimit} indirme)
+      </div>
+    `;
+  }
+
+  const tbody = document.getElementById('gamesTable');
+  tbody.innerHTML = res.games?.length ? res.games.map(g => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${g.logo_url ? `<img src="${g.logo_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">` : '<div style="width:36px;height:36px;background:var(--bg-hover);border-radius:6px;display:flex;align-items:center;justify-content:center">🎮</div>'}
+          <div>
+            <div style="font-weight:600">${g.title}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${g.genre_name || '-'}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        ${g.is_published
+          ? '<span class="badge badge-green">✓ Yayında</span>'
+          : g.upload_status === 'uploading'
+            ? `<span class="badge badge-yellow">⬆️ Yükleniyor (${g.upload_progress||0}%)</span>`
+            : '<span class="badge badge-gray">Taslak</span>'}
+      </td>
+      <td>${g.download_count || 0}</td>
+      <td>${g.is_free ? '<span style="color:#27ae60">Ücretsiz</span>' : '₺' + parseFloat(g.price).toFixed(2)}</td>
+      <td>${new Date(g.created_at).toLocaleDateString('tr-TR')}</td>
+      <td>
+        <a href="/gelistirici/oyun/${g.id}/duzenle" class="btn btn-secondary btn-sm">Düzenle</a>
+        ${!g.is_published ? `<button class="btn btn-primary btn-sm" style="margin-left:4px" onclick="publish('${g.id}')">Yayınla</button>` : ''}
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Henüz oyun yok. <a href="/gelistirici/oyun-yukle" style="color:var(--red-primary)">Oyun yükle →</a></td></tr>';
+}
+
+async function publish(id) {
+  try {
+    await api(`/api/gelistirici/oyun/${id}/yayinla`, { method: 'POST' });
+    toast('Oyun yayınlandı!', 'success');
+    load();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+load();
+</script>
+</body>
+</html>

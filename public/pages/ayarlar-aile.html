@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aile Denetimi – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"><a href="/ayarlar" style="color:var(--text-muted);font-size:13px">← Ayarlar</a></header>
+    <main class="page-content" style="max-width:600px">
+      <div class="page-header">
+        <div class="page-title">👨‍👩‍👧 Aile Denetimi</div>
+        <div class="page-subtitle">Çocuğunuzun platformu güvenli kullanmasını sağlayın</div>
+      </div>
+      <div class="alert alert-info">Aile denetimi etkinleştirildiğinde, çocuğunuzun yaşının üzerindeki oyunlar ve uygunsuz içerikler filtrelenir.</div>
+      <div id="alertBox"></div>
+      <div class="card" style="padding:24px">
+        <form id="ailForm">
+          <div class="checkbox-group" style="margin-bottom:20px">
+            <input type="checkbox" id="isEnabled">
+            <label for="isEnabled" style="font-size:15px;font-weight:600">Bu hesabı aile denetimine bağla</label>
+          </div>
+          <div id="ailFields">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group"><label>Veli Adı</label><input class="form-control" id="parentFirst" placeholder="Ad"></div>
+              <div class="form-group"><label>Veli Soyadı</label><input class="form-control" id="parentLast" placeholder="Soyad"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group"><label>Veli Yaşı</label><input class="form-control" type="number" id="parentAge" min="18" max="100" placeholder="Örn: 35"></div>
+              <div class="form-group"><label>Çocuk Yaşı</label><input class="form-control" type="number" id="childAge" min="1" max="17" placeholder="Örn: 12"></div>
+            </div>
+            <div class="card" style="padding:16px;margin-bottom:16px;background:var(--bg-hover)">
+              <div style="font-size:13px;font-weight:600;margin-bottom:8px">💬 Mesajlaşma Filtresi</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+                Çocuğunuza gönderilen mesajlarda küfürlü ifadeler filtrelenir. Küfürlü mesaj yerine "Küfür yoook 🚫 *Veli Adı Soyadı*" yazısı gösterilir.
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="allowProfanity">
+                <label for="allowProfanity">Küfürlü mesajlara izin ver (tavsiye edilmez)</label>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar();
+
+document.getElementById('isEnabled').addEventListener('change', (e) => {
+  document.getElementById('ailFields').style.display = e.target.checked ? 'block' : 'none';
+});
+
+async function load() {
+  const res = await (await fetch('/api/kullanicilar/aile-denetimi')).json();
+  const c = res.control;
+  if (c) {
+    document.getElementById('isEnabled').checked = c.is_enabled;
+    document.getElementById('parentFirst').value = c.parent_first_name || '';
+    document.getElementById('parentLast').value = c.parent_last_name || '';
+    document.getElementById('parentAge').value = c.parent_age || '';
+    document.getElementById('childAge').value = c.child_age || '';
+    document.getElementById('allowProfanity').checked = c.allow_profanity || false;
+  }
+  document.getElementById('ailFields').style.display = document.getElementById('isEnabled').checked ? 'block' : 'none';
+}
+
+document.getElementById('ailForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const enabled = document.getElementById('isEnabled').checked;
+  try {
+    await api('/api/kullanicilar/aile-denetimi', {
+      method: 'POST',
+      body: {
+        is_enabled: enabled,
+        parent_first_name: document.getElementById('parentFirst').value,
+        parent_last_name: document.getElementById('parentLast').value,
+        parent_age: document.getElementById('parentAge').value,
+        child_age: document.getElementById('childAge').value,
+        allow_profanity: document.getElementById('allowProfanity').checked
+      }
+    });
+    toast('Aile denetimi ayarları kaydedildi!', 'success');
+  } catch (err) { toast(err.message, 'error'); }
+});
+
+load();
+</script>
+</body>
+</html>

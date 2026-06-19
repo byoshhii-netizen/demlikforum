@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geliştirici Başvuruları – Admin</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"><a href="/admin" style="color:var(--text-muted);font-size:13px">← Admin Panel</a></header>
+    <main class="page-content">
+      <div class="page-header"><div class="page-title">📋 Geliştirici Başvuruları</div></div>
+      <div class="tabs">
+        <div class="tab active" onclick="filterApps('pending',this)">Bekleyen</div>
+        <div class="tab" onclick="filterApps('approved',this)">Kabul Edildi</div>
+        <div class="tab" onclick="filterApps('rejected',this)">Reddedildi</div>
+      </div>
+      <div id="appsList"></div>
+    </main>
+  </div>
+</div>
+
+<!-- Detay Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div class="modal-title">Başvuru Detayı</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('admin');
+let allApps = [];
+let currentFilter = 'pending';
+let selectedApp = null;
+
+async function load() {
+  const res = await (await fetch('/api/admin/basvurular')).json();
+  allApps = res.applications || [];
+  render();
+}
+
+function filterApps(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function render() {
+  const filtered = allApps.filter(a => a.status === currentFilter);
+  const el = document.getElementById('appsList');
+  if (!filtered.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Başvuru yok</div>'; return; }
+  el.innerHTML = `
+    <div class="table-wrap card">
+      <table>
+        <thead><tr><th>Başvuran</th><th>Ekip</th><th>E-posta</th><th>IP</th><th>Tarih</th><th>İşlem</th></tr></thead>
+        <tbody>${filtered.map(a => `
+          <tr>
+            <td>${a.username}</td>
+            <td>${a.team_name}</td>
+            <td>${a.email}</td>
+            <td><code style="font-size:11px;color:var(--text-muted)">${a.last_ip || '-'}</code></td>
+            <td>${new Date(a.created_at).toLocaleDateString('tr-TR')}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="showDetail('${a.id}')">İncele</button>
+              ${a.status === 'pending' ? `
+                <button class="btn btn-success btn-sm" style="margin-left:4px" onclick="approve('${a.id}')">✓ Kabul</button>
+                <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="reject('${a.id}')">✗ Red</button>
+              ` : ''}
+            </td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function showDetail(id) {
+  const a = allApps.find(x => x.id === id);
+  selectedApp = a;
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px">
+      <div><b>Ad Soyad:</b><br>${a.first_name} ${a.last_name}</div>
+      <div><b>Kullanıcı Adı:</b><br>${a.username}</div>
+      <div><b>Ekip Adı:</b><br>${a.team_name}</div>
+      <div><b>E-posta:</b><br>${a.email}</div>
+      <div><b>IP Adresi:</b><br><code>${a.last_ip || '-'}</code></div>
+      <div><b>Konum:</b><br>${a.last_location || '-'}</div>
+      <div><b>Daha önce oyun yapmış mı:</b><br>${a.has_previous_games ? 'Evet' : 'Hayır'}</div>
+      <div><b>Başvuru Tarihi:</b><br>${new Date(a.created_at).toLocaleString('tr-TR')}</div>
+      ${a.has_previous_games ? `
+        <div><b>Oyun Türü:</b><br>${a.previous_game_type || '-'}</div>
+        <div><b>Oyun Adı:</b><br>${a.previous_game_name || '-'}</div>
+      ` : ''}
+      ${a.previous_game_description ? `<div style="grid-column:span 2"><b>Oyun Açıklaması:</b><br>${a.previous_game_description}</div>` : ''}
+      <div><b>Durum:</b><br>
+        ${a.status === 'pending' ? '<span class="badge badge-yellow">Beklemede</span>' :
+          a.status === 'approved' ? '<span class="badge badge-green">Kabul</span>' :
+          '<span class="badge badge-red">Red</span>'}
+      </div>
+    </div>
+    ${a.rejection_reason ? `<div class="alert alert-error" style="margin-top:12px">Red Nedeni: ${a.rejection_reason}</div>` : ''}
+  `;
+  document.getElementById('modalFooter').innerHTML = a.status === 'pending' ? `
+    <button class="btn btn-success" onclick="approve('${a.id}');closeModal()">✓ Kabul Et</button>
+    <button class="btn btn-danger" onclick="promptReject('${a.id}')">✗ Reddet</button>
+    <button class="btn btn-secondary" onclick="closeModal()">Kapat</button>
+  ` : `<button class="btn btn-secondary" onclick="closeModal()">Kapat</button>`;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('detailModal').classList.remove('open'); }
+
+async function approve(id) {
+  if (!confirm('Bu başvuruyu kabul etmek istediğinize emin misiniz?')) return;
+  await api(`/api/admin/basvurular/${id}/kabul`, { method: 'POST' });
+  toast('Başvuru kabul edildi!', 'success');
+  load();
+}
+
+function promptReject(id) {
+  const reason = prompt('Red nedeni (isteğe bağlı):');
+  if (reason === null) return;
+  rejectApp(id, reason);
+}
+
+async function rejectApp(id, reason) {
+  await api(`/api/admin/basvurular/${id}/red`, { method: 'POST', body: { reason } });
+  toast('Başvuru reddedildi', 'info');
+  closeModal();
+  load();
+}
+
+async function reject(id) { promptReject(id); }
+
+load();
+</script>
+</body>
+</html>

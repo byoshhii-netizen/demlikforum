@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oyun Düzenle – Geliştirici Paneli</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <a href="/gelistirici/dashboard" style="color:var(--text-muted);font-size:13px">← Dashboard</a>
+      <span style="font-weight:700;margin-left:12px" id="pageTitle">Oyun Düzenle</span>
+    </header>
+    <main class="page-content" style="max-width:720px">
+      <div id="alertBox"></div>
+      <div class="card" style="padding:24px;margin-bottom:16px">
+        <h2 style="margin-bottom:20px">📝 Oyun Bilgileri</h2>
+        <form id="editForm">
+          <div class="form-group"><label>Oyun Adı</label><input class="form-control" id="g_title"></div>
+          <div class="form-group"><label>Açıklama</label><textarea class="form-control" id="g_desc" rows="5"></textarea></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group"><label>Tür</label><select class="form-control" id="g_genre"></select></div>
+            <div class="form-group"><label>Yaş Sınırı</label>
+              <select class="form-control" id="g_age">
+                <option value="0">Tüm Yaşlar</option><option value="7">7+</option><option value="12">12+</option>
+                <option value="16">16+</option><option value="18">18+</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>Yayıncı</label><input class="form-control" id="g_publisher"></div>
+          <div class="form-group" id="priceGroup" style="display:none"><label>Fiyat (₺)</label><input class="form-control" type="number" id="g_price" step="0.01"></div>
+          <button type="submit" class="btn btn-primary">💾 Kaydet</button>
+        </form>
+      </div>
+
+      <div class="card" style="padding:20px">
+        <h3 style="margin-bottom:12px">⚠️ Tehlikeli İşlemler</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-danger btn-sm" onclick="if(confirm('Oyunu yayından kaldırmak istediğinizden emin misiniz?')) unpublish()">🔒 Yayından Kaldır</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('dev-dashboard');
+const gameId = location.pathname.split('/')[3];
+let game = null;
+
+async function load() {
+  const u = await loadSession();
+  if (!u.loggedIn) return window.location.href = '/giris';
+
+  // Türleri yükle
+  const genres = await (await fetch('/api/oyunlar/meta/turler')).json();
+  const sel = document.getElementById('g_genre');
+  genres.genres?.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+
+  // Oyun bilgilerini yükle
+  const res = await (await fetch(`/api/admin/oyunlar/${gameId}`)).json();
+  if (!res.game) return;
+  game = res.game;
+  document.getElementById('pageTitle').textContent = `Düzenle: ${game.title}`;
+  document.getElementById('g_title').value = game.title || '';
+  document.getElementById('g_desc').value = game.description || '';
+  document.getElementById('g_age').value = game.age_rating || 0;
+  document.getElementById('g_publisher').value = game.publisher_name || '';
+  document.getElementById('g_price').value = game.price || 0;
+  if (game.genre_id) document.getElementById('g_genre').value = game.genre_id;
+
+  // Fiyat kontrolü
+  const dash = await (await fetch('/api/gelistirici/dashboard')).json();
+  if (dash.profile?.payment_unlocked) document.getElementById('priceGroup').style.display = 'block';
+}
+
+document.getElementById('editForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api(`/api/gelistirici/oyun/${gameId}`, {
+      method: 'PUT',
+      body: {
+        title: document.getElementById('g_title').value,
+        description: document.getElementById('g_desc').value,
+        genre_id: document.getElementById('g_genre').value,
+        age_rating: document.getElementById('g_age').value,
+        publisher_name: document.getElementById('g_publisher').value,
+        price: document.getElementById('g_price').value
+      }
+    });
+    toast('Oyun güncellendi!', 'success');
+  } catch (err) { toast(err.message, 'error'); }
+});
+
+async function unpublish() {
+  await api(`/api/admin/oyunlar/${gameId}`, { method: 'PUT', body: { is_hidden: true } });
+  toast('Oyun yayından kaldırıldı', 'info');
+  window.location.href = '/gelistirici/dashboard';
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oyun Yükle – Geliştirici Paneli</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.step { display:none; } .step.active { display:block; }
+.steps-nav { display:flex; gap:0; margin-bottom:32px; }
+.step-dot {
+  flex:1; text-align:center; padding:10px; font-size:13px; font-weight:600;
+  color:var(--text-muted); border-bottom:3px solid var(--border);
+  transition:all 0.2s; position:relative;
+}
+.step-dot.done { color:var(--red-primary); border-color:var(--red-dark); }
+.step-dot.active { color:var(--text-primary); border-color:var(--red-primary); }
+.upload-preview { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.upload-preview img, .upload-preview video {
+  width:120px; height:80px; object-fit:cover; border-radius:6px; border:2px solid var(--border);
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <a href="/gelistirici/dashboard" style="color:var(--text-muted);font-size:13px">← Dashboard</a>
+      <span style="font-weight:700;margin-left:12px">Yeni Oyun Yükle</span>
+    </header>
+    <main class="page-content" style="max-width:720px">
+      <div class="steps-nav">
+        <div class="step-dot active" id="dot1">1. Bilgiler</div>
+        <div class="step-dot" id="dot2">2. Medya</div>
+        <div class="step-dot" id="dot3">3. Kurulum</div>
+        <div class="step-dot" id="dot4">4. Yayınla</div>
+      </div>
+
+      <div id="alertBox"></div>
+
+      <!-- ADIM 1: Oyun Bilgileri -->
+      <div class="step active" id="step1">
+        <div class="card" style="padding:24px">
+          <h2 style="margin-bottom:20px">🎮 Oyun Bilgileri</h2>
+          <div class="form-group"><label>Oyun Adı *</label><input class="form-control" id="g_title" placeholder="Oyunun adı" required></div>
+          <div class="form-group"><label>Oyun Açıklaması *</label><textarea class="form-control" id="g_desc" rows="5" placeholder="Oyununuzu anlatan detaylı açıklama..."></textarea></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group"><label>Oyun Türü</label><select class="form-control" id="g_genre"><option value="">Seçin...</option></select></div>
+            <div class="form-group"><label>Yaş Sınırı</label>
+              <select class="form-control" id="g_age">
+                <option value="0">Tüm Yaşlar</option><option value="7">7+</option><option value="12">12+</option>
+                <option value="16">16+</option><option value="18">18+</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>Üretici Firma / Yayıncı <span style="color:var(--text-muted);font-size:12px">(Boş bırakırsanız ekip adınız kullanılır)</span></label>
+            <input class="form-control" id="g_publisher" placeholder="Firma adı">
+          </div>
+          <div class="form-group" id="priceGroup" style="display:none">
+            <label>Fiyat (₺) <span style="font-size:12px;color:var(--text-muted)">Ücretlendirme kilit açıldıktan sonra geçerli</span></label>
+            <input class="form-control" type="number" id="g_price" value="0" min="0" step="0.01">
+          </div>
+          <button class="btn btn-primary" onclick="createGame()">Devam Et →</button>
+        </div>
+      </div>
+
+      <!-- ADIM 2: Medya -->
+      <div class="step" id="step2">
+        <div class="card" style="padding:24px">
+          <h2 style="margin-bottom:20px">🖼️ Medya Yükle</h2>
+
+          <div class="form-group">
+            <label>Oyun Logosu * <span style="color:var(--text-muted);font-size:12px">(Zorunlu - 1 adet)</span></label>
+            <div class="upload-zone" onclick="document.getElementById('logoInput').click()" id="logoZone">
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-text">Logo yüklemek için tıklayın</div>
+              <div class="upload-sub">PNG, JPG önerilir</div>
+            </div>
+            <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="uploadLogo(this)">
+            <div id="logoPreview" class="upload-preview"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Banner Fotoğrafları * <span style="color:var(--text-muted);font-size:12px">(Minimum 1 adet)</span></label>
+            <div class="upload-zone" onclick="document.getElementById('bannerInput').click()">
+              <div class="upload-icon">📸</div>
+              <div class="upload-text">Banner yüklemek için tıklayın</div>
+              <div class="upload-sub">Birden fazla seçebilirsiniz</div>
+            </div>
+            <input type="file" id="bannerInput" accept="image/*" multiple style="display:none" onchange="uploadBanners(this)">
+            <div id="bannerPreview" class="upload-preview"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Oyun İçi Videolar * <span style="color:var(--text-muted);font-size:12px">(Minimum 2 adet)</span></label>
+            <div class="upload-zone" onclick="document.getElementById('videoInput').click()">
+              <div class="upload-icon">🎬</div>
+              <div class="upload-text">Video yüklemek için tıklayın</div>
+              <div class="upload-sub">MP4 önerilir</div>
+            </div>
+            <input type="file" id="videoInput" accept="video/*" multiple style="display:none" onchange="uploadVideos(this)">
+            <div id="videoPreview" class="upload-preview"></div>
+          </div>
+
+          <div id="mediaStatus" style="font-size:13px;color:var(--text-muted);margin-bottom:12px"></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-secondary" onclick="goStep(1)">← Geri</button>
+            <button class="btn btn-primary" onclick="checkMediaAndNext()">Devam Et →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADIM 3: Kurulum Dosyası -->
+      <div class="step" id="step3">
+        <div class="card" style="padding:24px">
+          <h2 style="margin-bottom:8px">📦 Kurulum Dosyası</h2>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px">
+            Oyunun .exe kurulum dosyasını yükleyin. Yükleme arka planda devam eder.
+          </p>
+
+          <div class="contract-box" id="contractText">OYUN YÜKLEME SÖZLEŞMESİ\n\nYükleme yapılıyor...</div>
+          <div class="checkbox-group"><input type="checkbox" id="contractAccept"><label for="contractAccept">Oyun yükleme şartlarını okudum, kabul ediyorum</label></div>
+
+          <div class="form-group" style="margin-top:16px">
+            <label>Kurulum Dosyası (.exe, .zip, .msi) *</label>
+            <div class="upload-zone" id="exeZone" onclick="if(document.getElementById('contractAccept').checked) document.getElementById('exeInput').click(); else alert('Önce şartları kabul edin')">
+              <div class="upload-icon" id="exeIcon">📦</div>
+              <div class="upload-text" id="exeText">Kurulum dosyasını yüklemek için tıklayın</div>
+              <div class="upload-sub">Maksimum boyut: 10 GB</div>
+            </div>
+            <input type="file" id="exeInput" accept=".exe,.zip,.msi,.rar" style="display:none" onchange="uploadExe(this)">
+          </div>
+
+          <div id="uploadProgress" style="display:none;margin-top:12px">
+            <div style="font-size:13px;margin-bottom:6px" id="uploadStatusText">Yükleniyor...</div>
+            <div class="progress-bar"><div class="progress-fill" id="uploadFill" style="width:0%"></div></div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-secondary" onclick="goStep(2)">← Geri</button>
+            <button class="btn btn-primary" id="step3NextBtn" onclick="goStep(4)" disabled>Devam Et →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADIM 4: Yayınla -->
+      <div class="step" id="step4">
+        <div class="card" style="padding:24px">
+          <h2 style="margin-bottom:16px">🚀 Yayınla</h2>
+          <div id="publishChecklist" style="margin-bottom:20px"></div>
+          <button class="btn btn-primary btn-lg btn-full" onclick="publishGame()" id="publishBtn">🚀 Oyunu Yayınla</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('dev-upload');
+let gameId = null;
+let uploadedLogo = false, uploadedBanners = 0, uploadedVideos = 0;
+
+async function init() {
+  const u = await loadSession();
+  if (!u.loggedIn || (u.role !== 'developer' && u.role !== 'admin')) return window.location.href = '/gelistirici';
+
+  // Türleri yükle
+  const genres = await (await fetch('/api/oyunlar/meta/turler')).json();
+  const sel = document.getElementById('g_genre');
+  genres.genres?.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+
+  // Sözleşme
+  const contract = await (await fetch('/api/gelistirici/sozlesme/oyun-yukleme')).json();
+  document.getElementById('contractText').textContent = contract.content;
+
+  // Fiyat kontrolü
+  const dash = await (await fetch('/api/gelistirici/dashboard')).json();
+  if (dash.profile?.payment_unlocked) document.getElementById('priceGroup').style.display = 'block';
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i + 1 === n));
+  document.querySelectorAll('.step-dot').forEach((d, i) => {
+    d.classList.remove('active', 'done');
+    if (i + 1 < n) d.classList.add('done');
+    else if (i + 1 === n) d.classList.add('active');
+  });
+  if (n === 4) renderPublishChecklist();
+}
+
+async function createGame() {
+  const title = document.getElementById('g_title').value.trim();
+  const desc = document.getElementById('g_desc').value.trim();
+  if (!title || !desc) { showAlert('Oyun adı ve açıklaması zorunludur', 'error'); return; }
+  try {
+    const res = await api('/api/gelistirici/oyun/yeni', {
+      method: 'POST',
+      body: {
+        title, description: desc,
+        genre_id: document.getElementById('g_genre').value || null,
+        age_rating: document.getElementById('g_age').value,
+        price: document.getElementById('g_price').value,
+        publisher_name: document.getElementById('g_publisher').value
+      }
+    });
+    gameId = res.gameId;
+    goStep(2);
+  } catch (err) { showAlert(err.message, 'error'); }
+}
+
+async function uploadLogo(input) {
+  if (!input.files[0] || !gameId) return;
+  const fd = new FormData(); fd.append('logo', input.files[0]);
+  showAlert('Logo yükleniyor...', 'info');
+  const res = await fetch(`/api/gelistirici/oyun/${gameId}/logo`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.success) {
+    uploadedLogo = true;
+    document.getElementById('logoPreview').innerHTML = `<img src="${data.url}" alt="Logo">`;
+    document.getElementById('logoZone').style.borderColor = 'var(--red-primary)';
+    showAlert('✅ Logo yüklendi', 'success');
+  }
+}
+
+async function uploadBanners(input) {
+  if (!input.files.length || !gameId) return;
+  for (const file of input.files) {
+    const fd = new FormData(); fd.append('banner', file);
+    const res = await fetch(`/api/gelistirici/oyun/${gameId}/banner`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      uploadedBanners++;
+      document.getElementById('bannerPreview').innerHTML += `<img src="${data.url}" alt="Banner">`;
+    }
+  }
+  updateMediaStatus();
+}
+
+async function uploadVideos(input) {
+  if (!input.files.length || !gameId) return;
+  for (const file of input.files) {
+    const fd = new FormData(); fd.append('video', file);
+    const res = await fetch(`/api/gelistirici/oyun/${gameId}/video`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      uploadedVideos++;
+      document.getElementById('videoPreview').innerHTML += `<video src="${data.url}" controls muted style="width:160px;height:90px"></video>`;
+    }
+  }
+  updateMediaStatus();
+}
+
+function updateMediaStatus() {
+  const status = document.getElementById('mediaStatus');
+  status.innerHTML = `
+    ${uploadedLogo ? '✅' : '❌'} Logo (${uploadedLogo ? '1/1' : '0/1'}) &nbsp;|&nbsp;
+    ${uploadedBanners >= 1 ? '✅' : '❌'} Banner (${uploadedBanners}/1+ gerekli) &nbsp;|&nbsp;
+    ${uploadedVideos >= 2 ? '✅' : '❌'} Video (${uploadedVideos}/2+ gerekli)
+  `;
+}
+
+function checkMediaAndNext() {
+  if (!uploadedLogo) { showAlert('Logo yüklenmesi zorunludur', 'error'); return; }
+  if (uploadedBanners < 1) { showAlert('En az 1 banner gerekli', 'error'); return; }
+  if (uploadedVideos < 2) { showAlert('En az 2 video gerekli', 'error'); return; }
+  goStep(3);
+}
+
+async function uploadExe(input) {
+  if (!input.files[0] || !gameId) return;
+  if (!document.getElementById('contractAccept').checked) { alert('Önce şartları kabul edin'); return; }
+  const fd = new FormData(); fd.append('installer', input.files[0]);
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('exeText').textContent = 'Yükleniyor...';
+
+  // Progress simülasyonu (gerçek yükleme arka planda)
+  let p = 0;
+  const iv = setInterval(() => {
+    p += Math.random() * 5;
+    if (p > 95) { p = 95; clearInterval(iv); }
+    document.getElementById('uploadFill').style.width = p + '%';
+    document.getElementById('uploadStatusText').textContent = `Yükleniyor... %${Math.round(p)}`;
+  }, 300);
+
+  try {
+    const res = await fetch(`/api/gelistirici/oyun/${gameId}/installer`, { method: 'POST', body: fd });
+    const data = await res.json();
+    clearInterval(iv);
+    if (data.success) {
+      document.getElementById('uploadFill').style.width = '100%';
+      document.getElementById('uploadStatusText').textContent = '✅ Kurulum dosyası yüklendi!';
+      document.getElementById('step3NextBtn').disabled = false;
+      document.getElementById('exeIcon').textContent = '✅';
+      document.getElementById('exeText').textContent = input.files[0].name;
+    }
+  } catch { clearInterval(iv); showAlert('Yükleme hatası', 'error'); }
+}
+
+function renderPublishChecklist() {
+  document.getElementById('publishChecklist').innerHTML = `
+    <div class="alert alert-info">
+      <div style="font-weight:600;margin-bottom:8px">Yayınlama Kontrolü:</div>
+      <div>✅ Oyun bilgileri</div>
+      <div>${uploadedLogo ? '✅' : '❌'} Logo</div>
+      <div>${uploadedBanners >= 1 ? '✅' : '❌'} Banner (${uploadedBanners} adet)</div>
+      <div>${uploadedVideos >= 2 ? '✅' : '❌'} Video (${uploadedVideos} adet)</div>
+      <div>✅ Kurulum dosyası</div>
+    </div>
+  `;
+}
+
+async function publishGame() {
+  const btn = document.getElementById('publishBtn');
+  btn.disabled = true; btn.textContent = 'Yayınlanıyor...';
+  try {
+    await api(`/api/gelistirici/oyun/${gameId}/yayinla`, { method: 'POST' });
+    document.getElementById('step4').innerHTML = `
+      <div class="card" style="padding:40px;text-align:center">
+        <div style="font-size:56px;margin-bottom:16px">🎉</div>
+        <div style="font-size:22px;font-weight:800;color:var(--red-primary);margin-bottom:8px">Oyun Yayınlandı!</div>
+        <div style="color:var(--text-secondary);margin-bottom:24px">Oyununuz artık Store'da görünüyor.</div>
+        <div style="display:flex;gap:12px;justify-content:center">
+          <a href="/oyun/${gameId}" class="btn btn-primary">Oyunu Görüntüle</a>
+          <a href="/gelistirici/dashboard" class="btn btn-secondary">Dashboard'a Dön</a>
+        </div>
+      </div>
+    `;
+  } catch (err) { showAlert(err.message, 'error'); btn.disabled = false; btn.textContent = '🚀 Oyunu Yayınla'; }
+}
+
+function showAlert(msg, type) {
+  document.getElementById('alertBox').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => document.getElementById('alertBox').innerHTML = '', 3000);
+}
+
+init();
+</script>
+</body>
+</html>

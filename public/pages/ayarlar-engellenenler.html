@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Engellenenler – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"><a href="/ayarlar" style="color:var(--text-muted);font-size:13px">← Ayarlar</a></header>
+    <main class="page-content" style="max-width:600px">
+      <div class="page-header">
+        <div class="page-title">🚫 Engellenenler</div>
+      </div>
+      <div id="blockedList"><div style="color:var(--text-muted);padding:32px;text-align:center">Yükleniyor...</div></div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar();
+async function load() {
+  const res = await (await fetch('/api/kullanicilar/engellilistesi')).json();
+  const list = res.blocked || [];
+  document.getElementById('blockedList').innerHTML = list.length ? list.map(u => `
+    <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <div class="user-avatar">${u.username[0].toUpperCase()}</div>
+      <div style="flex:1">
+        <div style="font-weight:600">${u.username}</div>
+        <div style="font-size:12px;color:var(--text-muted)">Engellenme: ${new Date(u.created_at).toLocaleDateString('tr-TR')}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="unblock('${u.id}','${u.username}')">Engeli Kaldır</button>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:32px;color:var(--text-muted)">Engellediğin kullanıcı yok</div>';
+}
+async function unblock(id, name) {
+  if (!confirm(`${name} adlı kullanıcının engelini kaldır?`)) return;
+  await api(`/api/kullanicilar/engelle/${id}`, { method: 'DELETE' });
+  toast('Engel kaldırıldı', 'success');
+  load();
+}
+load();
+</script>
+</body>
+</html>

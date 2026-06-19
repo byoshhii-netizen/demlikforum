@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geliştirici Paneli – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"></header>
+    <main class="page-content" id="pageContent">
+      <div style="color:var(--text-muted);padding:40px;text-align:center">Yükleniyor...</div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('dev-dashboard');
+async function check() {
+  const u = await loadSession();
+  if (!u.loggedIn) return window.location.href = '/giris';
+
+  if (u.role === 'developer' || u.role === 'admin') {
+    window.location.href = '/gelistirici/dashboard';
+    return;
+  }
+
+  // Başvuru durumu kontrol
+  const pc = document.getElementById('pageContent');
+  if (u.devApplicationStatus === 'pending') {
+    pc.innerHTML = `
+      <div class="dev-pending">
+        <span class="dev-pending-icon">⏳</span>
+        <div>
+          <div style="font-size:17px;font-weight:700;color:#f39c12">Geliştirici Hesabınız İnceleniyor</div>
+          <div style="font-size:14px;color:var(--text-secondary);margin-top:6px">
+            Başvurunuz alındı. Birkaç iş günü içerisinde hesabınız incelenir ve kabul ya da reddedilir.<br>
+            Sonuç e-posta adresinize bildirilecektir.
+          </div>
+        </div>
+      </div>
+      <a href="/" class="btn btn-secondary">← Ana Sayfaya Dön</a>
+    `;
+  } else if (u.devApplicationStatus === 'rejected') {
+    pc.innerHTML = `
+      <div class="alert alert-error" style="font-size:15px">
+        ❌ <b>Başvurunuz Reddedildi</b><br>
+        <span style="font-size:13px">Geliştirici başvurunuz reddedildi. Yeni bir hesapla tekrar başvurabilirsiniz.</span>
+      </div>
+    `;
+  } else {
+    pc.innerHTML = `
+      <div class="page-header"><div class="page-title">👨‍💻 Geliştirici Ol</div></div>
+      <div class="alert alert-info">Geliştirici hesabı için kayıt sayfasından başvuru yapmanız gerekmektedir.</div>
+      <a href="/kayit" class="btn btn-primary">Geliştirici Olarak Kayıt Ol</a>
+    `;
+  }
+}
+check();
+</script>
+</body>
+</html>

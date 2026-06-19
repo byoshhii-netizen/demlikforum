@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Giriş Yap – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-text">Demlik</div>
+      <div class="auth-logo-sub">Platform</div>
+    </div>
+    <div class="auth-title">Giriş Yap</div>
+    <div class="auth-subtitle">Hesabınıza giriş yapın</div>
+    <div id="alertBox"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>E-posta</label>
+        <input class="form-control" type="email" id="email" placeholder="ornek@mail.com" required>
+      </div>
+      <div class="form-group">
+        <label>Şifre</label>
+        <input class="form-control" type="password" id="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="submitBtn">Giriş Yap</button>
+    </form>
+    <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-muted)">
+      Hesabınız yok mu? <a href="/kayit" style="color:var(--red-primary);font-weight:600">Kayıt Ol</a>
+    </div>
+    <div style="text-align:center;margin-top:12px">
+      <a href="/" style="font-size:13px;color:var(--text-muted)">← Ana Sayfaya Dön</a>
+    </div>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+// Zaten girişli ise yönlendir
+(async () => {
+  const u = await loadSession();
+  if (u.loggedIn) window.location.href = '/';
+})();
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Giriş yapılıyor...';
+  document.getElementById('alertBox').innerHTML = '';
+  try {
+    const data = await api('/api/auth/giris', {
+      method: 'POST',
+      body: { email: document.getElementById('email').value, password: document.getElementById('password').value }
+    });
+    window.location.href = data.role === 'admin' ? '/admin' : '/';
+  } catch (err) {
+    document.getElementById('alertBox').innerHTML = `<div class="alert alert-error">❌ ${err.message}</div>`;
+    btn.disabled = false; btn.textContent = 'Giriş Yap';
+  }
+});
+</script>
+</body>
+</html>

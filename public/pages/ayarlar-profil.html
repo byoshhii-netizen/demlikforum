@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Profil Ayarları – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar"><a href="/ayarlar" style="color:var(--text-muted);font-size:13px">← Ayarlar</a></header>
+    <main class="page-content" style="max-width:600px">
+      <div class="page-header">
+        <div class="page-title">👤 Profil Ayarları</div>
+      </div>
+      <div id="alertBox"></div>
+      <div class="card" style="padding:24px;margin-bottom:16px">
+        <h3 style="margin-bottom:16px">Profil Bilgileri</h3>
+        <form id="profileForm" enctype="multipart/form-data">
+          <div class="form-group">
+            <label>Avatar</label>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="user-avatar" style="width:64px;height:64px;font-size:24px" id="avatarPreview"></div>
+              <input type="file" id="avatarFile" accept="image/*" onchange="previewAvatar(this)">
+            </div>
+          </div>
+          <div class="form-group"><label>Hakkında</label><textarea class="form-control" id="bio" placeholder="Kendinizi tanıtın..." rows="3"></textarea></div>
+          <div class="form-group">
+            <label>Oyun Kütüphanemi Göster</label>
+            <select class="form-control" id="showGames">
+              <option value="true">Evet, herkese göster</option>
+              <option value="false">Hayır, gizle</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Kaydet</button>
+        </form>
+      </div>
+
+      <div class="card" style="padding:24px">
+        <h3 style="margin-bottom:16px">Şifre Değiştir</h3>
+        <form id="pwForm">
+          <div class="form-group"><label>Mevcut Şifre</label><input class="form-control" type="password" id="curPw"></div>
+          <div class="form-group"><label>Yeni Şifre</label><input class="form-control" type="password" id="newPw"></div>
+          <button type="submit" class="btn btn-secondary">Şifreyi Değiştir</button>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar();
+
+async function loadProfile() {
+  const res = await (await fetch('/api/kullanicilar/ben')).json();
+  const u = res.user;
+  document.getElementById('bio').value = u.bio || '';
+  document.getElementById('showGames').value = u.show_games ? 'true' : 'false';
+  const av = document.getElementById('avatarPreview');
+  av.innerHTML = u.avatar_url ? `<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : u.username[0].toUpperCase();
+}
+
+function previewAvatar(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('avatarPreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  const fd = new FormData();
+  fd.append('bio', document.getElementById('bio').value);
+  fd.append('show_games', document.getElementById('showGames').value);
+  if (document.getElementById('avatarFile').files[0]) fd.append('avatar', document.getElementById('avatarFile').files[0]);
+  try {
+    await fetch('/api/kullanicilar/profil', { method: 'PUT', body: fd });
+    toast('Profil güncellendi!', 'success');
+  } catch { toast('Hata oluştu', 'error'); }
+  btn.disabled = false; btn.textContent = 'Kaydet';
+});
+
+document.getElementById('pwForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/kullanicilar/sifre-degistir', {
+      method: 'POST',
+      body: { currentPassword: document.getElementById('curPw').value, newPassword: document.getElementById('newPw').value }
+    });
+    toast('Şifre değiştirildi!', 'success');
+    document.getElementById('pwForm').reset();
+  } catch (err) { toast(err.message, 'error'); }
+});
+
+loadProfile();
+</script>
+</body>
+</html>

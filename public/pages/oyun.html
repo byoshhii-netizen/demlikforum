@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oyun – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.media-gallery { display:flex; gap:8px; overflow-x:auto; margin-bottom:24px; padding-bottom:4px; }
+.media-thumb { width:160px; height:90px; border-radius:6px; overflow:hidden; flex-shrink:0; border:2px solid transparent; cursor:pointer; }
+.media-thumb.active { border-color:var(--red-primary); }
+.media-thumb img, .media-thumb video { width:100%; height:100%; object-fit:cover; }
+.game-detail-layout { display:grid; grid-template-columns:1fr 320px; gap:24px; }
+.game-sidebar-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; position:sticky; top:80px; }
+@media (max-width:900px) { .game-detail-layout { grid-template-columns:1fr; } }
+.download-progress { margin-top:12px; display:none; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <a href="/magazin" style="color:var(--text-muted);font-size:13px">← Store'a Dön</a>
+    </header>
+    <main class="page-content" id="pageContent">
+      <div style="color:var(--text-muted);padding:40px;text-align:center">Yükleniyor...</div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('magazin');
+const gameId = location.pathname.split('/').pop();
+let gameData = null;
+let currentUser = null;
+
+async function loadGame() {
+  currentUser = await loadSession();
+  const res = await (await fetch(`/api/oyunlar/${gameId}`)).json();
+  if (!res.game) { document.getElementById('pageContent').innerHTML = '<div class="alert alert-error">Oyun bulunamadı</div>'; return; }
+  gameData = res;
+  renderGame(res);
+}
+
+function renderGame({ game: g, inLibrary, isInstalled }) {
+  const mainMedia = g.banner_urls?.[0] || '';
+  const allMedia = [...(g.banner_urls || []), ...(g.video_urls || [])];
+
+  document.title = `${g.title} – Demlik Platform`;
+
+  document.getElementById('pageContent').innerHTML = `
+    <!-- Hero -->
+    <div class="game-hero" style="height:320px;margin-bottom:24px">
+      <img id="heroImg" src="${mainMedia}" alt="${g.title}" onerror="this.style.display='none'">
+      <div class="game-hero-overlay">
+        <div style="display:flex;align-items:center;gap:14px">
+          ${g.logo_url ? `<img src="${g.logo_url}" style="width:60px;height:60px;border-radius:10px;border:2px solid rgba(255,255,255,0.2)">` : ''}
+          <div>
+            <div class="game-hero-title">${g.title}</div>
+            <div class="game-hero-meta">${g.genre_name || ''} · ${g.publisher_name || g.team_name || g.developer_name || ''} · ${g.age_rating || 0}+</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Medya galerisi -->
+    ${allMedia.length > 1 ? `
+    <div class="media-gallery">
+      ${allMedia.map((m, i) => {
+        const isVideo = g.video_urls?.includes(m);
+        return `<div class="media-thumb ${i===0?'active':''}" onclick="switchMedia('${m}', ${isVideo}, this)">
+          ${isVideo ? `<video src="${m}" muted></video>` : `<img src="${m}" alt="">`}
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
+    <div class="game-detail-layout">
+      <!-- Sol: Açıklama -->
+      <div>
+        <div class="card" style="padding:24px;margin-bottom:16px">
+          <h2 style="font-size:18px;margin-bottom:12px">Hakkında</h2>
+          <p style="color:var(--text-secondary);line-height:1.7;font-size:14px">${g.description}</p>
+        </div>
+        <div class="card" style="padding:20px">
+          <h3 style="font-size:15px;margin-bottom:12px">Oyun Bilgileri</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+            <div><span style="color:var(--text-muted)">Geliştirici:</span> ${g.team_name || g.developer_name || '-'}</div>
+            <div><span style="color:var(--text-muted)">Yayıncı:</span> ${g.publisher_name || '-'}</div>
+            <div><span style="color:var(--text-muted)">Tür:</span> ${g.genre_name || '-'}</div>
+            <div><span style="color:var(--text-muted)">Yaş Sınırı:</span> ${g.age_rating || 0}+</div>
+            <div><span style="color:var(--text-muted)">İndirme:</span> ${g.download_count || 0}</div>
+            <div><span style="color:var(--text-muted)">Kütüphane:</span> ${g.library_count || 0}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sağ: Satın al kartı -->
+      <div>
+        <div class="game-sidebar-card">
+          ${g.logo_url ? `<img src="${g.logo_url}" style="width:100%;border-radius:var(--radius);margin-bottom:16px">` : ''}
+          <div style="font-size:24px;font-weight:800;margin-bottom:4px;color:${g.is_free ? '#27ae60' : 'var(--red-primary)'}">
+            ${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price).toFixed(2)}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${g.is_purchase_disabled ? '⛔ Satışa kapalı' : ''}</div>
+          <div id="actionBtn"></div>
+          <div class="download-progress" id="dlProgress">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px" id="dlStatus">İndiriliyor...</div>
+            <div class="progress-bar"><div class="progress-fill" id="dlFill" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  updateActionBtn(inLibrary, isInstalled, g);
+}
+
+function updateActionBtn(inLibrary, isInstalled, g) {
+  const btn = document.getElementById('actionBtn');
+  if (!currentUser.loggedIn) {
+    btn.innerHTML = `<a href="/giris" class="btn btn-primary btn-full btn-lg">Giriş Yaparak Ekle</a>`;
+  } else if (isInstalled) {
+    btn.innerHTML = `
+      <button class="btn btn-success btn-full btn-lg" onclick="oyunAc()">▶ Oyna</button>
+      <button class="btn btn-secondary btn-full btn-sm" style="margin-top:8px" onclick="oyunIndir()">🔄 Yeniden İndir</button>
+    `;
+  } else if (inLibrary) {
+    btn.innerHTML = `
+      <button class="btn btn-primary btn-full btn-lg" onclick="oyunIndir()">⬇️ İndir</button>
+    `;
+  } else {
+    if (g.is_purchase_disabled) {
+      btn.innerHTML = `<button class="btn btn-secondary btn-full" disabled>Satışa Kapalı</button>`;
+    } else {
+      btn.innerHTML = `
+        <button class="btn btn-primary btn-full btn-lg" onclick="kutuphaneyeEkle()">
+          ${g.is_free ? '+ Kütüphaneye Ekle' : `₺${parseFloat(g.price).toFixed(2)} – Satın Al`}
+        </button>
+      `;
+    }
+  }
+}
+
+function switchMedia(src, isVideo, el) {
+  document.querySelectorAll('.media-thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const hero = document.getElementById('heroImg');
+  hero.src = isVideo ? '' : src;
+  hero.style.display = isVideo ? 'none' : 'block';
+}
+
+async function kutuphaneyeEkle() {
+  try {
+    await api(`/api/oyunlar/${gameId}/ekle`, { method: 'POST' });
+    toast('Kütüphaneye eklendi!', 'success');
+    loadGame();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function oyunIndir() {
+  try {
+    const res = await api(`/api/oyunlar/${gameId}/indir`, { method: 'POST' });
+    document.getElementById('dlProgress').style.display = 'block';
+    document.getElementById('dlStatus').textContent = 'İndirme başlatılıyor...';
+
+    // Tarayıcı indirmesi başlat
+    const link = document.createElement('a');
+    link.href = res.url;
+    link.download = res.filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Sahte progress (gerçek indirme tarayıcıda)
+    let p = 0;
+    const interval = setInterval(() => {
+      p += Math.random() * 8;
+      if (p >= 100) { p = 100; clearInterval(interval); document.getElementById('dlStatus').textContent = 'İndirme tamamlandı!'; markInstalled(); }
+      document.getElementById('dlFill').style.width = p + '%';
+      document.getElementById('dlStatus').textContent = `İndiriliyor... %${Math.round(p)}`;
+    }, 500);
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function markInstalled() {
+  await api(`/api/oyunlar/${gameId}/yuklendi`, { method: 'POST' });
+  toast('Oyun yüklendi!', 'success');
+  setTimeout(loadGame, 1000);
+}
+
+function oyunAc() {
+  toast('Oyun açılıyor... (Kurulum klasörünüzü kontrol edin)', 'info');
+}
+
+loadGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Store – Demlik Platform</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:24px; }
+.filter-bar select, .filter-bar input { background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--radius); padding:8px 12px; font-size:13px; outline:none; }
+.filter-bar select:focus, .filter-bar input:focus { border-color:var(--red-primary); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-search">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Oyun ara...">
+      </div>
+    </header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-title">🛒 Store</div>
+        <div class="page-subtitle">Tüm oyunları keşfedin</div>
+      </div>
+
+      <div class="filter-bar">
+        <select id="genreFilter"><option value="">Tüm Türler</option></select>
+        <select id="sortFilter">
+          <option value="yeni">En Yeni</option>
+          <option value="populer">En Popüler</option>
+          <option value="ucretsiz">Ücretsiz</option>
+        </select>
+        <input type="text" id="searchFilter" placeholder="🔍 Oyun adı ara...">
+        <span id="resultCount" style="color:var(--text-muted);font-size:13px;margin-left:auto"></span>
+      </div>
+
+      <div class="games-grid" id="gamesList">
+        <div style="color:var(--text-muted);padding:24px">Yükleniyor...</div>
+      </div>
+
+      <div id="pagination" style="display:flex;gap:8px;justify-content:center;margin-top:32px"></div>
+    </main>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderSidebar('magazin');
+let currentPage = 1;
+let searchTimer;
+
+// URL parametrelerini oku
+const params = new URLSearchParams(window.location.search);
+if (params.get('search')) document.getElementById('searchFilter').value = params.get('search');
+if (params.get('sort')) document.getElementById('sortFilter').value = params.get('sort');
+
+async function loadGenres() {
+  const res = await (await fetch('/api/oyunlar/meta/turler')).json();
+  const sel = document.getElementById('genreFilter');
+  res.genres?.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.name; opt.textContent = g.name;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadGames(page = 1) {
+  currentPage = page;
+  const genre = document.getElementById('genreFilter').value;
+  const sort = document.getElementById('sortFilter').value;
+  const search = document.getElementById('searchFilter').value.trim();
+  let url = `/api/oyunlar/liste?sort=${sort}&page=${page}&limit=24`;
+  if (genre) url += `&genre=${encodeURIComponent(genre)}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+
+  document.getElementById('gamesList').innerHTML = '<div style="color:var(--text-muted);padding:24px">Yükleniyor...</div>';
+
+  const res = await (await fetch(url)).json();
+  document.getElementById('resultCount').textContent = `${res.total || 0} oyun`;
+
+  if (!res.games?.length) {
+    document.getElementById('gamesList').innerHTML = '<div style="color:var(--text-muted);padding:40px;text-align:center">🎮 Oyun bulunamadı</div>';
+    return;
+  }
+
+  document.getElementById('gamesList').innerHTML = res.games.map(g => `
+    <div class="game-card" onclick="location.href='/oyun/${g.id}'">
+      <div class="game-card-banner">
+        <img src="${g.banner_urls?.[0] || ''}" alt="${g.title}" onerror="this.style.display='none'">
+      </div>
+      ${g.logo_url ? `<div class="game-card-logo"><img src="${g.logo_url}" alt=""></div>` : ''}
+      <div class="game-card-info">
+        <div class="game-card-title">${g.title}</div>
+        <div class="game-card-genre">${g.genre_name || 'Genel'}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="game-card-price ${g.is_free ? 'free' : ''}">${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price).toFixed(2)}</div>
+          <div style="font-size:11px;color:var(--text-muted)">⬇️ ${g.download_count || 0}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // Pagination
+  const totalPages = Math.ceil((res.total || 0) / 24);
+  let pages = '';
+  for (let i = 1; i <= Math.min(totalPages, 10); i++) {
+    pages += `<button class="btn ${i === page ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="loadGames(${i})">${i}</button>`;
+  }
+  document.getElementById('pagination').innerHTML = pages;
+}
+
+document.getElementById('genreFilter').addEventListener('change', () => loadGames(1));
+document.getElementById('sortFilter').addEventListener('change', () => loadGames(1));
+document.getElementById('searchFilter').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadGames(1), 400);
+});
+
+loadGenres();
+loadGames();
+</script>
+</body>
+</html>
