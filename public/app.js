@@ -2763,16 +2763,37 @@ async function renderSpotifyWidget(username, containerId) {
   try {
     const data = await fetch('/api/spotify/now-playing/' + encodeURIComponent(username)).then(r => r.json());
     if (!data.playing) { container.innerHTML = ''; return; }
-    container.innerHTML = `<div style="display:flex;align-items:center;gap:10px;background:rgba(30,215,96,0.08);border:1px solid rgba(30,215,96,0.25);border-radius:10px;padding:10px 14px;margin-top:12px;cursor:pointer" onclick="window.open('${escHtml(data.url)}','_blank')">
-      <img src="${escHtml(data.album_art)}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0" />
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-          <i class="fab fa-spotify" style="color:#1ED760;font-size:13px"></i>
-          <span style="font-size:10px;color:#1ED760;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Şu an dinliyor</span>
+
+    const fmtTime = ms => {
+      const s = Math.floor(ms / 1000);
+      return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    };
+    const progress = data.duration_ms > 0 ? Math.min(100, (data.progress_ms / data.duration_ms) * 100) : 0;
+    const progressTime = fmtTime(data.progress_ms || 0);
+    const totalTime = fmtTime(data.duration_ms || 0);
+
+    container.innerHTML = `<div style="background:rgba(30,215,96,0.08);border:1px solid rgba(30,215,96,0.25);border-radius:10px;padding:10px 14px;margin-top:12px;cursor:pointer" onclick="window.open('${escHtml(data.url)}','_blank')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img src="${escHtml(data.album_art)}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0" />
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            <i class="fab fa-spotify" style="color:#1ED760;font-size:13px"></i>
+            <span style="font-size:10px;color:#1ED760;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Şu an dinliyor</span>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(data.title)}</div>
+          <div style="font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(data.artist)}</div>
         </div>
-        <div style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(data.title)}</div>
-        <div style="font-size:11px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(data.artist)}</div>
       </div>
+      ${data.duration_ms > 0 ? `
+      <div style="margin-top:8px">
+        <div style="background:rgba(255,255,255,0.1);border-radius:99px;height:3px;overflow:hidden">
+          <div style="height:100%;width:${progress.toFixed(1)}%;background:#1ED760;border-radius:99px;transition:width 1s linear"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:3px">
+          <span style="font-size:10px;color:var(--text-muted)">${progressTime}</span>
+          <span style="font-size:10px;color:var(--text-muted)">${totalTime}</span>
+        </div>
+      </div>` : ''}
     </div>`;
   } catch {}
 }

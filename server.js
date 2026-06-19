@@ -1331,7 +1331,9 @@ app.get('/api/spotify/now-playing/:username', async (req, res) => {
             title: data.item.name,
             artist: data.item.artists.map(a => a.name).join(', '),
             album_art: data.item.album?.images?.[0]?.url || '',
-            url: data.item.external_urls?.spotify || ''
+            url: data.item.external_urls?.spotify || '',
+            progress_ms: data.progress_ms || 0,
+            duration_ms: data.item.duration_ms || 0
           });
         } catch { resolve({ playing: false }); }
       });
