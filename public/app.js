@@ -363,17 +363,24 @@ function renderForumListItems(forums) {
 
 function forumCardHTML(f) {
   const preview = f.content.substring(0, 140).replace(/</g,'&lt;');
+  const authorName = f.username || 'Silinmiş Kullanıcı';
+  const authorClick = f.username
+    ? `onclick="event.stopPropagation();navigate('/profil/${escHtml(f.username)}')" style="cursor:pointer"`
+    : `style="cursor:default;opacity:0.6"`;
+  const d = new Date(f.created_at);
+  const dateStr = d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   return `<div class="forum-card" onclick="navigate('/forum/${escHtml(f.slug)}')">
     <div class="forum-card-accent"></div>
     <div class="forum-card-body">
       <div class="forum-card-title">${escHtml(f.title)}</div>
       <div class="forum-card-preview">${preview}${f.content.length > 140 ? '...' : ''}</div>
       <div class="forum-card-meta">
-        <span class="forum-meta-item" onclick="event.stopPropagation();navigate('/profil/${escHtml(f.username || '')}')"><i class="fas fa-user"></i>${escHtml(f.username || 'Silindi')}</span>
+        <span class="forum-meta-item" ${authorClick}><i class="fas fa-user"></i>${escHtml(authorName)}</span>
         <span class="forum-meta-item"><i class="fas fa-eye"></i>${f.views || 0}</span>
         <span class="forum-meta-item"><i class="fas fa-heart"></i>${f.like_count || 0}</span>
         <span class="forum-meta-item"><i class="fas fa-comment"></i>${f.comment_count || 0}</span>
-        <span class="forum-meta-item"><i class="fas fa-clock"></i>${timeAgo(f.created_at)}</span>
+        <span class="forum-meta-item" title="${dateStr} ${timeStr}"><i class="fas fa-clock"></i>${dateStr} ${timeStr}</span>
       </div>
     </div>
     ${f.banner_image ? `<img src="${escHtml(f.banner_image)}" class="forum-card-banner" alt="" />` : ''}
