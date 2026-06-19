@@ -4,45 +4,81 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin Panel – Demlik Platform</title>
 <link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+.admin-nav-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; margin-top:8px; }
+.admin-nav-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:22px; display:flex; align-items:center; gap:16px; text-decoration:none;
+  transition:all var(--transition); cursor:pointer;
+}
+.admin-nav-card:hover { border-color:var(--red); background:var(--red-subtle); transform:translateY(-2px); }
+.admin-nav-icon { width:44px; height:44px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.admin-nav-icon.red   { background:rgba(192,57,43,0.15); color:var(--red-bright); }
+.admin-nav-icon.blue  { background:rgba(52,152,219,0.15); color:#3498db; }
+.admin-nav-icon.green { background:rgba(39,174,96,0.15); color:#2ecc71; }
+.admin-nav-icon.amber { background:rgba(243,156,18,0.15); color:#f39c12; }
+.admin-nav-icon.purple{ background:rgba(155,89,182,0.15); color:#9b59b6; }
+.admin-nav-title { font-weight:700; font-size:14px; margin-bottom:3px; }
+.admin-nav-sub   { font-size:12px; color:var(--text-3); }
+</style>
 </head>
 <body>
 <div class="layout">
   <aside class="sidebar" id="sidebar"></aside>
   <div class="main-content">
     <header class="topbar">
-      <span style="font-weight:700;color:var(--red-primary)">⚙️ Admin Paneli</span>
+      <span style="font-size:13px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Admin Paneli</span>
     </header>
     <main class="page-content">
       <div class="page-header">
-        <div class="page-title">Admin Dashboard</div>
-      </div>
-      <div class="stats-grid" id="statsGrid">
-        <div class="stat-card red"><div class="stat-label">Toplam Kullanıcı</div><div class="stat-value" id="sUsers">-</div></div>
-        <div class="stat-card green"><div class="stat-label">Yayındaki Oyun</div><div class="stat-value" id="sGames">-</div></div>
-        <div class="stat-card yellow"><div class="stat-label">Bekleyen Başvuru</div><div class="stat-value" id="sPending">-</div></div>
-        <div class="stat-card blue"><div class="stat-label">Toplam İndirme</div><div class="stat-value" id="sDownloads">-</div></div>
+        <div class="page-title">Yönetim Paneli</div>
+        <div class="page-subtitle">Platform istatistikleri ve yönetim araçları</div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:8px">
-        <a href="/admin/basvurular" class="card" style="padding:20px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red-primary)'" onmouseout="this.style.borderColor='var(--border)'">
-          <span style="font-size:32px">📋</span>
-          <div><div style="font-weight:700">Geliştirici Başvuruları</div><div style="font-size:12px;color:var(--text-muted)" id="pendingCount">Yükleniyor...</div></div>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card red">
+          <div class="stat-icon red"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-label">Toplam Kullanıcı</div>
+          <div class="stat-value" id="sUsers">—</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon green"><i class="fa-solid fa-gamepad"></i></div>
+          <div class="stat-label">Yayındaki Oyun</div>
+          <div class="stat-value" id="sGames">—</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon amber"><i class="fa-solid fa-clock"></i></div>
+          <div class="stat-label">Bekleyen Başvuru</div>
+          <div class="stat-value" id="sPending">—</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon blue"><i class="fa-solid fa-download"></i></div>
+          <div class="stat-label">Toplam İndirme</div>
+          <div class="stat-value" id="sDownloads">—</div>
+        </div>
+      </div>
+
+      <div class="admin-nav-grid">
+        <a href="/admin/basvurular" class="admin-nav-card">
+          <div class="admin-nav-icon amber"><i class="fa-solid fa-clipboard-list"></i></div>
+          <div><div class="admin-nav-title">Geliştirici Başvuruları</div><div class="admin-nav-sub" id="pendingText">Yükleniyor...</div></div>
         </a>
-        <a href="/admin/oyunlar" class="card" style="padding:20px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red-primary)'" onmouseout="this.style.borderColor='var(--border)'">
-          <span style="font-size:32px">🎮</span>
-          <div><div style="font-weight:700">Oyun Yönetimi</div><div style="font-size:12px;color:var(--text-muted)">Tüm oyunlar</div></div>
+        <a href="/admin/oyunlar" class="admin-nav-card">
+          <div class="admin-nav-icon blue"><i class="fa-solid fa-gamepad"></i></div>
+          <div><div class="admin-nav-title">Oyun Yönetimi</div><div class="admin-nav-sub">Oyunları düzenle ve yönet</div></div>
         </a>
-        <a href="/admin/kullanicilar" class="card" style="padding:20px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red-primary)'" onmouseout="this.style.borderColor='var(--border)'">
-          <span style="font-size:32px">👥</span>
-          <div><div style="font-weight:700">Kullanıcılar</div><div style="font-size:12px;color:var(--text-muted)">Tüm kullanıcılar & geliştiriciler</div></div>
+        <a href="/admin/kullanicilar" class="admin-nav-card">
+          <div class="admin-nav-icon green"><i class="fa-solid fa-users"></i></div>
+          <div><div class="admin-nav-title">Kullanıcılar</div><div class="admin-nav-sub">Tüm kullanıcı hesapları</div></div>
         </a>
-        <a href="/admin/turler" class="card" style="padding:20px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red-primary)'" onmouseout="this.style.borderColor='var(--border)'">
-          <span style="font-size:32px">🏷️</span>
-          <div><div style="font-weight:700">Oyun Türleri</div><div style="font-size:12px;color:var(--text-muted)">Ekle / Sil</div></div>
+        <a href="/admin/turler" class="admin-nav-card">
+          <div class="admin-nav-icon purple"><i class="fa-solid fa-tags"></i></div>
+          <div><div class="admin-nav-title">Oyun Türleri</div><div class="admin-nav-sub">Tür ekle ve sil</div></div>
         </a>
-        <a href="/admin/ayarlar" class="card" style="padding:20px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--red-primary)'" onmouseout="this.style.borderColor='var(--border)'">
-          <span style="font-size:32px">⚙️</span>
-          <div><div style="font-weight:700">Platform Ayarları</div><div style="font-size:12px;color:var(--text-muted)">Ücretsiz limit vb.</div></div>
+        <a href="/admin/ayarlar" class="admin-nav-card">
+          <div class="admin-nav-icon red"><i class="fa-solid fa-sliders"></i></div>
+          <div><div class="admin-nav-title">Platform Ayarları</div><div class="admin-nav-sub">Sistem konfigürasyonu</div></div>
         </a>
       </div>
     </main>
@@ -52,12 +88,12 @@
 <script>
 renderSidebar('admin');
 async function loadStats() {
-  const res = await (await fetch('/api/admin/istatistikler')).json();
-  document.getElementById('sUsers').textContent = res.totalUsers || 0;
-  document.getElementById('sGames').textContent = res.totalGames || 0;
-  document.getElementById('sPending').textContent = res.pendingApplications || 0;
-  document.getElementById('sDownloads').textContent = res.totalDownloads || 0;
-  document.getElementById('pendingCount').textContent = `${res.pendingApplications} bekleyen`;
+  const r = await fetch('/api/admin/istatistikler').then(x => x.json());
+  document.getElementById('sUsers').textContent = r.totalUsers || 0;
+  document.getElementById('sGames').textContent = r.totalGames || 0;
+  document.getElementById('sPending').textContent = r.pendingApplications || 0;
+  document.getElementById('sDownloads').textContent = r.totalDownloads || 0;
+  document.getElementById('pendingText').textContent = `${r.pendingApplications || 0} bekleyen başvuru`;
 }
 loadStats();
 </script>

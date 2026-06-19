@@ -1,156 +1,169 @@
-// ===== TOAST =====
+/* ===== TOAST ===== */
 function toast(msg, type = 'info') {
-  let container = document.querySelector('.toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.className = 'toast-container';
-    document.body.appendChild(container);
-  }
+  let c = document.querySelector('.toast-container');
+  if (!c) { c = document.createElement('div'); c.className = 'toast-container'; document.body.appendChild(c); }
+  const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info', warning: 'fa-triangle-exclamation' };
   const t = document.createElement('div');
-  const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
   t.className = `toast ${type}`;
-  t.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
-  container.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; t.style.transition = '0.3s'; setTimeout(() => t.remove(), 300); }, 3500);
+  t.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => {
+    t.style.cssText = 'opacity:0;transform:translateX(16px);transition:0.3s';
+    setTimeout(() => t.remove(), 300);
+  }, 3500);
 }
 
-// ===== API HELPER =====
+/* ===== API HELPER ===== */
 async function api(url, options = {}) {
+  const isFormData = options.body instanceof FormData;
+  const headers = isFormData ? {} : { 'Content-Type': 'application/json', ...options.headers };
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
-    body: options.body && typeof options.body === 'object' && !(options.body instanceof FormData)
+    headers,
+    body: (!isFormData && options.body && typeof options.body === 'object')
       ? JSON.stringify(options.body)
       : options.body
   });
-  if (options.body instanceof FormData) {
-    delete options.headers?.['Content-Type'];
-  }
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Hata oluştu');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Bir hata oluştu');
   return data;
 }
 
-// ===== SESSION =====
+/* ===== SESSION ===== */
 let currentUser = null;
 
 async function loadSession() {
-  try {
-    currentUser = await (await fetch('/api/ben')).json();
-  } catch { currentUser = { loggedIn: false }; }
+  if (currentUser) return currentUser;
+  try { currentUser = await (await fetch('/api/ben')).json(); }
+  catch { currentUser = { loggedIn: false }; }
   return currentUser;
 }
 
-// ===== SIDEBAR RENDER =====
+/* ===== SIDEBAR ===== */
 async function renderSidebar(activePage = '') {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
   const user = await loadSession();
 
-  const sidebarEl = document.getElementById('sidebar');
-  if (!sidebarEl) return;
-
-  const navItems = [
-    { href: '/', icon: '🏠', label: 'Ana Sayfa', key: 'anasayfa' },
-    { href: '/magazin', icon: '🛒', label: 'Store', key: 'magazin' },
-    { href: '/kutuphane', icon: '📚', label: 'Kütüphane', key: 'kutuphane', authRequired: true },
-    { href: '/arkadaslar', icon: '👥', label: 'Arkadaşlar', key: 'arkadaslar', authRequired: true },
-  ];
-
-  let navHTML = navItems.map(item => {
-    if (item.authRequired && !user.loggedIn) return '';
-    return `<a href="${item.href}" class="nav-item ${activePage === item.key ? 'active' : ''}">
-      <span class="nav-icon">${item.icon}</span>${item.label}
+  const navItem = (href, icon, label, key, badge = '') => {
+    const isActive = activePage === key;
+    return `<a href="${href}" class="nav-item ${isActive ? 'active' : ''}">
+      <i class="fa-solid ${icon}"></i>
+      <span>${label}</span>
+      ${badge ? `<span class="nav-badge">${badge}</span>` : ''}
     </a>`;
-  }).join('');
+  };
 
-  // Geliştirici paneli
   let devSection = '';
-  if (user.loggedIn && user.role === 'developer') {
+  if (user.loggedIn && (user.role === 'developer' || user.role === 'admin')) {
     devSection = `
-      <div class="nav-section-title">Geliştirici</div>
-      <a href="/gelistirici/dashboard" class="nav-item ${activePage === 'dev-dashboard' ? 'active' : ''}">
-        <span class="nav-icon">📊</span>Dashboard
-      </a>
-      <a href="/gelistirici/oyun-yukle" class="nav-item ${activePage === 'dev-upload' ? 'active' : ''}">
-        <span class="nav-icon">⬆️</span>Oyun Yükle
-      </a>
+      <div class="nav-section">Geliştirici</div>
+      ${navItem('/gelistirici/dashboard', 'fa-chart-line', 'Dashboard', 'dev-dashboard')}
+      ${navItem('/gelistirici/oyun-yukle', 'fa-upload', 'Oyun Yükle', 'dev-upload')}
     `;
   }
 
-  // Admin paneli
   let adminSection = '';
   if (user.loggedIn && user.role === 'admin') {
     adminSection = `
-      <div class="nav-section-title">Admin</div>
-      <a href="/admin" class="nav-item ${activePage === 'admin' ? 'active' : ''}">
-        <span class="nav-icon">⚙️</span>Admin Panel
-      </a>
+      <div class="nav-section">Yönetim</div>
+      ${navItem('/admin', 'fa-shield-halved', 'Admin Panel', 'admin')}
     `;
   }
 
-  // Kullanıcı bilgisi altbölüm
-  let userSection = '';
+  let bottomHtml = '';
   if (user.loggedIn) {
-    const initial = user.username?.[0]?.toUpperCase() || '?';
+    const initial = (user.username || '?')[0].toUpperCase();
     const avatarHtml = user.avatar_url
       ? `<img src="${user.avatar_url}" alt="">`
       : initial;
-    const roleLabel = user.role === 'admin' ? 'Admin' : user.role === 'developer' ? 'Geliştirici' : 'Kullanıcı';
-    const pendingBadge = user.devApplicationStatus === 'pending'
-      ? '<span class="dev-pending-badge">İncelemede</span>' : '';
-    userSection = `
+    const roleLabel = { admin: 'Yönetici', developer: 'Geliştirici', user: 'Kullanıcı' }[user.role] || 'Kullanıcı';
+    const pendingDot = user.devApplicationStatus === 'pending' ? '<span class="pending-dot"></span>' : '';
+
+    bottomHtml = `
       <a href="/profil/${user.username}" class="sidebar-user">
         <div class="user-avatar">${avatarHtml}</div>
         <div class="user-info">
           <div class="user-name">${user.username}</div>
           <div class="user-role">${roleLabel}</div>
         </div>
-        ${pendingBadge}
+        ${pendingDot}
       </a>
-      <a href="/ayarlar" class="nav-item"><span class="nav-icon">⚙️</span>Ayarlar</a>
-      <div class="nav-item" onclick="cikisYap()"><span class="nav-icon">🚪</span>Çıkış Yap</div>
+      ${navItem('/ayarlar', 'fa-gear', 'Ayarlar', 'settings')}
+      <div class="nav-item" onclick="cikisYap()" style="cursor:pointer">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Çıkış Yap</span>
+      </div>
     `;
   } else {
-    userSection = `
-      <a href="/giris" class="btn btn-primary btn-full" style="margin-bottom:8px">Giriş Yap</a>
-      <a href="/kayit" class="btn btn-secondary btn-full">Kayıt Ol</a>
+    bottomHtml = `
+      <a href="/giris" class="btn btn-primary btn-full" style="margin-bottom:8px;justify-content:center">
+        <i class="fa-solid fa-right-to-bracket"></i> Giriş Yap
+      </a>
+      <a href="/kayit" class="btn btn-ghost btn-full" style="justify-content:center">
+        <i class="fa-solid fa-user-plus"></i> Kayıt Ol
+      </a>
     `;
   }
 
-  sidebarEl.innerHTML = `
+  sidebar.innerHTML = `
     <div class="sidebar-logo">
-      <div>
-        <div class="logo-text">Demlik</div>
+      <div class="logo-icon"><i class="fa-solid fa-fire"></i></div>
+      <div class="logo-text-wrap">
+        <div class="logo-name">Demlik</div>
         <div class="logo-sub">Platform</div>
       </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section-title">Menü</div>
-      ${navHTML}
+      <div class="nav-section">Ana Menü</div>
+      ${navItem('/', 'fa-house', 'Ana Sayfa', 'anasayfa')}
+      ${navItem('/magazin', 'fa-store', 'Store', 'magazin')}
+      ${user.loggedIn ? navItem('/kutuphane', 'fa-book', 'Kütüphane', 'kutuphane') : ''}
+      ${user.loggedIn ? navItem('/arkadaslar', 'fa-user-group', 'Arkadaşlar', 'arkadaslar') : ''}
       ${devSection}
       ${adminSection}
     </nav>
-    <div class="sidebar-bottom">${userSection}</div>
+    <div class="sidebar-bottom">${bottomHtml}</div>
   `;
 }
 
 async function cikisYap() {
   await fetch('/api/auth/cikis', { method: 'POST' });
+  currentUser = null;
   window.location.href = '/';
 }
 
-// ===== FORMAT =====
-function formatPrice(price, isFree) {
-  if (isFree || !price || price == 0) return '<span style="color:#27ae60;font-weight:700">Ücretsiz</span>';
-  return `<span style="color:var(--red-primary);font-weight:700">₺${parseFloat(price).toFixed(2)}</span>`;
+/* ===== HELPERS ===== */
+function timeAgo(d) {
+  const diff = Date.now() - new Date(d).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Az önce';
+  if (m < 60) return `${m} dk önce`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} sa önce`;
+  return `${Math.floor(h / 24)} gün önce`;
 }
 
-function timeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Az önce';
-  if (mins < 60) return `${mins} dakika önce`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} saat önce`;
-  const days = Math.floor(hours / 24);
-  return `${days} gün önce`;
+function fmtPrice(price, isFree) {
+  if (isFree || !price || price == 0) return '<span style="color:#27ae60;font-weight:700">Ücretsiz</span>';
+  return `<span style="color:var(--red-bright);font-weight:700">₺${parseFloat(price).toFixed(2)}</span>`;
+}
+
+function gameCardHTML(g) {
+  return `
+    <div class="game-card" onclick="location.href='/oyun/${g.id}'">
+      <div class="game-card-banner">
+        <img src="${g.banner_urls?.[0] || ''}" alt="${g.title}" loading="lazy" onerror="this.style.display='none'">
+        <div class="game-card-overlay"></div>
+        ${g.logo_url ? `<div class="game-card-logo"><img src="${g.logo_url}" alt=""></div>` : ''}
+      </div>
+      <div class="game-card-body">
+        <div class="game-card-title">${g.title}</div>
+        <div class="game-card-genre">${g.genre_name || 'Genel'}</div>
+        <div class="game-card-footer">
+          <div class="game-card-price ${g.is_free ? 'free' : 'paid'}">${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price || 0).toFixed(2)}</div>
+          <div class="game-card-dl"><i class="fa-solid fa-download" style="font-size:9px"></i>${g.download_count || 0}</div>
+        </div>
+      </div>
+    </div>`;
 }

@@ -4,6 +4,39 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Demlik Platform</title>
 <link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+.hero-section {
+  position: relative; border-radius: 16px; overflow: hidden;
+  height: 420px; margin-bottom: 36px; cursor: pointer;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+.hero-section img { width:100%; height:100%; object-fit:cover; }
+.hero-section .hero-bg-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.85) 30%, transparent 70%),
+              linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%);
+}
+.hero-content { position: absolute; bottom: 36px; left: 36px; max-width: 480px; }
+.hero-logo { width: 64px; height: 64px; border-radius: 12px; margin-bottom: 14px; border: 2px solid rgba(255,255,255,0.15); }
+.hero-title { font-size: 34px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 8px; text-shadow: 0 2px 12px rgba(0,0,0,0.8); }
+.hero-meta { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 18px; }
+.hero-actions { display: flex; gap: 10px; align-items: center; }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.section-title i { color: var(--red-bright); font-size: 14px; }
+
+.genre-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.genre-chip {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  background: var(--bg-elevated); border: 1px solid var(--border-strong);
+  color: var(--text-2); cursor: pointer; transition: all var(--transition);
+}
+.genre-chip:hover, .genre-chip.active { background: var(--red-subtle); border-color: var(--red); color: var(--text-1); }
+
+.section { margin-bottom: 40px; }
+</style>
 </head>
 <body>
 <div class="layout">
@@ -11,131 +44,104 @@
   <div class="main-content">
     <header class="topbar">
       <div class="topbar-search">
-        <span class="search-icon">🔍</span>
+        <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="searchInput" placeholder="Oyun ara..." autocomplete="off">
       </div>
     </header>
     <main class="page-content">
-      <!-- HERO -->
-      <div id="heroSection" style="margin-bottom:32px"></div>
 
-      <!-- Popüler Oyunlar -->
-      <div class="page-header">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div class="page-title">🔥 Popüler Oyunlar</div>
-            <div class="page-subtitle">En çok indirilen oyunlar</div>
-          </div>
-          <a href="/magazin" class="btn btn-secondary btn-sm">Tümünü Gör →</a>
+      <div id="heroSection"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title"><i class="fa-solid fa-fire"></i> Popüler Oyunlar</div>
+          <a href="/magazin?sort=populer" class="btn btn-ghost btn-sm">Tümü <i class="fa-solid fa-chevron-right" style="font-size:10px"></i></a>
         </div>
-      </div>
-      <div class="games-grid" id="popularGames">
-        <div style="color:var(--text-muted);padding:24px">Yükleniyor...</div>
+        <div class="games-grid" id="popularGames"></div>
       </div>
 
-      <!-- Türlere Göre -->
-      <div style="margin-top:40px">
-        <div class="page-header">
-          <div class="page-title">🎮 Türlere Göre Keşfet</div>
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title"><i class="fa-solid fa-tags"></i> Türlere Göre</div>
         </div>
-        <div id="genreList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px"></div>
+        <div class="genre-chips" id="genreChips"></div>
         <div class="games-grid" id="genreGames"></div>
       </div>
 
-      <!-- Yeni Eklenenler -->
-      <div style="margin-top:40px">
-        <div class="page-header">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div class="page-title">🆕 Yeni Eklenenler</div>
-            <a href="/magazin?sort=yeni" class="btn btn-secondary btn-sm">Tümünü Gör →</a>
-          </div>
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> Yeni Eklenenler</div>
+          <a href="/magazin?sort=yeni" class="btn btn-ghost btn-sm">Tümü <i class="fa-solid fa-chevron-right" style="font-size:10px"></i></a>
         </div>
         <div class="games-grid" id="newGames"></div>
       </div>
+
     </main>
   </div>
 </div>
-
 <script src="/js/common.js"></script>
 <script>
 renderSidebar('anasayfa');
 
-// Arama
 let searchTimer;
-document.getElementById('searchInput').addEventListener('input', (e) => {
+document.getElementById('searchInput').addEventListener('input', e => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    if (e.target.value.trim().length > 1) {
+  if (e.target.value.trim().length > 1) {
+    searchTimer = setTimeout(() => {
       window.location.href = `/magazin?search=${encodeURIComponent(e.target.value.trim())}`;
-    }
-  }, 500);
+    }, 500);
+  }
 });
 
-async function loadGames() {
-  // Popüler
-  const pop = await (await fetch('/api/oyunlar/liste?sort=populer&limit=8')).json();
-  document.getElementById('popularGames').innerHTML = pop.games?.map(gameCardHTML).join('') || '<p style="color:var(--text-muted)">Henüz oyun yok</p>';
+async function loadPage() {
+  const [popRes, newRes, genreRes] = await Promise.all([
+    fetch('/api/oyunlar/liste?sort=populer&limit=8').then(r => r.json()),
+    fetch('/api/oyunlar/liste?sort=yeni&limit=8').then(r => r.json()),
+    fetch('/api/oyunlar/meta/turler').then(r => r.json())
+  ]);
 
-  // Hero - ilk popüler oyun
-  if (pop.games?.length > 0) {
-    const g = pop.games[0];
+  // Hero
+  if (popRes.games?.length) {
+    const g = popRes.games[0];
     document.getElementById('heroSection').innerHTML = `
-      <div class="game-hero" onclick="location.href='/oyun/${g.id}'" style="cursor:pointer">
-        <img src="${g.banner_urls?.[0] || '/img/placeholder.jpg'}" alt="${g.title}">
-        <div class="game-hero-overlay">
-          ${g.logo_url ? `<img src="${g.logo_url}" style="width:64px;height:64px;border-radius:10px;margin-bottom:12px">` : ''}
-          <div class="game-hero-title">${g.title}</div>
-          <div class="game-hero-meta">${g.genre_name || ''} • ${g.team_name || g.developer_name || ''}</div>
-          <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
-            <span style="font-size:18px;font-weight:800;color:${g.is_free ? '#27ae60' : 'var(--red-primary)'}">
-              ${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price).toFixed(2)}
+      <div class="hero-section" onclick="location.href='/oyun/${g.id}'">
+        <img src="${g.banner_urls?.[0] || ''}" alt="${g.title}" onerror="this.style.background='var(--bg-elevated)'">
+        <div class="hero-bg-overlay"></div>
+        <div class="hero-content">
+          ${g.logo_url ? `<img src="${g.logo_url}" class="hero-logo" alt="">` : ''}
+          <div class="hero-title">${g.title}</div>
+          <div class="hero-meta">${g.genre_name || ''} &nbsp;·&nbsp; ${g.team_name || g.developer_name || ''}</div>
+          <div class="hero-actions">
+            <button class="btn btn-primary btn-lg" onclick="event.stopPropagation();location.href='/oyun/${g.id}'">
+              <i class="fa-solid fa-circle-info"></i> İncele
+            </button>
+            <span style="font-size:18px;font-weight:800;color:${g.is_free ? '#27ae60' : 'var(--red-bright)'}">
+              ${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price||0).toFixed(2)}
             </span>
-            <button class="btn btn-primary" onclick="event.stopPropagation();location.href='/oyun/${g.id}'">İncele</button>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  // Yeni
-  const yeni = await (await fetch('/api/oyunlar/liste?sort=yeni&limit=8')).json();
-  document.getElementById('newGames').innerHTML = yeni.games?.map(gameCardHTML).join('') || '';
+  document.getElementById('popularGames').innerHTML = popRes.games?.map(gameCardHTML).join('') || '<p style="color:var(--text-3);padding:20px">Henüz oyun yok</p>';
+  document.getElementById('newGames').innerHTML = newRes.games?.map(gameCardHTML).join('') || '';
 
   // Türler
-  const genres = await (await fetch('/api/oyunlar/meta/turler')).json();
-  document.getElementById('genreList').innerHTML = genres.genres?.map(g => `
-    <button class="btn btn-secondary btn-sm" onclick="loadGenreGames('${g.id}','${g.name}')">${g.name}</button>
-  `).join('');
-  if (genres.genres?.length > 0) loadGenreGames(genres.genres[0].id, genres.genres[0].name);
+  const genres = genreRes.genres || [];
+  document.getElementById('genreChips').innerHTML = genres.map((g, i) =>
+    `<span class="genre-chip ${i===0?'active':''}" onclick="loadGenre('${g.name}',this)">${g.name}</span>`
+  ).join('');
+  if (genres.length) loadGenre(genres[0].name, document.querySelector('.genre-chip'));
 }
 
-async function loadGenreGames(genreId, name) {
-  const res = await (await fetch(`/api/oyunlar/liste?genre=${encodeURIComponent(name)}&limit=8`)).json();
-  document.getElementById('genreGames').innerHTML = res.games?.map(gameCardHTML).join('') || '<p style="color:var(--text-muted)">Bu türde oyun yok</p>';
-  // aktif butonu vurgula
-  document.querySelectorAll('#genreList .btn').forEach(b => {
-    b.classList.toggle('btn-primary', b.textContent === name);
-    b.classList.toggle('btn-secondary', b.textContent !== name);
-  });
+async function loadGenre(name, el) {
+  document.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const res = await fetch(`/api/oyunlar/liste?genre=${encodeURIComponent(name)}&limit=8`).then(r => r.json());
+  document.getElementById('genreGames').innerHTML = res.games?.map(gameCardHTML).join('') || '<p style="color:var(--text-3);padding:20px">Bu türde oyun yok</p>';
 }
 
-function gameCardHTML(g) {
-  return `
-    <div class="game-card" onclick="location.href='/oyun/${g.id}'">
-      <div class="game-card-banner">
-        <img src="${g.banner_urls?.[0] || ''}" alt="${g.title}" onerror="this.style.display='none'">
-      </div>
-      ${g.logo_url ? `<div class="game-card-logo"><img src="${g.logo_url}" alt=""></div>` : ''}
-      <div class="game-card-info">
-        <div class="game-card-title">${g.title}</div>
-        <div class="game-card-genre">${g.genre_name || 'Genel'}</div>
-        <div class="game-card-price ${g.is_free ? 'free' : ''}">${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price).toFixed(2)}</div>
-      </div>
-    </div>
-  `;
-}
-
-loadGames();
+loadPage();
 </script>
 </body>
 </html>

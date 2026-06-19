@@ -4,213 +4,193 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kayıt Ol – Demlik Platform</title>
 <link rel="stylesheet" href="/css/main.css">
-<style>
-.type-select { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
-.type-card {
-  border:2px solid var(--border); border-radius:var(--radius); padding:20px; text-align:center;
-  cursor:pointer; transition:all 0.2s;
-}
-.type-card:hover { border-color:var(--red-primary); background:rgba(192,57,43,0.05); }
-.type-card.selected { border-color:var(--red-primary); background:rgba(192,57,43,0.1); }
-.type-card .type-icon { font-size:32px; margin-bottom:8px; }
-.type-card .type-name { font-weight:700; font-size:15px; }
-.type-card .type-desc { font-size:12px; color:var(--text-muted); margin-top:4px; }
-</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-<div class="auth-page" style="padding:40px 24px">
-  <div class="auth-card" style="max-width:540px">
+<div class="auth-page" style="padding:40px 24px;align-items:flex-start">
+  <div class="auth-card" style="max-width:520px;margin:auto">
     <div class="auth-logo">
-      <div class="auth-logo-text">Demlik</div>
+      <div class="auth-logo-icon"><i class="fa-solid fa-fire"></i></div>
+      <div class="auth-logo-name">Demlik</div>
       <div class="auth-logo-sub">Platform</div>
     </div>
 
-    <!-- Tür seçimi -->
+    <!-- ADIM 0: Tür Seç -->
     <div id="stepType">
-      <div class="auth-title">Kayıt Ol</div>
-      <div class="auth-subtitle">Hesap türünüzü seçin</div>
-      <div class="type-select">
-        <div class="type-card" id="typeUser" onclick="selectType('user')">
-          <div class="type-icon">🎮</div>
-          <div class="type-name">Kullanıcı</div>
-          <div class="type-desc">Oyun oynamak ve keşfetmek için</div>
+      <div class="auth-title">Hesap Oluştur</div>
+      <div class="auth-subtitle" style="margin-bottom:22px">Hesap türünüzü seçin</div>
+      <div class="type-grid">
+        <div class="type-card" id="typeUser" onclick="selType('user')">
+          <div class="type-card-icon"><i class="fa-solid fa-gamepad"></i></div>
+          <div class="type-card-name">Kullanıcı</div>
+          <div class="type-card-desc">Oyunları oyna ve keşfet</div>
         </div>
-        <div class="type-card" id="typeDev" onclick="selectType('developer')">
-          <div class="type-icon">💻</div>
-          <div class="type-name">Oyun Geliştirici</div>
-          <div class="type-desc">Oyun yayınlamak için</div>
+        <div class="type-card" id="typeDev" onclick="selType('developer')">
+          <div class="type-card-icon"><i class="fa-solid fa-code"></i></div>
+          <div class="type-card-name">Geliştirici</div>
+          <div class="type-card-desc">Oyun yayınla ve kazan</div>
         </div>
       </div>
-      <button class="btn btn-primary btn-full btn-lg" onclick="goToForm()" id="nextBtn" disabled>Devam Et →</button>
+      <button class="btn btn-primary btn-full btn-lg" id="nextBtn" onclick="goForm()" disabled>
+        Devam Et <i class="fa-solid fa-arrow-right"></i>
+      </button>
+      <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-2)">
+        Hesabın var mı? <a href="/giris" style="color:var(--red-bright);font-weight:600">Giriş Yap</a>
+      </div>
     </div>
 
-    <!-- Kullanıcı formu -->
+    <!-- ADIM 1: Kullanıcı Formu -->
     <div id="stepUser" style="display:none">
       <div class="auth-title">Kullanıcı Kaydı</div>
       <div class="auth-subtitle">Hesap bilgilerinizi girin</div>
       <div id="alertUser"></div>
       <form id="userForm">
-        <div class="form-group"><label>Kullanıcı Adı</label><input class="form-control" id="u_username" placeholder="kullanici_adi" required></div>
-        <div class="form-group"><label>E-posta</label><input class="form-control" type="email" id="u_email" placeholder="ornek@mail.com" required></div>
-        <div class="form-group"><label>Şifre</label><input class="form-control" type="password" id="u_password" placeholder="En az 6 karakter" required></div>
-        <div class="form-group"><label>Doğum Tarihi</label><input class="form-control" type="date" id="u_birth" required></div>
+        <div class="form-group"><label class="form-label">Kullanıcı Adı</label><input class="form-control" id="u_user" placeholder="kullanici_adi" required></div>
+        <div class="form-group"><label class="form-label">E-posta</label><input class="form-control" type="email" id="u_email" placeholder="ornek@mail.com" required></div>
+        <div class="form-group"><label class="form-label">Şifre</label><input class="form-control" type="password" id="u_pass" placeholder="En az 6 karakter" required></div>
+        <div class="form-group"><label class="form-label">Doğum Tarihi</label><input class="form-control" type="date" id="u_birth" required></div>
 
-        <div class="contract-box" id="ageContractText">Bu platformu kullanabilmek için 16 yaş ve üzeri olmanız gerekmektedir. Doğum tarihinizi girerek yaşınızı doğrulamış olursunuz. Platform, gerçek dışı bilgi giren kullanıcıların hesaplarını kapatma hakkını saklı tutar.</div>
-        <div class="checkbox-group"><input type="checkbox" id="u_age"><label for="u_age">16 yaş ve üstü olduğumu kabul ediyorum</label></div>
+        <div class="contract-box">Bu platformu kullanabilmek için 16 yaş ve üzeri olmanız gerekmektedir. Doğum tarihinizi girerek yaşınızı doğrulamış olursunuz. Platform, gerçek dışı bilgi giren kullanıcıların hesaplarını kapatma hakkını saklı tutar.</div>
+        <div class="checkbox-wrap"><input type="checkbox" id="u_age"><label for="u_age">16 yaş ve üstü olduğumu kabul ediyorum</label></div>
 
-        <div class="contract-box">KİŞİSEL VERİLERİN KORUNMASI (KVKK)\n\nKişisel verileriniz Demlik Platform tarafından 6698 sayılı KVKK kapsamında işlenmektedir. Verileriniz platform hizmetlerinin sunulması amacıyla işlenecek, üçüncü taraflarla paylaşılmayacaktır. Detaylı bilgi için gizlilik politikamızı inceleyebilirsiniz.</div>
-        <div class="checkbox-group"><input type="checkbox" id="u_kvkk"><label for="u_kvkk">KVKK metnini okudum, kabul ediyorum</label></div>
+        <div class="contract-box">KİŞİSEL VERİLERİN KORUNMASI KANUNU (KVKK)&#10;&#10;Kişisel verileriniz Demlik Platform tarafından 6698 sayılı KVKK kapsamında işlenmektedir. Verileriniz platform hizmetlerinin sunulması amacıyla kullanılacak olup üçüncü taraflarla paylaşılmayacaktır.</div>
+        <div class="checkbox-wrap"><input type="checkbox" id="u_kvkk"><label for="u_kvkk">KVKK metnini okudum, kabul ediyorum</label></div>
 
-        <div class="contract-box">KAYIT SÖZLEŞMESİ\n\nBu platformda oluşturduğunuz hesap ile platformun tüm kurallarına uymayı kabul etmiş sayılırsınız. Kurallara aykırı davranışlarda hesabınız kapatılabilir. Platform üzerindeki içerikler telif hakkı ile korunmaktadır.</div>
-        <div class="checkbox-group"><input type="checkbox" id="u_sozlesme"><label for="u_sozlesme">Kayıt sözleşmesini okudum, kabul ediyorum</label></div>
+        <div class="contract-box">KAYIT SÖZLEŞMESİ&#10;&#10;Bu platformda oluşturduğunuz hesap ile platformun tüm kurallarına uymayı kabul etmiş sayılırsınız. Kurallara aykırı davranışlarda hesabınız kapatılabilir.</div>
+        <div class="checkbox-wrap"><input type="checkbox" id="u_soz"><label for="u_soz">Kayıt sözleşmesini okudum, kabul ediyorum</label></div>
 
-        <div style="display:flex;gap:10px;margin-top:8px">
-          <button type="button" class="btn btn-secondary" onclick="back()">← Geri</button>
-          <button type="submit" class="btn btn-primary" style="flex:1" id="userSubmitBtn">Kayıt Ol</button>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button type="button" class="btn btn-ghost" onclick="back()"><i class="fa-solid fa-arrow-left"></i></button>
+          <button type="submit" class="btn btn-primary" style="flex:1" id="userBtn">
+            <i class="fa-solid fa-user-plus"></i> Kayıt Ol
+          </button>
         </div>
       </form>
     </div>
 
-    <!-- Geliştirici formu -->
+    <!-- ADIM 2: Geliştirici Formu -->
     <div id="stepDev" style="display:none">
-      <div class="auth-title">Geliştirici Kaydı</div>
+      <div class="auth-title">Geliştirici Başvurusu</div>
       <div class="auth-subtitle">Başvurunuz incelenecektir</div>
       <div id="alertDev"></div>
       <form id="devForm">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="form-group"><label>Ad</label><input class="form-control" id="d_first" placeholder="Adınız" required></div>
-          <div class="form-group"><label>Soyad</label><input class="form-control" id="d_last" placeholder="Soyadınız" required></div>
+          <div class="form-group"><label class="form-label">Ad</label><input class="form-control" id="d_first" placeholder="Adınız" required></div>
+          <div class="form-group"><label class="form-label">Soyad</label><input class="form-control" id="d_last" placeholder="Soyadınız" required></div>
         </div>
-        <div class="form-group"><label>Ekip / Şirket Adı</label><input class="form-control" id="d_team" placeholder="Ekip adı" required></div>
-        <div class="form-group"><label>Kullanıcı Adı</label><input class="form-control" id="d_username" placeholder="kullanici_adi" required></div>
-        <div class="form-group"><label>E-posta</label><input class="form-control" type="email" id="d_email" required></div>
-        <div class="form-group"><label>Şifre</label><input class="form-control" type="password" id="d_password" placeholder="En az 6 karakter" required></div>
-
+        <div class="form-group"><label class="form-label">Ekip / Şirket Adı</label><input class="form-control" id="d_team" placeholder="Studio adı" required></div>
+        <div class="form-group"><label class="form-label">Kullanıcı Adı</label><input class="form-control" id="d_user" placeholder="kullanici_adi" required></div>
+        <div class="form-group"><label class="form-label">E-posta</label><input class="form-control" type="email" id="d_email" required></div>
+        <div class="form-group"><label class="form-label">Şifre</label><input class="form-control" type="password" id="d_pass" placeholder="En az 6 karakter" required></div>
         <div class="form-group">
-          <label>Daha önce oyun yaptınız mı?</label>
-          <select class="form-control" id="d_hasgames" onchange="togglePrevGames()">
+          <label class="form-label">Daha önce oyun yaptınız mı?</label>
+          <select class="form-control" id="d_prev" onchange="togglePrev()">
             <option value="no">Hayır</option>
             <option value="yes">Evet</option>
           </select>
         </div>
-        <div id="prevGamesSection" style="display:none">
-          <div class="form-group"><label>Oyun Türü</label><input class="form-control" id="d_gametype" placeholder="Aksiyon, RPG vb."></div>
-          <div class="form-group"><label>Oyun Adı</label><input class="form-control" id="d_gamename" placeholder="Oyunun adı"></div>
-          <div class="form-group"><label>Kısa Açıklama</label><textarea class="form-control" id="d_gamedesc" placeholder="Oyun hakkında kısa bilgi" rows="3"></textarea></div>
+        <div id="prevSection" style="display:none">
+          <div class="form-group"><label class="form-label">Oyun Türü</label><input class="form-control" id="d_gt" placeholder="Aksiyon, RPG vb."></div>
+          <div class="form-group"><label class="form-label">Oyun Adı</label><input class="form-control" id="d_gn" placeholder="Oyunun adı"></div>
+          <div class="form-group"><label class="form-label">Kısa Açıklama</label><textarea class="form-control" id="d_gd" rows="2"></textarea></div>
         </div>
 
-        <div class="contract-box">GELİŞTİRİCİ ŞARTLARI\n\n1. Yüklediğiniz oyunlar tamamen size ait olmalıdır.\n2. Zararlı yazılım içeren oyunlar kesinlikle yasaktır.\n3. Platform %0 komisyon alır (şimdilik).\n4. İlk 500 indirmeye kadar ücretli satış yapamazsınız.\n5. Platform, kurallara uymayan oyunları kaldırabilir.\n6. Geliştirici hesabı başvurusu inceleme gerektirmektedir.</div>
-        <div class="checkbox-group"><input type="checkbox" id="d_devterms"><label for="d_devterms">Geliştirici şartlarını okudum, kabul ediyorum</label></div>
+        <div class="contract-box">GELİŞTİRİCİ ŞARTLARI&#10;&#10;1. Yüklediğiniz oyunlar tamamen size ait olmalıdır.&#10;2. Zararlı yazılım içeren oyunlar kesinlikle yasaktır.&#10;3. İlk 500 indirmeye kadar ücretli satış yapamazsınız.&#10;4. Platform, kurallara uymayan oyunları kaldırabilir.</div>
+        <div class="checkbox-wrap"><input type="checkbox" id="d_dt"><label for="d_dt">Geliştirici şartlarını okudum, kabul ediyorum</label></div>
 
-        <div class="contract-box">KULLANICI ŞARTLARI\n\nPlatform kullanım kurallarını kabul ediyorsunuz. Hesabınızı başkasına devredemezsiniz. Platformun hizmet koşulları değişebilir.</div>
-        <div class="checkbox-group"><input type="checkbox" id="d_userterms"><label for="d_userterms">Kullanıcı şartlarını okudum, kabul ediyorum</label></div>
+        <div class="contract-box">KULLANICI ŞARTLARI&#10;&#10;Platform kullanım koşullarını kabul ediyorsunuz. Hesabınızı başkasına devredemezsiniz.</div>
+        <div class="checkbox-wrap"><input type="checkbox" id="d_ut"><label for="d_ut">Kullanıcı şartlarını okudum, kabul ediyorum</label></div>
 
-        <div style="display:flex;gap:10px;margin-top:8px">
-          <button type="button" class="btn btn-secondary" onclick="back()">← Geri</button>
-          <button type="submit" class="btn btn-primary" style="flex:1" id="devSubmitBtn">Başvur</button>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button type="button" class="btn btn-ghost" onclick="back()"><i class="fa-solid fa-arrow-left"></i></button>
+          <button type="submit" class="btn btn-primary" style="flex:1" id="devBtn">
+            <i class="fa-solid fa-paper-plane"></i> Başvur
+          </button>
         </div>
       </form>
-    </div>
-
-    <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-muted)">
-      Hesabınız var mı? <a href="/giris" style="color:var(--red-primary);font-weight:600">Giriş Yap</a>
     </div>
   </div>
 </div>
 <script src="/js/common.js"></script>
 <script>
-let selectedType = '';
-
-function selectType(t) {
-  selectedType = t;
+let selType_ = '';
+function selType(t) {
+  selType_ = t;
   document.getElementById('typeUser').classList.toggle('selected', t === 'user');
   document.getElementById('typeDev').classList.toggle('selected', t === 'developer');
   document.getElementById('nextBtn').disabled = false;
 }
-
-function goToForm() {
+function goForm() {
   document.getElementById('stepType').style.display = 'none';
-  if (selectedType === 'user') document.getElementById('stepUser').style.display = 'block';
-  else document.getElementById('stepDev').style.display = 'block';
+  document.getElementById(selType_ === 'user' ? 'stepUser' : 'stepDev').style.display = 'block';
 }
-
 function back() {
   document.getElementById('stepUser').style.display = 'none';
   document.getElementById('stepDev').style.display = 'none';
   document.getElementById('stepType').style.display = 'block';
 }
-
-function togglePrevGames() {
-  const val = document.getElementById('d_hasgames').value;
-  document.getElementById('prevGamesSection').style.display = val === 'yes' ? 'block' : 'none';
+function togglePrev() {
+  document.getElementById('prevSection').style.display = document.getElementById('d_prev').value === 'yes' ? 'block' : 'none';
 }
 
-// Kullanıcı kayıt
-document.getElementById('userForm').addEventListener('submit', async (e) => {
+document.getElementById('userForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const btn = document.getElementById('userSubmitBtn');
-  btn.disabled = true; btn.textContent = 'Kayıt yapılıyor...';
+  const btn = document.getElementById('userBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kaydediliyor...';
   document.getElementById('alertUser').innerHTML = '';
   try {
-    await api('/api/auth/kayit/kullanici', {
-      method: 'POST',
-      body: {
-        username: document.getElementById('u_username').value,
-        email: document.getElementById('u_email').value,
-        password: document.getElementById('u_password').value,
-        birth_date: document.getElementById('u_birth').value,
-        age_confirm: document.getElementById('u_age').checked,
-        kvkk: document.getElementById('u_kvkk').checked,
-        sozlesme: document.getElementById('u_sozlesme').checked
-      }
-    });
-    window.location.href = '/';
+    await api('/api/auth/kayit/kullanici', { method: 'POST', body: {
+      username: document.getElementById('u_user').value,
+      email: document.getElementById('u_email').value,
+      password: document.getElementById('u_pass').value,
+      birth_date: document.getElementById('u_birth').value,
+      age_confirm: document.getElementById('u_age').checked,
+      kvkk: document.getElementById('u_kvkk').checked,
+      sozlesme: document.getElementById('u_soz').checked
+    }});
+    location.href = '/';
   } catch (err) {
-    document.getElementById('alertUser').innerHTML = `<div class="alert alert-error">❌ ${err.message}</div>`;
-    btn.disabled = false; btn.textContent = 'Kayıt Ol';
+    document.getElementById('alertUser').innerHTML = `<div class="alert alert-error"><i class="fa-solid fa-circle-xmark"></i><span>${err.message}</span></div>`;
+    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Kayıt Ol';
   }
 });
 
-// Geliştirici başvuru
-document.getElementById('devForm').addEventListener('submit', async (e) => {
+document.getElementById('devForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const btn = document.getElementById('devSubmitBtn');
-  btn.disabled = true; btn.textContent = 'Başvuru yapılıyor...';
+  const btn = document.getElementById('devBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gönderiliyor...';
   document.getElementById('alertDev').innerHTML = '';
-  const hasPrev = document.getElementById('d_hasgames').value === 'yes';
+  const hasPrev = document.getElementById('d_prev').value === 'yes';
   try {
-    const data = await api('/api/auth/kayit/gelistirici', {
-      method: 'POST',
-      body: {
-        team_name: document.getElementById('d_team').value,
-        first_name: document.getElementById('d_first').value,
-        last_name: document.getElementById('d_last').value,
-        username: document.getElementById('d_username').value,
-        email: document.getElementById('d_email').value,
-        password: document.getElementById('d_password').value,
-        has_previous_games: hasPrev,
-        previous_game_type: hasPrev ? document.getElementById('d_gametype').value : null,
-        previous_game_name: hasPrev ? document.getElementById('d_gamename').value : null,
-        previous_game_description: hasPrev ? document.getElementById('d_gamedesc').value : null,
-        developer_terms: document.getElementById('d_devterms').checked,
-        user_terms: document.getElementById('d_userterms').checked
-      }
-    });
-    if (data.pending) {
-      document.getElementById('stepDev').innerHTML = `
-        <div class="alert alert-warning" style="margin-bottom:0">
-          <div>
-            <b>⏳ Başvurunuz Alındı!</b><br>
-            Geliştirici hesabınız inceleniyor. Birkaç iş günü içerisinde hesabınız incelenir ve kabul ya da reddedilir. 
-            Bu sürede normal kullanıcı olarak platformu kullanabilirsiniz.
-          </div>
+    await api('/api/auth/kayit/gelistirici', { method: 'POST', body: {
+      team_name: document.getElementById('d_team').value,
+      first_name: document.getElementById('d_first').value,
+      last_name: document.getElementById('d_last').value,
+      username: document.getElementById('d_user').value,
+      email: document.getElementById('d_email').value,
+      password: document.getElementById('d_pass').value,
+      has_previous_games: hasPrev,
+      previous_game_type: hasPrev ? document.getElementById('d_gt').value : null,
+      previous_game_name: hasPrev ? document.getElementById('d_gn').value : null,
+      previous_game_description: hasPrev ? document.getElementById('d_gd').value : null,
+      developer_terms: document.getElementById('d_dt').checked,
+      user_terms: document.getElementById('d_ut').checked
+    }});
+    document.getElementById('stepDev').innerHTML = `
+      <div style="text-align:center;padding:20px 0">
+        <div style="width:60px;height:60px;background:rgba(243,156,18,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+          <i class="fa-solid fa-clock" style="color:#f39c12;font-size:24px"></i>
         </div>
-        <a href="/" class="btn btn-primary btn-full" style="margin-top:16px">Ana Sayfaya Git</a>
-      `;
-    }
+        <div style="font-size:20px;font-weight:800;color:#f39c12;margin-bottom:8px">Başvurunuz Alındı</div>
+        <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:24px">
+          Geliştirici hesabınız birkaç iş günü içinde incelenecek.<br>
+          Bu sürede normal kullanıcı olarak platformu kullanabilirsiniz.
+        </div>
+        <a href="/" class="btn btn-primary btn-lg"><i class="fa-solid fa-house"></i> Ana Sayfaya Git</a>
+      </div>`;
   } catch (err) {
-    document.getElementById('alertDev').innerHTML = `<div class="alert alert-error">❌ ${err.message}</div>`;
-    btn.disabled = false; btn.textContent = 'Başvur';
+    document.getElementById('alertDev').innerHTML = `<div class="alert alert-error"><i class="fa-solid fa-circle-xmark"></i><span>${err.message}</span></div>`;
+    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Başvur';
   }
 });
 </script>

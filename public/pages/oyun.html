@@ -4,15 +4,17 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Oyun – Demlik Platform</title>
 <link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-.media-gallery { display:flex; gap:8px; overflow-x:auto; margin-bottom:24px; padding-bottom:4px; }
-.media-thumb { width:160px; height:90px; border-radius:6px; overflow:hidden; flex-shrink:0; border:2px solid transparent; cursor:pointer; }
-.media-thumb.active { border-color:var(--red-primary); }
-.media-thumb img, .media-thumb video { width:100%; height:100%; object-fit:cover; }
-.game-detail-layout { display:grid; grid-template-columns:1fr 320px; gap:24px; }
-.game-sidebar-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; position:sticky; top:80px; }
-@media (max-width:900px) { .game-detail-layout { grid-template-columns:1fr; } }
-.download-progress { margin-top:12px; display:none; }
+.info-row { display:flex; flex-direction:column; gap:2px; }
+.info-label { font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.8px; font-weight:700; }
+.info-value { font-size:13px; font-weight:500; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.price-tag { font-size:28px; font-weight:900; letter-spacing:-0.5px; }
+.price-tag.free { color:#27ae60; }
+.price-tag.paid { color:var(--red-bright); }
+.dl-progress { margin-top:14px; display:none; }
+.dl-progress .dl-label { font-size:12px; color:var(--text-2); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
 </style>
 </head>
 <body>
@@ -20,10 +22,12 @@
   <aside class="sidebar" id="sidebar"></aside>
   <div class="main-content">
     <header class="topbar">
-      <a href="/magazin" style="color:var(--text-muted);font-size:13px">← Store'a Dön</a>
+      <a href="/magazin" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrow-left"></i> Store'a Dön</a>
     </header>
     <main class="page-content" id="pageContent">
-      <div style="color:var(--text-muted);padding:40px;text-align:center">Yükleniyor...</div>
+      <div style="color:var(--text-3);padding:60px;text-align:center">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:24px"></i>
+      </div>
     </main>
   </div>
 </div>
@@ -31,167 +35,140 @@
 <script>
 renderSidebar('magazin');
 const gameId = location.pathname.split('/').pop();
-let gameData = null;
-let currentUser = null;
+let me = null;
 
-async function loadGame() {
-  currentUser = await loadSession();
-  const res = await (await fetch(`/api/oyunlar/${gameId}`)).json();
-  if (!res.game) { document.getElementById('pageContent').innerHTML = '<div class="alert alert-error">Oyun bulunamadı</div>'; return; }
-  gameData = res;
-  renderGame(res);
+async function load() {
+  me = await loadSession();
+  const res = await fetch(`/api/oyunlar/${gameId}`).then(r => r.json());
+  if (!res.game) { document.getElementById('pageContent').innerHTML = '<div class="alert alert-error" style="max-width:400px"><i class="fa-solid fa-circle-xmark"></i><span>Oyun bulunamadı</span></div>'; return; }
+  render(res);
 }
 
-function renderGame({ game: g, inLibrary, isInstalled }) {
-  const mainMedia = g.banner_urls?.[0] || '';
-  const allMedia = [...(g.banner_urls || []), ...(g.video_urls || [])];
-
+function render({ game: g, inLibrary, isInstalled }) {
   document.title = `${g.title} – Demlik Platform`;
+  const allMedia = [...(g.banner_urls||[]), ...(g.video_urls||[])];
 
   document.getElementById('pageContent').innerHTML = `
-    <!-- Hero -->
-    <div class="game-hero" style="height:320px;margin-bottom:24px">
-      <img id="heroImg" src="${mainMedia}" alt="${g.title}" onerror="this.style.display='none'">
+    <div class="game-hero" style="height:340px;margin-bottom:20px">
+      <img id="heroImg" src="${g.banner_urls?.[0]||''}" alt="${g.title}" onerror="this.style.display='none'">
       <div class="game-hero-overlay">
-        <div style="display:flex;align-items:center;gap:14px">
-          ${g.logo_url ? `<img src="${g.logo_url}" style="width:60px;height:60px;border-radius:10px;border:2px solid rgba(255,255,255,0.2)">` : ''}
+        <div style="display:flex;align-items:flex-end;gap:14px">
+          ${g.logo_url ? `<img src="${g.logo_url}" style="width:64px;height:64px;border-radius:12px;border:2px solid rgba(255,255,255,0.15);flex-shrink:0">` : ''}
           <div>
             <div class="game-hero-title">${g.title}</div>
-            <div class="game-hero-meta">${g.genre_name || ''} · ${g.publisher_name || g.team_name || g.developer_name || ''} · ${g.age_rating || 0}+</div>
+            <div class="game-hero-meta">${g.genre_name||''} &nbsp;·&nbsp; ${g.publisher_name||g.team_name||g.developer_name||''} &nbsp;·&nbsp; ${g.age_rating||0}+</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Medya galerisi -->
-    ${allMedia.length > 1 ? `
-    <div class="media-gallery">
-      ${allMedia.map((m, i) => {
-        const isVideo = g.video_urls?.includes(m);
-        return `<div class="media-thumb ${i===0?'active':''}" onclick="switchMedia('${m}', ${isVideo}, this)">
-          ${isVideo ? `<video src="${m}" muted></video>` : `<img src="${m}" alt="">`}
-        </div>`;
-      }).join('')}
-    </div>` : ''}
+    ${allMedia.length > 1 ? `<div class="media-gallery">${allMedia.map((m,i) => {
+      const isVid = g.video_urls?.includes(m);
+      return `<div class="media-thumb ${i===0?'active':''}" onclick="switchMedia('${m}',${isVid},this)">
+        ${isVid ? `<video src="${m}" muted></video>` : `<img src="${m}" alt="" loading="lazy">`}
+      </div>`;
+    }).join('')}</div>` : ''}
 
-    <div class="game-detail-layout">
-      <!-- Sol: Açıklama -->
+    <div class="game-detail-grid">
       <div>
-        <div class="card" style="padding:24px;margin-bottom:16px">
-          <h2 style="font-size:18px;margin-bottom:12px">Hakkında</h2>
-          <p style="color:var(--text-secondary);line-height:1.7;font-size:14px">${g.description}</p>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header"><div class="card-title">Hakkında</div></div>
+          <div class="card-body">
+            <p style="color:var(--text-2);line-height:1.75;font-size:14px">${g.description}</p>
+          </div>
         </div>
-        <div class="card" style="padding:20px">
-          <h3 style="font-size:15px;margin-bottom:12px">Oyun Bilgileri</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
-            <div><span style="color:var(--text-muted)">Geliştirici:</span> ${g.team_name || g.developer_name || '-'}</div>
-            <div><span style="color:var(--text-muted)">Yayıncı:</span> ${g.publisher_name || '-'}</div>
-            <div><span style="color:var(--text-muted)">Tür:</span> ${g.genre_name || '-'}</div>
-            <div><span style="color:var(--text-muted)">Yaş Sınırı:</span> ${g.age_rating || 0}+</div>
-            <div><span style="color:var(--text-muted)">İndirme:</span> ${g.download_count || 0}</div>
-            <div><span style="color:var(--text-muted)">Kütüphane:</span> ${g.library_count || 0}</div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Oyun Bilgileri</div></div>
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-row"><span class="info-label">Geliştirici</span><span class="info-value">${g.team_name||g.developer_name||'-'}</span></div>
+              <div class="info-row"><span class="info-label">Yayıncı</span><span class="info-value">${g.publisher_name||'-'}</span></div>
+              <div class="info-row"><span class="info-label">Tür</span><span class="info-value">${g.genre_name||'-'}</span></div>
+              <div class="info-row"><span class="info-label">Yaş Sınırı</span><span class="info-value">${g.age_rating||0}+</span></div>
+              <div class="info-row"><span class="info-label">İndirme</span><span class="info-value">${g.download_count||0}</span></div>
+              <div class="info-row"><span class="info-label">Kütüphane</span><span class="info-value">${g.library_count||0}</span></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Sağ: Satın al kartı -->
-      <div>
-        <div class="game-sidebar-card">
-          ${g.logo_url ? `<img src="${g.logo_url}" style="width:100%;border-radius:var(--radius);margin-bottom:16px">` : ''}
-          <div style="font-size:24px;font-weight:800;margin-bottom:4px;color:${g.is_free ? '#27ae60' : 'var(--red-primary)'}">
-            ${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price).toFixed(2)}
-          </div>
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${g.is_purchase_disabled ? '⛔ Satışa kapalı' : ''}</div>
-          <div id="actionBtn"></div>
-          <div class="download-progress" id="dlProgress">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px" id="dlStatus">İndiriliyor...</div>
-            <div class="progress-bar"><div class="progress-fill" id="dlFill" style="width:0%"></div></div>
-          </div>
+      <div class="game-sidebar-card">
+        ${g.logo_url ? `<img src="${g.logo_url}" style="width:100%;border-radius:var(--radius);margin-bottom:16px;border:1px solid var(--border)">` : ''}
+        <div class="price-tag ${g.is_free?'free':'paid'}" style="margin-bottom:6px">
+          ${g.is_free ? 'Ücretsiz' : '₺'+parseFloat(g.price||0).toFixed(2)}
+        </div>
+        ${g.is_purchase_disabled ? `<div style="font-size:12px;color:var(--text-3);margin-bottom:12px"><i class="fa-solid fa-lock" style="font-size:10px"></i> Satışa kapalı</div>` : '<div style="margin-bottom:14px"></div>'}
+        <div id="actionBtn"></div>
+        <div class="dl-progress" id="dlProg">
+          <div class="dl-label"><i class="fa-solid fa-spinner fa-spin"></i><span id="dlTxt">Hazırlanıyor...</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="dlFill" style="width:0%"></div></div>
         </div>
       </div>
     </div>
   `;
-  updateActionBtn(inLibrary, isInstalled, g);
+  updateBtn(inLibrary, isInstalled, g);
 }
 
-function updateActionBtn(inLibrary, isInstalled, g) {
-  const btn = document.getElementById('actionBtn');
-  if (!currentUser.loggedIn) {
-    btn.innerHTML = `<a href="/giris" class="btn btn-primary btn-full btn-lg">Giriş Yaparak Ekle</a>`;
-  } else if (isInstalled) {
-    btn.innerHTML = `
-      <button class="btn btn-success btn-full btn-lg" onclick="oyunAc()">▶ Oyna</button>
-      <button class="btn btn-secondary btn-full btn-sm" style="margin-top:8px" onclick="oyunIndir()">🔄 Yeniden İndir</button>
-    `;
-  } else if (inLibrary) {
-    btn.innerHTML = `
-      <button class="btn btn-primary btn-full btn-lg" onclick="oyunIndir()">⬇️ İndir</button>
-    `;
+function updateBtn(inLib, installed, g) {
+  const el = document.getElementById('actionBtn');
+  if (!me?.loggedIn) {
+    el.innerHTML = `<a href="/giris" class="btn btn-primary btn-full btn-xl"><i class="fa-solid fa-right-to-bracket"></i> Giriş Yap</a>`;
+  } else if (installed) {
+    el.innerHTML = `
+      <button class="btn btn-success btn-full btn-xl" onclick="oyunAc()"><i class="fa-solid fa-play"></i> Oyna</button>
+      <button class="btn btn-ghost btn-full btn-sm" style="margin-top:8px" onclick="indir()"><i class="fa-solid fa-rotate-right"></i> Yeniden İndir</button>`;
+  } else if (inLib) {
+    el.innerHTML = `<button class="btn btn-primary btn-full btn-xl" onclick="indir()"><i class="fa-solid fa-download"></i> İndir</button>`;
   } else {
     if (g.is_purchase_disabled) {
-      btn.innerHTML = `<button class="btn btn-secondary btn-full" disabled>Satışa Kapalı</button>`;
+      el.innerHTML = `<button class="btn btn-ghost btn-full" disabled>Satışa Kapalı</button>`;
     } else {
-      btn.innerHTML = `
-        <button class="btn btn-primary btn-full btn-lg" onclick="kutuphaneyeEkle()">
-          ${g.is_free ? '+ Kütüphaneye Ekle' : `₺${parseFloat(g.price).toFixed(2)} – Satın Al`}
-        </button>
-      `;
+      el.innerHTML = `<button class="btn btn-primary btn-full btn-xl" onclick="ekle()">
+        <i class="fa-solid fa-${g.is_free?'plus':'cart-shopping'}"></i>
+        ${g.is_free ? 'Kütüphaneye Ekle' : '₺'+parseFloat(g.price||0).toFixed(2)+' – Satın Al'}
+      </button>`;
     }
   }
 }
 
-function switchMedia(src, isVideo, el) {
+function switchMedia(src, isVid, el) {
   document.querySelectorAll('.media-thumb').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  const hero = document.getElementById('heroImg');
-  hero.src = isVideo ? '' : src;
-  hero.style.display = isVideo ? 'none' : 'block';
+  const img = document.getElementById('heroImg');
+  img.src = isVid ? '' : src;
+  img.style.display = isVid ? 'none' : 'block';
 }
 
-async function kutuphaneyeEkle() {
-  try {
-    await api(`/api/oyunlar/${gameId}/ekle`, { method: 'POST' });
-    toast('Kütüphaneye eklendi!', 'success');
-    loadGame();
-  } catch (err) { toast(err.message, 'error'); }
+async function ekle() {
+  try { await api(`/api/oyunlar/${gameId}/ekle`, { method: 'POST' }); toast('Kütüphaneye eklendi!', 'success'); load(); }
+  catch (e) { toast(e.message, 'error'); }
 }
 
-async function oyunIndir() {
+async function indir() {
   try {
     const res = await api(`/api/oyunlar/${gameId}/indir`, { method: 'POST' });
-    document.getElementById('dlProgress').style.display = 'block';
-    document.getElementById('dlStatus').textContent = 'İndirme başlatılıyor...';
-
-    // Tarayıcı indirmesi başlat
-    const link = document.createElement('a');
-    link.href = res.url;
-    link.download = res.filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Sahte progress (gerçek indirme tarayıcıda)
+    document.getElementById('dlProg').style.display = 'block';
+    const link = document.createElement('a'); link.href = res.url; link.download = res.filename;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
     let p = 0;
-    const interval = setInterval(() => {
-      p += Math.random() * 8;
-      if (p >= 100) { p = 100; clearInterval(interval); document.getElementById('dlStatus').textContent = 'İndirme tamamlandı!'; markInstalled(); }
+    const iv = setInterval(() => {
+      p += Math.random() * 7;
+      if (p >= 100) { p = 100; clearInterval(iv); document.getElementById('dlTxt').textContent = 'İndirme tamamlandı'; markInstalled(); }
       document.getElementById('dlFill').style.width = p + '%';
-      document.getElementById('dlStatus').textContent = `İndiriliyor... %${Math.round(p)}`;
+      document.getElementById('dlTxt').textContent = `İndiriliyor... %${Math.round(p)}`;
     }, 500);
-  } catch (err) { toast(err.message, 'error'); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function markInstalled() {
   await api(`/api/oyunlar/${gameId}/yuklendi`, { method: 'POST' });
-  toast('Oyun yüklendi!', 'success');
-  setTimeout(loadGame, 1000);
+  toast('Oyun başarıyla yüklendi!', 'success');
+  setTimeout(load, 1200);
 }
 
-function oyunAc() {
-  toast('Oyun açılıyor... (Kurulum klasörünüzü kontrol edin)', 'info');
-}
+function oyunAc() { toast('Oyun açılıyor... Kurulum dizinini kontrol edin', 'info'); }
 
-loadGame();
+load();
 </script>
 </body>
 </html>

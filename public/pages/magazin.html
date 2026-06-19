@@ -4,10 +4,17 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Store – Demlik Platform</title>
 <link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 .filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:24px; }
-.filter-bar select, .filter-bar input { background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary); border-radius:var(--radius); padding:8px 12px; font-size:13px; outline:none; }
-.filter-bar select:focus, .filter-bar input:focus { border-color:var(--red-primary); }
+.filter-bar select { background:var(--bg-elevated); border:1px solid var(--border-strong); color:var(--text-1); border-radius:var(--radius-sm); padding:8px 32px 8px 12px; font-size:12px; outline:none; font-family:inherit; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.filter-bar select:focus { border-color:var(--red); }
+.filter-bar .search-bar { flex:1; max-width:320px; position:relative; }
+.filter-bar .search-bar i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-3); font-size:12px; pointer-events:none; }
+.filter-bar .search-bar input { width:100%; background:var(--bg-elevated); border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:8px 12px 8px 34px; font-size:12px; color:var(--text-1); outline:none; font-family:inherit; }
+.filter-bar .search-bar input:focus { border-color:var(--red); }
+.result-count { font-size:12px; color:var(--text-3); margin-left:auto; }
+.page-btns { display:flex; gap:6px; justify-content:center; margin-top:28px; flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -16,110 +23,75 @@
   <div class="main-content">
     <header class="topbar">
       <div class="topbar-search">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="Oyun ara...">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="topSearch" placeholder="Oyun ara...">
       </div>
     </header>
     <main class="page-content">
       <div class="page-header">
-        <div class="page-title">🛒 Store</div>
+        <div class="page-title">Store</div>
         <div class="page-subtitle">Tüm oyunları keşfedin</div>
       </div>
 
       <div class="filter-bar">
+        <div class="search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchFilter" placeholder="Oyun adı veya geliştirici...">
+        </div>
         <select id="genreFilter"><option value="">Tüm Türler</option></select>
         <select id="sortFilter">
           <option value="yeni">En Yeni</option>
           <option value="populer">En Popüler</option>
           <option value="ucretsiz">Ücretsiz</option>
         </select>
-        <input type="text" id="searchFilter" placeholder="🔍 Oyun adı ara...">
-        <span id="resultCount" style="color:var(--text-muted);font-size:13px;margin-left:auto"></span>
+        <span class="result-count" id="resultCount"></span>
       </div>
 
-      <div class="games-grid" id="gamesList">
-        <div style="color:var(--text-muted);padding:24px">Yükleniyor...</div>
-      </div>
-
-      <div id="pagination" style="display:flex;gap:8px;justify-content:center;margin-top:32px"></div>
+      <div class="games-grid" id="gamesList"><div style="color:var(--text-3);padding:40px;text-align:center;grid-column:1/-1">Yükleniyor...</div></div>
+      <div class="page-btns" id="pagination"></div>
     </main>
   </div>
 </div>
 <script src="/js/common.js"></script>
 <script>
 renderSidebar('magazin');
-let currentPage = 1;
 let searchTimer;
-
-// URL parametrelerini oku
-const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(location.search);
 if (params.get('search')) document.getElementById('searchFilter').value = params.get('search');
-if (params.get('sort')) document.getElementById('sortFilter').value = params.get('sort');
+if (params.get('sort'))   document.getElementById('sortFilter').value   = params.get('sort');
 
 async function loadGenres() {
-  const res = await (await fetch('/api/oyunlar/meta/turler')).json();
-  const sel = document.getElementById('genreFilter');
-  res.genres?.forEach(g => {
-    const opt = document.createElement('option');
-    opt.value = g.name; opt.textContent = g.name;
-    sel.appendChild(opt);
+  const r = await fetch('/api/oyunlar/meta/turler').then(x => x.json());
+  r.genres?.forEach(g => {
+    const o = document.createElement('option'); o.value = g.name; o.textContent = g.name;
+    document.getElementById('genreFilter').appendChild(o);
   });
 }
 
 async function loadGames(page = 1) {
-  currentPage = page;
   const genre = document.getElementById('genreFilter').value;
-  const sort = document.getElementById('sortFilter').value;
+  const sort  = document.getElementById('sortFilter').value;
   const search = document.getElementById('searchFilter').value.trim();
   let url = `/api/oyunlar/liste?sort=${sort}&page=${page}&limit=24`;
-  if (genre) url += `&genre=${encodeURIComponent(genre)}`;
+  if (genre)  url += `&genre=${encodeURIComponent(genre)}`;
   if (search) url += `&search=${encodeURIComponent(search)}`;
-
-  document.getElementById('gamesList').innerHTML = '<div style="color:var(--text-muted);padding:24px">Yükleniyor...</div>';
-
-  const res = await (await fetch(url)).json();
+  document.getElementById('gamesList').innerHTML = '<div style="color:var(--text-3);padding:40px;text-align:center;grid-column:1/-1">Yükleniyor...</div>';
+  const res = await fetch(url).then(r => r.json());
   document.getElementById('resultCount').textContent = `${res.total || 0} oyun`;
-
-  if (!res.games?.length) {
-    document.getElementById('gamesList').innerHTML = '<div style="color:var(--text-muted);padding:40px;text-align:center">🎮 Oyun bulunamadı</div>';
-    return;
-  }
-
-  document.getElementById('gamesList').innerHTML = res.games.map(g => `
-    <div class="game-card" onclick="location.href='/oyun/${g.id}'">
-      <div class="game-card-banner">
-        <img src="${g.banner_urls?.[0] || ''}" alt="${g.title}" onerror="this.style.display='none'">
-      </div>
-      ${g.logo_url ? `<div class="game-card-logo"><img src="${g.logo_url}" alt=""></div>` : ''}
-      <div class="game-card-info">
-        <div class="game-card-title">${g.title}</div>
-        <div class="game-card-genre">${g.genre_name || 'Genel'}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div class="game-card-price ${g.is_free ? 'free' : ''}">${g.is_free ? 'Ücretsiz' : '₺' + parseFloat(g.price).toFixed(2)}</div>
-          <div style="font-size:11px;color:var(--text-muted)">⬇️ ${g.download_count || 0}</div>
-        </div>
-      </div>
-    </div>
-  `).join('');
-
-  // Pagination
-  const totalPages = Math.ceil((res.total || 0) / 24);
-  let pages = '';
-  for (let i = 1; i <= Math.min(totalPages, 10); i++) {
-    pages += `<button class="btn ${i === page ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="loadGames(${i})">${i}</button>`;
-  }
-  document.getElementById('pagination').innerHTML = pages;
+  document.getElementById('gamesList').innerHTML = res.games?.length
+    ? res.games.map(gameCardHTML).join('')
+    : '<div style="color:var(--text-3);padding:60px;text-align:center;grid-column:1/-1"><i class="fa-solid fa-gamepad" style="font-size:32px;margin-bottom:12px;display:block;opacity:0.3"></i>Oyun bulunamadı</div>';
+  const total = Math.ceil((res.total || 0) / 24);
+  document.getElementById('pagination').innerHTML = Array.from({length: Math.min(total, 10)}, (_, i) =>
+    `<button class="btn ${i+1===page?'btn-primary':'btn-ghost'} btn-sm" onclick="loadGames(${i+1})">${i+1}</button>`
+  ).join('');
 }
 
 document.getElementById('genreFilter').addEventListener('change', () => loadGames(1));
 document.getElementById('sortFilter').addEventListener('change', () => loadGames(1));
-document.getElementById('searchFilter').addEventListener('input', () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => loadGames(1), 400);
-});
+document.getElementById('searchFilter').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => loadGames(1), 400); });
 
-loadGenres();
-loadGames();
+loadGenres(); loadGames();
 </script>
 </body>
 </html>
