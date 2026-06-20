@@ -125,15 +125,20 @@ function loadSection(section) {
 
 // ===== DASHBOARD =====
 async function renderDashboard(main) {
-  let users = [], forums = [], books = [], groups = [], logs = [];
-  try {
-    [users, forums, books, groups, logs] = await Promise.all([
-      adminApi('/users'), adminApi('/forums'), adminApi('/books'),
-      adminApi('/groups'), adminApi('/logs?limit=5')
-    ]);
-  } catch (e) {}
-  const banned = users.filter(u => u.banned).length;
-  const admins = users.filter(u => u.is_admin).length;
+  main.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  
+  // Her isteği ayrı ayrı çek, biri patlarsa diğerleri etkilenmesin
+  const [users, forums, books, groups, logs] = await Promise.all([
+    adminApi('/users').catch(() => []),
+    adminApi('/forums').catch(() => []),
+    adminApi('/books').catch(() => []),
+    adminApi('/groups').catch(() => []),
+    adminApi('/logs?limit=5').catch(() => []),
+  ]);
+
+  const banned = Array.isArray(users) ? users.filter(u => u.banned).length : 0;
+  const admins = Array.isArray(users) ? users.filter(u => u.is_admin).length : 0;
+
   main.innerHTML = `
     <div class="adm-section-header">
       <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-chart-line"></i></div> Dashboard</div>
@@ -142,25 +147,25 @@ async function renderDashboard(main) {
       <div class="adm-stat-card">
         <div class="adm-stat-glow" style="background:#5865F2"></div>
         <div class="adm-stat-icon" style="color:#7c87f5"><i class="fas fa-users"></i></div>
-        <div class="adm-stat-num">${users.length}</div>
+        <div class="adm-stat-num">${Array.isArray(users) ? users.length : 0}</div>
         <div class="adm-stat-label">Toplam Üye</div>
       </div>
       <div class="adm-stat-card">
         <div class="adm-stat-glow" style="background:#dc2626"></div>
         <div class="adm-stat-icon" style="color:#ef4444"><i class="fas fa-comments"></i></div>
-        <div class="adm-stat-num">${forums.length}</div>
+        <div class="adm-stat-num">${Array.isArray(forums) ? forums.length : 0}</div>
         <div class="adm-stat-label">Toplam Konu</div>
       </div>
       <div class="adm-stat-card">
         <div class="adm-stat-glow" style="background:#22c55e"></div>
         <div class="adm-stat-icon" style="color:#4ade80"><i class="fas fa-book"></i></div>
-        <div class="adm-stat-num">${books.length}</div>
+        <div class="adm-stat-num">${Array.isArray(books) ? books.length : 0}</div>
         <div class="adm-stat-label">Toplam Kitap</div>
       </div>
       <div class="adm-stat-card">
         <div class="adm-stat-glow" style="background:#f97316"></div>
         <div class="adm-stat-icon" style="color:#fb923c"><i class="fas fa-users-cog"></i></div>
-        <div class="adm-stat-num">${groups.length}</div>
+        <div class="adm-stat-num">${Array.isArray(groups) ? groups.length : 0}</div>
         <div class="adm-stat-label">Toplam Grup</div>
       </div>
     </div>
@@ -175,29 +180,33 @@ async function renderDashboard(main) {
             <span style="font-size:13px">Admin Sayısı</span><span class="badge badge-blue">${admins}</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg4);border-radius:8px">
-            <span style="font-size:13px">Gruplar</span><span class="badge badge-gray">${groups.length}</span>
+            <span style="font-size:13px">Gruplar</span><span class="badge badge-gray">${Array.isArray(groups) ? groups.length : 0}</span>
           </div>
         </div>
       </div>
       <div class="card">
         <div class="card-header"><span><i class="fas fa-history" style="color:#f97316;margin-right:8px"></i>Son İşlemler</span></div>
         <div class="card-body" style="padding:8px">
-          ${logs.length ? logs.map(l => `
+          ${Array.isArray(logs) && logs.length ? logs.map(l => `
             <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px">
               <span style="color:var(--red2);font-weight:600">${escHtml(l.actor)}</span>
               <span style="color:var(--text2);margin:0 4px">→</span>
               <span>${escHtml(l.action)}</span>
               <span style="float:right;color:var(--text3)">${timeAgo(l.created_at)}</span>
-            </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--text3)">Log yok</div>'}
+            </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--text3)">Henüz log yok</div>'}
         </div>
       </div>
     </div>`;
+}
 }
 
 // ===== USERS =====
 async function renderUsers(main) {
   let users = [];
-  try { users = await adminApi('/users'); } catch (e) { main.innerHTML = `<p style="color:var(--red2);padding:20px">${e.message}</p>`; return; }
+  try { users = await adminApi('/users'); } catch (e) {
+    main.innerHTML = `<div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users"></i></div> Kullanıcılar</div></div><div class="card"><div class="card-body" style="color:var(--red2);padding:20px"><i class="fas fa-exclamation-circle"></i> ${escHtml(e.message)}</div></div>`;
+    return;
+  }
   main.innerHTML = `
     <div class="adm-section-header">
       <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users"></i></div> Kullanıcılar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${users.length})</span></div>

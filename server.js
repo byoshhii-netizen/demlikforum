@@ -1216,7 +1216,8 @@ app.delete('/api/admin/tag/:id', adminMiddleware, async (req, res) => {
 });
 
 app.get('/api/admin/logs', adminMiddleware, async (req, res) => {
-  const { rows } = await query('SELECT * FROM system_logs ORDER BY created_at DESC LIMIT 500');
+  const limit = Math.min(parseInt(req.query.limit) || 200, 500);
+  const { rows } = await query('SELECT * FROM system_logs ORDER BY created_at DESC LIMIT $1', [limit]);
   res.json(rows);
 });
 
