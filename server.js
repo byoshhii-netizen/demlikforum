@@ -1194,9 +1194,8 @@ app.get('/api/admin/settings', adminMiddleware, async (req, res) => {
 app.post('/api/admin/settings', adminMiddleware, async (req, res) => {
   const { key, value } = req.body;
   if (!key) return res.status(400).json({ error: 'Key zorunlu' });
-  let val = value;
-  if (key === 'admin_password') val = hashPassword(value);
-  await query('INSERT INTO settings (key,value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value', [key, val]);
+  // admin_password için hash işlemi client tarafında yapılıyor, server direkt kaydeder
+  await query('INSERT INTO settings (key,value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value', [key, value]);
   res.json({ ok: true });
 });
 
@@ -1522,18 +1521,6 @@ app.get('/api/settings/public', async (req, res) => {
   const obj = {};
   rows.forEach(r => { obj[r.key] = r.value; });
   res.json(obj);
-});
-
-app.post('/api/admin/settings', adminMiddleware, async (req, res) => {
-  const { key, value } = req.body;
-  if (!key) return res.status(400).json({ error: 'key gerekli' });
-  const { rows } = await query("SELECT key FROM settings WHERE key=$1", [key]);
-  if (rows.length) {
-    await query('UPDATE settings SET value=$1 WHERE key=$2', [value, key]);
-  } else {
-    await query('INSERT INTO settings (key, value) VALUES ($1, $2)', [key, value]);
-  }
-  res.json({ ok: true });
 });
 
 // ===== SPOTİFY OAuth =====
