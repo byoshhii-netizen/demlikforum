@@ -3,6 +3,9 @@
   --bg-secondary: #111111;
   --bg-card: #1a1a1a;
   --bg-card2: #242424;
+  --bg-tertiary: #1e1e1e;
+  --bg-active: rgba(220,38,38,0.08);
+  --bg-hover: rgba(255,255,255,0.04);
   --accent-red: #dc2626;
   --accent-red2: #f05252;
   --accent-red-dark: #991b1b;
@@ -869,10 +872,12 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
 .dm-input-bar { display: flex; align-items: flex-end; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); background: var(--bg-secondary); flex-shrink: 0; }
 
 @media (max-width: 768px) {
-  .dm-layout { flex-direction: column; height: auto; }
-  .dm-sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
-  .dm-chat { height: calc(100vh - 260px - 60px); }
-  .dm-msg-content { max-width: 85%; }
+  .dm-layout { flex-direction: column; height: auto; min-height: calc(100vh - 120px); }
+  .dm-sidebar { width: 100%; height: auto; max-height: 240px; border-right: none; border-bottom: 1px solid var(--border); }
+  .dm-chat { height: calc(100vh - 300px); min-height: 300px; }
+  .dm-msg-content { max-width: 88%; }
+  .dm-input-bar { padding: 8px 10px; }
+  .dm-msg-bubble { font-size: 13px; padding: 7px 10px; }
 }
 
 /* ===== FLOATING DM WIDGET ===== */
@@ -1048,4 +1053,91 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
   .page-title { font-size: 20px !important; }
   .forum-detail-title { font-size: 18px !important; }
   .btn { font-size: 13px !important; }
+}
+
+/* ===== DUYURU BANNER ===== */
+#announcements-container {
+  width: 100%;
+  position: relative;
+  z-index: 900;
+}
+.announcement-banner {
+  width: 100%;
+  border-bottom: 2px solid;
+  border-top: 2px solid;
+}
+.announcement-banner.ann-top { border-top: none; }
+.ann-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.ann-text { flex: 1; font-size: 14px; line-height: 1.5; }
+.ann-text strong { margin-right: 6px; }
+.ann-close {
+  background: rgba(0,0,0,0.2);
+  border: none;
+  color: inherit;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.ann-close:hover { opacity: 1; }
+.ann-size-small .ann-inner { padding: 6px 20px; }
+.ann-size-small .ann-text { font-size: 12px; }
+.ann-size-large .ann-inner { padding: 16px 20px; }
+.ann-size-large .ann-text { font-size: 16px; }
+@media (max-width: 600px) {
+  .ann-inner { padding: 8px 12px; }
+  .ann-text { font-size: 13px; }
+}
+
+/* ===== MOBİL GÖRSEL BOZULMA DÜZELTMELERİ ===== */
+@media (max-width: 768px) {
+  /* Tüm container'lar taşmasın */
+  * { max-width: 100%; }
+  img { max-width: 100%; height: auto; display: block; }
+
+  /* Profil fotoğrafı cover kalacak */
+  .profile-avatar, .nav-avatar, .book-cover img,
+  .forum-detail-banner, .forum-card-banner,
+  .group-cover img, .comment-avatar,
+  .chat-msg-avatar, .avatar-sm, .avatar-md, .member-avatar { object-fit: cover !important; }
+
+  /* Profil header overflow */
+  .profile-header { overflow: hidden; word-break: break-word; }
+  .profile-username { font-size: 18px !important; word-break: break-all; }
+
+  /* Forum card banner overfit */
+  .forum-card { overflow: hidden; }
+  .forum-card-body { padding: 10px 12px; }
+
+  /* Grup kapak taşmasın */
+  .group-cover { max-height: 140px; overflow: hidden; }
+  .group-cover img { width: 100%; height: 140px; object-fit: cover; }
+
+  /* Kitap ızgara */
+  .grid-3 { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+
+  /* Buton taşmaları */
+  .btn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Mesaj alanı input */
+  .dm-input-bar textarea { font-size: 14px; }
+  .dm-msg-wrap { max-width: 100%; }
+
+  /* Floating DM widget mobilde de göster (küçük) */
+  #floating-dm { bottom: 70px; right: 10px; }
 }

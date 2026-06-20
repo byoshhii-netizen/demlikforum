@@ -1550,8 +1550,6 @@ async function renderProfile(app, username) {
         <div class="profile-username" style="${user.show_level_color && user.name_color ? 'color:' + escHtml(user.name_color) : ''}">${escHtml(user.username)} ${user.is_vip ? '<i class="fas fa-gem" style="color:#fbbf24;font-size:18px" title="VIP"></i>' : ''} ${user.is_plus ? '<i class="fas fa-plus-circle" style="color:#818cf8;font-size:18px" title="Plus"></i>' : ''}${user.is_admin ? ` <i class="fas fa-shield-alt user-admin" title="Demlik Yetkilisi" data-admin-since="${escHtml(user.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:16px"></i>` : ''}${level ? ` <i class="${escHtml(level.icon)}" style="color:${escHtml(level.color)};font-size:16px" title="${escHtml(level.name)}"></i> <span style="font-size:13px;font-weight:500;color:${escHtml(level.color)}">${escHtml(level.name)}</span>` : ''}</div>
         ${user.title ? `<div style="font-size:13px;font-weight:600;color:var(--accent-red2);margin-top:4px"><i class="fas fa-briefcase" style="font-size:11px;margin-right:4px"></i>${escHtml(user.title)}</div>` : ''}
         ${user.location ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px"><i class="fas fa-map-marker-alt" style="font-size:11px;margin-right:4px"></i>${escHtml(user.location)}</div>` : ''}
-        ${user.title ? `<div style="font-size:14px;color:var(--accent-red2);font-weight:600;margin-top:4px">${escHtml(user.title)}</div>` : ''}
-        ${user.location ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px"><i class="fas fa-map-marker-alt" style="font-size:11px;margin-right:4px"></i>${escHtml(user.location)}</div>` : ''}
         ${levelBadge}
         ${progressHTML}
         ${user.bio ? `<div class="profile-bio" style="margin-top:10px">${escHtml(user.bio)}</div>` : ''}
@@ -1561,7 +1559,7 @@ async function renderProfile(app, username) {
           <div class="profile-stat"><div class="profile-stat-num">${user.book_count}</div><div class="profile-stat-label">Kitap</div></div>
           <div class="profile-stat"><div class="profile-stat-num">${user.comment_count}</div><div class="profile-stat-label">Yorum</div></div>
         </div>
-        ${isOwn ? `<a href="/ayarlar" data-link class="btn btn-outline btn-sm" style="margin-top:16px"><i class="fas fa-cog"></i> Profili Düzenle</a>` : ''}
+        ${isOwn ? `<a href="/ayarlar" data-link class="btn btn-outline btn-sm" style="margin-top:16px"><i class="fas fa-cog"></i> Profili Düzenle</a>${currentUser && currentUser.is_admin ? `<a href="/panel-giris" class="btn btn-sm" style="margin-top:8px;background:linear-gradient(135deg,#1a1aff,#5865F2);border:none;color:#fff"><i class="fas fa-shield-alt"></i> Admin Panel</a>` : ''}` : ''}
         <div id="spotify-widget-${escHtml(user.username)}"></div>
       </div>
     </div>
@@ -1775,10 +1773,12 @@ function renderSettingsSection(section) {
             <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(30,215,96,0.08);border:1px solid rgba(30,215,96,0.2);border-radius:8px;margin-bottom:16px">
               <i class="fab fa-spotify" style="color:#1ED760;font-size:24px"></i>
               <div>
-                <div style="font-weight:600;color:var(--text-primary)">Spotify Bağlı</div>
-                <div style="font-size:12px;color:var(--text-muted)">Şu an çaldığın müzik profilinde gösterilebilir</div>
+                <div style="font-weight:600;color:var(--text-primary)">Spotify Bağlı ✓</div>
+                <div style="font-size:13px;color:#1ED760;margin-top:2px">@${escHtml(currentUser.username)}</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Profil sayfanda "Şu an dinliyor" kutusu gösterilecek</div>
               </div>
             </div>
+            <div id="spotify-now-preview" style="margin-bottom:16px"></div>
             <div class="form-group">
               <label class="checkbox-label">
                 <input type="checkbox" id="spotify-show-cb" ${currentUser.spotify_show ? 'checked' : ''} />
@@ -1800,6 +1800,27 @@ function renderSettingsSection(section) {
           <div id="spotify-msg" class="form-error mt-4"></div>
         </div>
       </div>`;
+    // Şu an çalan önizleme
+    if (hasSpotify) {
+      fetch('/api/spotify/now-playing/' + encodeURIComponent(currentUser.username))
+        .then(r => r.json()).then(data => {
+          const pre = document.getElementById('spotify-now-preview');
+          if (!pre) return;
+          if (data.playing) {
+            pre.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(30,215,96,0.06);border:1px solid rgba(30,215,96,0.15);border-radius:8px">
+              ${data.album_art ? `<img src="${data.album_art}" style="width:40px;height:40px;border-radius:6px;object-fit:cover" />` : ''}
+              <div style="flex:1;min-width:0">
+                <div style="font-size:10px;color:#1ED760;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Şu an çalıyor</div>
+                <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(data.title)}</div>
+                <div style="font-size:11px;color:var(--text-muted)">${escHtml(data.artist)}</div>
+              </div>
+              <i class="fab fa-spotify" style="color:#1ED760;font-size:18px;flex-shrink:0"></i>
+            </div>`;
+          } else {
+            pre.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Şu an bir şey çalmıyor.</div>`;
+          }
+        }).catch(() => {});
+    }
     $('#spotify-save-vis')?.addEventListener('click', async () => {
       try {
         await api('/spotify/visibility', { method: 'PUT', body: JSON.stringify({ show: $('#spotify-show-cb').checked }) });
@@ -1915,7 +1936,7 @@ function renderNotFound(app) {
   app.innerHTML = `<div class="container page" style="text-align:center;padding:80px 20px">
     <div style="font-size:72px;font-weight:900;color:var(--accent-red);opacity:0.3">404</div>
     <div style="font-size:24px;font-weight:700;margin-bottom:12px">Sayfa Bulunamadı</div>
-    <p style="color:var(--text-secondary);margin-bottom:24px">Aradığınız sayfa mevcut değil.</p>
+    <p style="color:var(--text-secondary);margin-bottom:24px">O sayfa taze bitti abim, veremmi başkasını?</p>
     <a href="/" data-link class="btn btn-primary">Ana Sayfaya Dön</a>
   </div>`;
 }
@@ -1942,8 +1963,29 @@ async function init() {
       footer.innerHTML = createdVisible ? `Created By. İsmail DEMİRCAN &nbsp;${copyrightText}` : copyrightText;
     }
   } catch {}
+  loadAnnouncements();
   renderRoute(location.pathname);
   if (currentUser) { checkUnreadMessages(); setInterval(() => { if (currentUser) checkUnreadMessages(); }, 15000); }
+}
+
+async function loadAnnouncements() {
+  try {
+    const rows = await fetch('/api/announcements').then(r => r.json());
+    const container = document.getElementById('announcements-container');
+    if (!container) return;
+    container.innerHTML = '';
+    rows.forEach(ann => {
+      const div = document.createElement('div');
+      div.className = `announcement-banner ann-${ann.position || 'top'} ann-size-${ann.size || 'normal'}`;
+      div.style.cssText = `background:${ann.bg_color};color:${ann.text_color};border-color:${ann.border_color};`;
+      div.innerHTML = `
+        <div class="ann-inner">
+          <div class="ann-text"><strong>${escHtml(ann.title)}</strong> <span>${escHtml(ann.content)}</span></div>
+          <button class="ann-close" onclick="this.closest('.announcement-banner').remove()" aria-label="Kapat"><i class="fas fa-times"></i></button>
+        </div>`;
+      container.appendChild(div);
+    });
+  } catch {}
 }
 
 init();

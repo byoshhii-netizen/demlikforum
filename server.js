@@ -1216,6 +1216,130 @@ app.post('/api/admin/user/:id/set-admin', adminMiddleware, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ===== ADMIN YETKİ SİSTEMİ =====
+app.get('/api/admin/permissions/:userId', adminMiddleware, async (req, res) => {
+  const { rows } = await query('SELECT * FROM admin_permissions WHERE user_id=$1', [req.params.userId]);
+  res.json(rows[0] || null);
+});
+
+app.post('/api/admin/permissions/:userId', adminMiddleware, async (req, res) => {
+  const uid = req.params.userId;
+  const {
+    can_ban_users, can_delete_content, can_edit_content,
+    can_manage_levels, can_manage_tags, can_manage_announcements,
+    can_view_logs, can_manage_settings, can_manage_admins, can_view_users
+  } = req.body;
+  const { rows: existing } = await query('SELECT id FROM admin_permissions WHERE user_id=$1', [uid]);
+  if (existing.length) {
+    await query(`UPDATE admin_permissions SET
+      can_ban_users=$1, can_delete_content=$2, can_edit_content=$3,
+      can_manage_levels=$4, can_manage_tags=$5, can_manage_announcements=$6,
+      can_view_logs=$7, can_manage_settings=$8, can_manage_admins=$9, can_view_users=$10
+      WHERE user_id=$11`,
+      [can_ban_users?1:0, can_delete_content?1:0, can_edit_content?1:0,
+       can_manage_levels?1:0, can_manage_tags?1:0, can_manage_announcements?1:0,
+       can_view_logs?1:0, can_manage_settings?1:0, can_manage_admins?1:0, can_view_users?1:0, uid]);
+  } else {
+    await query(`INSERT INTO admin_permissions
+      (user_id, can_ban_users, can_delete_content, can_edit_content, can_manage_levels,
+       can_manage_tags, can_manage_announcements, can_view_logs, can_manage_settings, can_manage_admins, can_view_users)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [uid, can_ban_users?1:0, can_delete_content?1:0, can_edit_content?1:0,
+       can_manage_levels?1:0, can_manage_tags?1:0, can_manage_announcements?1:0,
+       can_view_logs?1:0, can_manage_settings?1:0, can_manage_admins?1:0, can_view_users?1:0]);
+  }
+  res.json({ ok: true });
+});
+
+// ===== DUYURU SİSTEMİ =====
+app.get('/api/announcements', async (req, res) => {
+  const { rows } = await query(`SELECT * FROM announcements WHERE active=1 AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC`);
+  res.json(rows);
+});
+
+app.get('/api/admin/announcements', adminMiddleware, async (req, res) => {
+  const { rows } = await query('SELECT * FROM announcements ORDER BY created_at DESC');
+  res.json(rows);
+});
+
+app.post('/api/admin/announcements', adminMiddleware, async (req, res) => {
+  const { title, content, bg_color, text_color, border_color, position, size, duration_type, duration_value } = req.body;
+  if (!title || !content) return res.status(400).json({ error: 'Başlık ve içerik gerekli' });
+  let expires_at = null;
+  if (duration_value && parseInt(duration_value) > 0) {
+    const ms = {
+      seconds: 1000, minutes: 60000, hours: 3600000, days: 86400000
+    }[duration_type] || 86400000;
+    expires_at = new Date(Date.now() + parseInt(duration_value) * ms);
+  }
+  const { rows } = await query(
+    `INSERT INTO announcements (title, content, bg_color, text_color, border_color, position, size, expires_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [title, content, bg_color||'#dc2626', text_color||'#ffffff', border_color||'#991b1b',
+     position||'top', size||'normal', expires_at]
+  );
+  res.json(rows[0]);
+});
+
+app.put('/api/admin/announcements/:id', adminMiddleware, async (req, res) => {
+  const { title, content, bg_color, text_color, border_color, position, size, active, duration_type, duration_value } = req.body;
+  let expires_at_sql = '';
+  const params = [title, content, bg_color, text_color, border_color, position, size, active?1:0];
+  if (duration_value && parseInt(duration_value) > 0) {
+    const ms = { seconds: 1000, minutes: 60000, hours: 3600000, days: 86400000 }[duration_type] || 86400000;
+    params.push(new Date(Date.now() + parseInt(duration_value) * ms));
+    expires_at_sql = `, expires_at=$${params.length}`;
+  }
+  params.push(req.params.id);
+  await query(
+    `UPDATE announcements SET title=$1,content=$2,bg_color=$3,text_color=$4,border_color=$5,position=$6,size=$7,active=$8${expires_at_sql} WHERE id=$${params.length}`,
+    params
+  );
+  const { rows } = await query('SELECT * FROM announcements WHERE id=$1', [req.params.id]);
+  res.json(rows[0]);
+});
+
+app.delete('/api/admin/announcements/:id', adminMiddleware, async (req, res) => {
+  await query('DELETE FROM announcements WHERE id=$1', [req.params.id]);
+  res.json({ ok: true });
+});
+
+// ===== ADMİN: KULLANICI PROFİL ERİŞİM KONTROLÜ =====
+app.get('/api/admin/my-perms', authMiddleware, async (req, res) => {
+  if (!req.user.is_admin) return res.status(403).json({ error: 'Yetkisiz' });
+  const { rows } = await query('SELECT * FROM admin_permissions WHERE user_id=$1', [req.user.id]);
+  // tam admin ise tüm yetkiler var
+  const isSuperAdmin = !rows.length;
+  res.json({
+    is_super_admin: isSuperAdmin,
+    permissions: rows[0] || {
+      can_ban_users:1, can_delete_content:1, can_edit_content:1,
+      can_manage_levels:1, can_manage_tags:1, can_manage_announcements:1,
+      can_view_logs:1, can_manage_settings:1, can_manage_admins:1, can_view_users:1
+    }
+  });
+});
+
+// ===== SITE AYARLARI (logo vb.) =====
+app.get('/api/settings/public', async (req, res) => {
+  const { rows } = await query("SELECT key, value FROM settings WHERE key IN ('site_logo','site_name','site_description')");
+  const obj = {};
+  rows.forEach(r => { obj[r.key] = r.value; });
+  res.json(obj);
+});
+
+app.post('/api/admin/settings', adminMiddleware, async (req, res) => {
+  const { key, value } = req.body;
+  if (!key) return res.status(400).json({ error: 'key gerekli' });
+  const { rows } = await query("SELECT key FROM settings WHERE key=$1", [key]);
+  if (rows.length) {
+    await query('UPDATE settings SET value=$1 WHERE key=$2', [value, key]);
+  } else {
+    await query('INSERT INTO settings (key, value) VALUES ($1, $2)', [key, value]);
+  }
+  res.json({ ok: true });
+});
+
 // ===== SPOTİFY OAuth =====
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
@@ -1344,7 +1468,23 @@ app.get('/api/spotify/now-playing/:username', async (req, res) => {
 });
 
 // ===== SEO META INJECT =====
-app.get('/panel-giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+// ===== ADMIN IP WHITELIST =====
+function getAdminIPs() {
+  const env = process.env.ADMIN_IPS || '';
+  if (!env.trim()) return [];
+  return env.split(',').map(ip => ip.trim()).filter(Boolean);
+}
+
+function adminIPCheck(req, res, next) {
+  const allowed = getAdminIPs();
+  if (allowed.length === 0) return next(); // env set edilmemişse geliştirme modunda aç
+  const clientIP = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || '').split(',')[0].trim();
+  if (allowed.includes(clientIP)) return next();
+  return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+}
+
+app.get('/panel-giris', adminIPCheck, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/panel', adminIPCheck, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
 function injectMeta(title, desc, url, imageUrl) {
   let html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');

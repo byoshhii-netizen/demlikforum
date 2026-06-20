@@ -1,5 +1,6 @@
-﻿let adminToken = sessionStorage.getItem('admin_token') || '';
-let currentSection = 'users';
+﻿// ===== DEMLIK ADMIN PANEL =====
+let adminToken = sessionStorage.getItem('admin_token') || '';
+let currentSection = 'dashboard';
 
 function $(s) { return document.querySelector(s); }
 function $$(s) { return document.querySelectorAll(s); }
@@ -47,11 +48,12 @@ function showModal(title, bodyHTML) {
   $('#modal-overlay').classList.remove('hidden');
 }
 function hideModal() { $('#modal-overlay').classList.add('hidden'); }
+
 $('#modal-close').addEventListener('click', hideModal);
 $('#modal-overlay').addEventListener('click', e => { if (e.target === $('#modal-overlay')) hideModal(); });
 
+// ===== AUTH =====
 if (adminToken) showPanel();
-
 $('#admin-login-btn').addEventListener('click', tryLogin);
 $('#admin-pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
@@ -60,8 +62,7 @@ async function tryLogin() {
   if (!pw) return;
   const msgBuf = new TextEncoder().encode(pw);
   const hashBuf = await crypto.subtle.digest('SHA-256', msgBuf);
-  const hashArr = Array.from(new Uint8Array(hashBuf));
-  const hashHex = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
   adminToken = hashHex;
   sessionStorage.setItem('admin_token', adminToken);
   try {
@@ -75,8 +76,10 @@ async function tryLogin() {
 
 function showPanel() {
   $('#login-screen').style.display = 'none';
-  $('#admin-panel').style.display = 'block';
-  loadSection('users');
+  $('#admin-panel').classList.add('visible');
+  loadTopbarStats();
+  setupNav();
+  loadSection('dashboard');
 }
 
 $('#admin-logout-btn').addEventListener('click', () => {
@@ -84,67 +87,168 @@ $('#admin-logout-btn').addEventListener('click', () => {
   location.reload();
 });
 
-$$('.sidebar-item').forEach(item => {
-  item.addEventListener('click', () => {
-    $$('.sidebar-item').forEach(i => i.classList.remove('active'));
-    item.classList.add('active');
-    loadSection(item.dataset.section);
+function setupNav() {
+  $$('.adm-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      $$('.adm-nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      loadSection(item.dataset.section);
+    });
   });
-});
+}
+
+async function loadTopbarStats() {
+  try {
+    const users = await adminApi('/users');
+    const forums = await adminApi('/forums');
+    const el = $('#adm-topbar-stats');
+    if (el) el.innerHTML = `
+      <span><i class="fas fa-users" style="color:#5865F2;margin-right:4px"></i>${users.length} üye</span>
+      <span><i class="fas fa-comments" style="color:#dc2626;margin-right:4px"></i>${forums.length} konu</span>`;
+  } catch {}
+}
 
 function loadSection(section) {
   currentSection = section;
   const main = $('#admin-main');
   main.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-  const map = { users: renderUsers, forums: renderForums, books: renderBooks, groups: renderGroups, levels: renderLevels, tags: renderTags, logs: renderLogs, settings: renderSettings, messages: renderAdminMessages };
+  const map = {
+    dashboard: renderDashboard, users: renderUsers,
+    forums: renderForums, books: renderBooks, groups: renderGroups,
+    levels: renderLevels, tags: renderTags, logs: renderLogs,
+    settings: renderSettings, messages: renderAdminMessages,
+    announcements: renderAnnouncements
+  };
   if (map[section]) map[section](main);
 }
 
+// ===== DASHBOARD =====
+async function renderDashboard(main) {
+  let users = [], forums = [], books = [], groups = [], logs = [];
+  try {
+    [users, forums, books, groups, logs] = await Promise.all([
+      adminApi('/users'), adminApi('/forums'), adminApi('/books'),
+      adminApi('/groups'), adminApi('/logs?limit=5')
+    ]);
+  } catch (e) {}
+  const banned = users.filter(u => u.banned).length;
+  const admins = users.filter(u => u.is_admin).length;
+  main.innerHTML = `
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-chart-line"></i></div> Dashboard</div>
+    </div>
+    <div class="adm-stats">
+      <div class="adm-stat-card">
+        <div class="adm-stat-glow" style="background:#5865F2"></div>
+        <div class="adm-stat-icon" style="color:#7c87f5"><i class="fas fa-users"></i></div>
+        <div class="adm-stat-num">${users.length}</div>
+        <div class="adm-stat-label">Toplam Üye</div>
+      </div>
+      <div class="adm-stat-card">
+        <div class="adm-stat-glow" style="background:#dc2626"></div>
+        <div class="adm-stat-icon" style="color:#ef4444"><i class="fas fa-comments"></i></div>
+        <div class="adm-stat-num">${forums.length}</div>
+        <div class="adm-stat-label">Toplam Konu</div>
+      </div>
+      <div class="adm-stat-card">
+        <div class="adm-stat-glow" style="background:#22c55e"></div>
+        <div class="adm-stat-icon" style="color:#4ade80"><i class="fas fa-book"></i></div>
+        <div class="adm-stat-num">${books.length}</div>
+        <div class="adm-stat-label">Toplam Kitap</div>
+      </div>
+      <div class="adm-stat-card">
+        <div class="adm-stat-glow" style="background:#f97316"></div>
+        <div class="adm-stat-icon" style="color:#fb923c"><i class="fas fa-users-cog"></i></div>
+        <div class="adm-stat-num">${groups.length}</div>
+        <div class="adm-stat-label">Toplam Grup</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="card">
+        <div class="card-header"><span><i class="fas fa-shield-alt" style="color:#5865F2;margin-right:8px"></i>Sistem Özeti</span></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg4);border-radius:8px">
+            <span style="font-size:13px">Banlı Üye</span><span class="badge badge-red">${banned}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg4);border-radius:8px">
+            <span style="font-size:13px">Admin Sayısı</span><span class="badge badge-blue">${admins}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg4);border-radius:8px">
+            <span style="font-size:13px">Gruplar</span><span class="badge badge-gray">${groups.length}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span><i class="fas fa-history" style="color:#f97316;margin-right:8px"></i>Son İşlemler</span></div>
+        <div class="card-body" style="padding:8px">
+          ${logs.length ? logs.map(l => `
+            <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--red2);font-weight:600">${escHtml(l.actor)}</span>
+              <span style="color:var(--text2);margin:0 4px">→</span>
+              <span>${escHtml(l.action)}</span>
+              <span style="float:right;color:var(--text3)">${timeAgo(l.created_at)}</span>
+            </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--text3)">Log yok</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ===== USERS =====
 async function renderUsers(main) {
   let users = [];
-  try { users = await adminApi('/users'); } catch (e) { main.innerHTML = `<div class="page-title">Kullanıcılar</div><p style="color:var(--accent-red2)">${e.message}</p>`; return; }
-
+  try { users = await adminApi('/users'); } catch (e) { main.innerHTML = `<p style="color:var(--red2);padding:20px">${e.message}</p>`; return; }
   main.innerHTML = `
-    <div class="section-bar">
-      <div class="page-title" style="margin:0">Kullanıcılar <span style="font-size:14px;color:var(--text-muted)">(${users.length})</span></div>
-      <input type="text" id="user-search" placeholder="Ara..." style="max-width:220px" />
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users"></i></div> Kullanıcılar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${users.length})</span></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="user-search" placeholder="Kullanıcı, e-posta, IP ara..." style="min-width:240px" /></div>
     </div>
     <div class="card">
       <div class="table-wrap">
-        <table id="users-table">
-          <thead><tr><th>ID</th><th>Kullanıcı Adı</th><th>E-posta</th><th>Seviye</th><th>Forum</th><th>Kitap</th><th>Yorum</th><th>IP</th><th>Kayıt</th><th>Son Aktif</th><th>Durum</th><th>İşlem</th></tr></thead>
+        <table>
+          <thead><tr><th>ID</th><th>Kullanıcı</th><th>E-posta</th><th>Seviye</th><th>İstatistik</th><th>IP</th><th>Kayıt</th><th>Durum</th><th>İşlem</th></tr></thead>
           <tbody id="users-tbody"></tbody>
         </table>
       </div>
     </div>`;
-
   renderUsersTable(users);
   $('#user-search').addEventListener('input', e => {
     const q = e.target.value.toLowerCase();
-    renderUsersTable(users.filter(u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.ip || '').includes(q)));
+    renderUsersTable(users.filter(u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.ip||'').includes(q)));
   });
 }
 
 function renderUsersTable(users) {
   const tbody = $('#users-tbody'); if (!tbody) return;
-  if (!users.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:32px">Kullanıcı bulunamadı</td></tr>'; return; }
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">Kullanıcı bulunamadı</td></tr>'; return; }
   tbody.innerHTML = users.map(u => `<tr>
-    <td style="color:var(--text-muted)">#${u.id}</td>
-    <td><strong>${escHtml(u.username)}</strong> ${u.is_vip ? '<span class="badge badge-orange">VIP</span>' : ''} ${u.is_plus ? '<span class="badge badge-gray">Plus</span>' : ''}</td>
-    <td style="color:var(--text-secondary)">${escHtml(u.email)}</td>
-    <td>${u.level_id || 1}</td>
-    <td>${u.forum_count}</td>
-    <td>${u.book_count}</td>
-    <td>${u.comment_count}</td>
-    <td style="font-size:11px;color:var(--text-muted)">${escHtml(u.ip || '-')}</td>
+    <td style="color:var(--text3);font-size:11px">#${u.id}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${u.avatar ? `<img src="${escHtml(u.avatar)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover" />` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px"><i class="fas fa-user"></i></div>`}
+        <div>
+          <div style="font-weight:600;font-size:13px">${escHtml(u.username)}</div>
+          <div style="font-size:10px;color:var(--text3)">${u.is_admin ? '<span style="color:#7c87f5"><i class="fas fa-shield-alt"></i> Admin</span>' : ''} ${u.is_vip ? '<span style="color:#facc15">VIP</span>' : ''} ${u.is_plus ? '<span style="color:#a855f7">Plus</span>' : ''}</div>
+        </div>
+      </div>
+    </td>
+    <td style="font-size:12px;color:var(--text2)">${escHtml(u.email)}</td>
+    <td><span class="badge badge-gray">${u.level_id||1}</span></td>
+    <td style="font-size:12px;color:var(--text2)">
+      <span title="Forum"><i class="fas fa-comments" style="color:var(--red2)"></i> ${u.forum_count}</span>
+      <span title="Kitap" style="margin:0 6px"><i class="fas fa-book" style="color:#4ade80"></i> ${u.book_count}</span>
+      <span title="Yorum"><i class="fas fa-comment" style="color:#7c87f5"></i> ${u.comment_count}</span>
+    </td>
+    <td style="font-size:11px;color:var(--text3)">${escHtml(u.ip||'-')}</td>
     <td style="font-size:11px">${timeAgo(u.created_at)}</td>
-    <td style="font-size:11px">${timeAgo(u.last_active)}</td>
-    <td>${u.banned ? '<span class="badge badge-red"><i class="fas fa-ban"></i> Banlı</span>' : '<span class="badge badge-green">Aktif</span>'}</td>
+    <td>${u.banned ? '<span class="badge badge-red"><i class="fas fa-ban"></i> Banlı</span>' : '<span class="badge badge-green"><i class="fas fa-check"></i> Aktif</span>'}</td>
     <td>
       <div style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm edit-user-btn" data-id="${u.id}"><i class="fas fa-edit"></i></button>
-        ${u.banned ? `<button class="btn btn-ghost btn-sm unban-user-btn" data-id="${u.id}" title="Ban Kaldır" style="color:#4ade80"><i class="fas fa-unlock"></i></button>` : `<button class="btn btn-ghost btn-sm ban-user-btn" data-id="${u.id}" title="Banla" style="color:var(--accent-red2)"><i class="fas fa-ban"></i></button>`}
-        <button class="btn btn-danger btn-sm del-user-btn" data-id="${u.id}"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-outline btn-xs edit-user-btn" data-id="${u.id}" title="Düzenle"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-blue btn-xs perm-user-btn" data-id="${u.id}" title="Yetkiler"><i class="fas fa-shield-alt"></i></button>
+        ${u.banned
+          ? `<button class="btn btn-green btn-xs unban-user-btn" data-id="${u.id}" title="Ban Kaldır"><i class="fas fa-unlock"></i></button>`
+          : `<button class="btn btn-danger btn-xs ban-user-btn" data-id="${u.id}" title="Banla"><i class="fas fa-ban"></i></button>`}
+        <button class="btn btn-danger btn-xs del-user-btn" data-id="${u.id}" title="Sil"><i class="fas fa-trash"></i></button>
       </div>
     </td>
   </tr>`).join('');
@@ -154,70 +258,47 @@ function renderUsersTable(users) {
     const ban = e.target.closest('.ban-user-btn');
     const unban = e.target.closest('.unban-user-btn');
     const del = e.target.closest('.del-user-btn');
-
-    if (edit) {
-      const id = edit.dataset.id;
-      const user = users.find(u => u.id == id);
-      if (!user) return;
-      showEditUserModal(user);
-    }
-    if (ban) {
-      const id = ban.dataset.id;
-      showBanModal(id);
-    }
-    if (unban) {
-      const id = unban.dataset.id;
-      if (!confirm('Ban kaldırılsın mı?')) return;
-      try { await adminApi('/user/' + id + '/unban', { method: 'POST' }); toast('Ban kaldırıldı'); loadSection('users'); } catch (e) { toast(e.message, 'error'); }
-    }
-    if (del) {
-      const id = del.dataset.id;
-      if (!confirm('Kullanıcı kalıcı olarak silinsin mi?')) return;
-      try { await adminApi('/user/' + id, { method: 'DELETE' }); toast('Kullanıcı silindi'); loadSection('users'); } catch (e) { toast(e.message, 'error'); }
-    }
+    const perm = e.target.closest('.perm-user-btn');
+    if (edit) { const u = users.find(x => x.id == edit.dataset.id); if (u) showEditUserModal(u); }
+    if (ban) showBanModal(ban.dataset.id);
+    if (unban) { if (!confirm('Ban kaldırılsın mı?')) return; try { await adminApi('/user/'+unban.dataset.id+'/unban',{method:'POST'}); toast('Ban kaldırıldı'); loadSection('users'); } catch(e){toast(e.message,'error');} }
+    if (del) { if (!confirm('Kullanıcı kalıcı silinsin mi?')) return; try { await adminApi('/user/'+del.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('users'); } catch(e){toast(e.message,'error');} }
+    if (perm) { const u = users.find(x => x.id == perm.dataset.id); if (u) showPermModal(u); }
   });
 }
 
 function showEditUserModal(user) {
-  showModal('Kullanıcı Düzenle - ' + user.username, `
+  showModal('Kullanıcı Düzenle — ' + user.username, `
     <div class="form-row">
-      <div class="form-group"><label>Kullanıcı Adı</label><input id="eu-username" type="text" value="${escHtml(user.username)}" /></div>
+      <div class="form-group"><label>Kullanıcı Adı</label><input id="eu-username" value="${escHtml(user.username)}" /></div>
       <div class="form-group"><label>E-posta</label><input id="eu-email" type="email" value="${escHtml(user.email)}" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Yeni Şifre (boş bırak = değişme)</label><input id="eu-pw" type="password" placeholder="••••••" /></div>
-      <div class="form-group"><label>Seviye ID</label><input id="eu-level" type="number" value="${user.level_id || 1}" /></div>
+      <div class="form-group"><label>Yeni Şifre (boş=değişme)</label><input id="eu-pw" type="password" placeholder="••••••" /></div>
+      <div class="form-group"><label>Seviye ID</label><input id="eu-level" type="number" value="${user.level_id||1}" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>İsim Rengi</label><input id="eu-color" type="color" value="${user.name_color || '#f5f5f5'}" style="height:38px;cursor:pointer" /></div>
-      <div></div>
+      <div class="form-group"><label>Ünvan</label><input id="eu-title" value="${escHtml(user.title||'')}" placeholder="Örn: Yazılımcı" /></div>
+      <div class="form-group"><label>İsim Rengi</label><input id="eu-color" type="color" value="${user.name_color||'#f5f5f5'}" style="height:38px;cursor:pointer" /></div>
     </div>
-    <div class="form-group">
-      <label class="checkbox-label"><input type="checkbox" id="eu-vip" ${user.is_vip ? 'checked' : ''} /> VIP</label>
-      <label class="checkbox-label" style="margin-top:6px"><input type="checkbox" id="eu-plus" ${user.is_plus ? 'checked' : ''} /> Plus</label>
-      <label class="checkbox-label" style="margin-top:6px"><input type="checkbox" id="eu-admin" ${user.is_admin ? 'checked' : ''} /> <i class="fas fa-shield-alt" style="color:#5865F2"></i> Demlik Yetkilisi (Admin)</label>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <label class="checkbox-label"><input type="checkbox" id="eu-vip" ${user.is_vip?'checked':''} /> VIP</label>
+      <label class="checkbox-label"><input type="checkbox" id="eu-plus" ${user.is_plus?'checked':''} /> Plus</label>
+      <label class="checkbox-label"><input type="checkbox" id="eu-admin" ${user.is_admin?'checked':''} /> <i class="fas fa-shield-alt" style="color:#7c87f5"></i> Admin Yetkilisi</label>
     </div>
-    <button class="btn btn-primary" id="eu-submit" style="width:100%">Kaydet</button>
-    <div id="eu-error" class="form-error" style="margin-top:8px"></div>
+    <button class="btn btn-primary" id="eu-submit" style="width:100%;justify-content:center">Kaydet</button>
+    <div id="eu-error" class="form-error mt-4"></div>
   `);
   $('#eu-submit').addEventListener('click', async () => {
-    const wasAdmin = !!user.is_admin;
-    const isAdmin = $('#eu-admin').checked;
-    const body = {
-      username: $('#eu-username').value.trim(),
-      email: $('#eu-email').value.trim(),
-      is_vip: $('#eu-vip').checked,
-      is_plus: $('#eu-plus').checked,
-      name_color: $('#eu-color').value,
-      level_id: parseInt($('#eu-level').value) || 1,
-    };
-    const pw = $('#eu-pw').value;
-    if (pw) body.password = pw;
+    const wasAdmin = !!user.is_admin, isAdmin = $('#eu-admin').checked;
+    const body = { username: $('#eu-username').value.trim(), email: $('#eu-email').value.trim(),
+      is_vip: $('#eu-vip').checked, is_plus: $('#eu-plus').checked,
+      name_color: $('#eu-color').value, level_id: parseInt($('#eu-level').value)||1,
+      title: $('#eu-title').value.trim() };
+    const pw = $('#eu-pw').value; if (pw) body.password = pw;
     try {
-      await adminApi('/user/' + user.id, { method: 'PUT', body: JSON.stringify(body) });
-      if (isAdmin !== wasAdmin) {
-        await adminApi('/user/' + user.id + '/set-admin', { method: 'POST', body: JSON.stringify({ is_admin: isAdmin }) });
-      }
+      await adminApi('/user/'+user.id, {method:'PUT', body:JSON.stringify(body)});
+      if (isAdmin !== wasAdmin) await adminApi('/user/'+user.id+'/set-admin', {method:'POST', body:JSON.stringify({is_admin:isAdmin})});
       toast('Kullanıcı güncellendi'); hideModal(); loadSection('users');
     } catch (e) { $('#eu-error').textContent = e.message; }
   });
@@ -228,658 +309,531 @@ function showBanModal(userId) {
     <div class="form-group"><label>Ban Türü</label>
       <select id="ban-type">
         <option value="soft">Soft Ban (hesap kilitli)</option>
-        <option value="ip">IP Ban (IP adresi engeli)</option>
+        <option value="ip">IP Ban (IP engeli)</option>
       </select>
     </div>
-    <button class="btn btn-danger" id="ban-submit" style="width:100%"><i class="fas fa-ban"></i> Banla</button>
-    <div id="ban-error" class="form-error" style="margin-top:8px"></div>
+    <button class="btn btn-primary" id="ban-submit" style="width:100%;justify-content:center"><i class="fas fa-ban"></i> Banla</button>
+    <div id="ban-error" class="form-error mt-4"></div>
   `);
   $('#ban-submit').addEventListener('click', async () => {
-    const ban_type = $('#ban-type').value;
-    try {
-      await adminApi('/user/' + userId + '/ban', { method: 'POST', body: JSON.stringify({ ban_type }) });
-      toast('Kullanıcı banlandı'); hideModal(); loadSection('users');
-    } catch (e) { $('#ban-error').textContent = e.message; }
+    try { await adminApi('/user/'+userId+'/ban',{method:'POST',body:JSON.stringify({ban_type:$('#ban-type').value})}); toast('Banlandı'); hideModal(); loadSection('users'); }
+    catch (e) { $('#ban-error').textContent = e.message; }
   });
 }
 
-async function renderForums(main) {
-  let forums = [];
-  try { forums = await adminApi('/forums'); } catch (e) { main.innerHTML = `<div class="page-title">Konular</div><p style="color:var(--accent-red2)">${e.message}</p>`; return; }
+async function showPermModal(user) {
+  let perms = null;
+  try { perms = await adminApi('/permissions/' + user.id); } catch {}
+  const p = perms || {};
+  const permDefs = [
+    { key:'can_view_users', label:'Üyeleri Görüntüle', desc:'Üye listesini görebilir', icon:'fas fa-users' },
+    { key:'can_ban_users', label:'Üye Yasakla/Kaldır', desc:'Ban atabilir, kaldırabilir', icon:'fas fa-ban' },
+    { key:'can_delete_content', label:'İçerik Sil', desc:'Forum, kitap, yorum silebilir', icon:'fas fa-trash' },
+    { key:'can_edit_content', label:'İçerik Düzenle', desc:'Forum ve kitap düzenleyebilir', icon:'fas fa-edit' },
+    { key:'can_manage_levels', label:'Seviyeleri Yönet', desc:'Seviye ekle/düzenle/sil', icon:'fas fa-layer-group' },
+    { key:'can_manage_tags', label:'Etiketleri Yönet', desc:'Etiket ekle/düzenle/sil', icon:'fas fa-tags' },
+    { key:'can_manage_announcements', label:'Duyuru Yönet', desc:'Duyuru oluştur/düzenle/sil', icon:'fas fa-bullhorn' },
+    { key:'can_view_logs', label:'Log Görüntüle', desc:'Sistem loglarını okuyabilir', icon:'fas fa-history' },
+    { key:'can_manage_settings', label:'Site Ayarları', desc:'Site ayarlarını değiştirebilir', icon:'fas fa-cog' },
+    { key:'can_manage_admins', label:'Admin Yönet', desc:'Admin atayabilir/alabilir', icon:'fas fa-shield-alt' },
+  ];
+  showModal(`Yetki Düzenleme — ${user.username}`, `
+    <div style="margin-bottom:16px;padding:10px 14px;background:rgba(88,101,242,0.1);border:1px solid rgba(88,101,242,0.2);border-radius:10px;font-size:12px">
+      <i class="fas fa-info-circle" style="color:#7c87f5;margin-right:6px"></i>
+      Admin onaylandıysa bu yetki detayları uygulanır. Süper admin tüm yetkilere sahiptir.
+    </div>
+    <div class="perm-grid" id="perm-grid">
+      ${permDefs.map(d => `
+        <div class="perm-item">
+          <input type="checkbox" id="perm-${d.key}" ${p[d.key] ? 'checked' : ''} />
+          <div>
+            <span class="perm-label"><i class="${d.icon}" style="margin-right:5px;color:var(--red2)"></i>${d.label}</span>
+            <span class="perm-desc">${d.desc}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary" id="perm-all-btn" style="flex:1;justify-content:center"><i class="fas fa-check-double"></i> Tümünü Ver</button>
+      <button class="btn btn-outline" id="perm-none-btn" style="flex:1;justify-content:center"><i class="fas fa-times"></i> Tümünü Al</button>
+    </div>
+    <button class="btn btn-blue" id="perm-save-btn" style="width:100%;justify-content:center;margin-top:8px"><i class="fas fa-save"></i> Kaydet</button>
+    <div id="perm-error" class="form-error mt-4"></div>
+  `);
+  $('#perm-all-btn').addEventListener('click', () => permDefs.forEach(d => { const el=$('#perm-'+d.key); if(el) el.checked=true; }));
+  $('#perm-none-btn').addEventListener('click', () => permDefs.forEach(d => { const el=$('#perm-'+d.key); if(el) el.checked=false; }));
+  $('#perm-save-btn').addEventListener('click', async () => {
+    const body = {}; permDefs.forEach(d => { body[d.key] = $('#perm-'+d.key)?.checked ? 1 : 0; });
+    try { await adminApi('/permissions/'+user.id, {method:'POST', body:JSON.stringify(body)}); toast('Yetkiler kaydedildi'); hideModal(); }
+    catch (e) { $('#perm-error').textContent = e.message; }
+  });
+}
 
+// ===== DUYURULAR =====
+async function renderAnnouncements(main) {
+  let anns = [];
+  try { anns = await adminApi('/announcements'); } catch (e) { main.innerHTML = `<p style="color:var(--red2);padding:20px">${e.message}</p>`; return; }
   main.innerHTML = `
-    <div class="section-bar">
-      <div class="page-title" style="margin:0">Konular <span style="font-size:14px;color:var(--text-muted)">(${forums.length})</span></div>
-      <input type="text" id="forum-search" placeholder="Ara..." style="max-width:220px" />
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-bullhorn"></i></div> Duyurular</div>
+      <button class="btn btn-primary btn-sm" id="ann-new-btn"><i class="fas fa-plus"></i> Yeni Duyuru</button>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Başlık</th><th>Yazar</th><th>Görüntülenme</th><th>Tarih</th><th>İşlem</th></tr></thead>
-          <tbody id="forums-tbody"></tbody>
+          <thead><tr><th>Başlık</th><th>Konum</th><th>Boyut</th><th>Bitiş</th><th>Durum</th><th>İşlem</th></tr></thead>
+          <tbody id="ann-tbody"></tbody>
         </table>
       </div>
     </div>`;
-
-  renderForumsTable(forums);
-  $('#forum-search').addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    renderForumsTable(forums.filter(f => f.title.toLowerCase().includes(q) || (f.username || '').toLowerCase().includes(q)));
-  });
+  renderAnnTable(anns);
+  $('#ann-new-btn').addEventListener('click', () => showAnnModal(null, anns));
 }
 
-function renderForumsTable(forums) {
-  const tbody = $('#forums-tbody'); if (!tbody) return;
-  if (!forums.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Konu yok</td></tr>'; return; }
-  tbody.innerHTML = forums.map(f => `<tr>
-    <td style="color:var(--text-muted)">#${f.id}</td>
-    <td><a href="/forum/${escHtml(f.slug)}" target="_blank" style="color:var(--accent-red2)">${escHtml(f.title.substring(0, 60))}${f.title.length > 60 ? '...' : ''}</a></td>
-    <td>${escHtml(f.username || 'Silindi')}</td>
-    <td>${f.views || 0}</td>
-    <td style="font-size:11px">${timeAgo(f.created_at)}</td>
+function renderAnnTable(anns) {
+  const tbody = $('#ann-tbody'); if (!tbody) return;
+  if (!anns.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px">Duyuru yok</td></tr>'; return; }
+  tbody.innerHTML = anns.map(a => `<tr>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:12px;height:12px;border-radius:3px;background:${escHtml(a.bg_color)};border:1px solid ${escHtml(a.border_color)};flex-shrink:0"></div>
+        <strong>${escHtml(a.title)}</strong>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(a.content)}</div>
+    </td>
+    <td><span class="badge badge-gray">${a.position||'top'}</span></td>
+    <td><span class="badge badge-gray">${a.size||'normal'}</span></td>
+    <td style="font-size:11px;color:var(--text2)">${a.expires_at ? formatDate(a.expires_at) : '∞ Süresiz'}</td>
+    <td>${a.active ? '<span class="badge badge-green"><i class="fas fa-circle" style="font-size:8px"></i> Aktif</span>' : '<span class="badge badge-gray">Pasif</span>'}</td>
     <td>
       <div style="display:flex;gap:4px">
-        <button class="btn btn-outline btn-sm edit-forum-btn" data-id="${f.id}"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-danger btn-sm del-forum-btn" data-id="${f.id}"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-outline btn-xs ann-edit-btn" data-id="${a.id}"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-danger btn-xs ann-del-btn" data-id="${a.id}"><i class="fas fa-trash"></i></button>
       </div>
     </td>
   </tr>`).join('');
-
   tbody.addEventListener('click', async e => {
-    const edit = e.target.closest('.edit-forum-btn');
-    const del = e.target.closest('.del-forum-btn');
-    if (edit) {
-      const id = edit.dataset.id;
-      const forum = forums.find(f => f.id == id);
-      if (!forum) return;
-      showModal('Konu Düzenle', `
-        <div class="form-group"><label>Başlık</label><input id="ef-title" type="text" value="${escHtml(forum.title)}" /></div>
-        <div class="form-group"><label>İçerik</label><textarea id="ef-content" rows="8">${escHtml(forum.content)}</textarea></div>
-        <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="ef-comments" ${forum.allow_comments ? 'checked' : ''} /> Yorumlara izin ver</label></div>
-        <button class="btn btn-primary" id="ef-submit" style="width:100%">Kaydet</button>
-        <div id="ef-error" class="form-error" style="margin-top:8px"></div>
-      `);
-      $('#ef-submit').addEventListener('click', async () => {
-        try {
-          await adminApi('/forum/' + id, { method: 'PUT', body: JSON.stringify({ title: $('#ef-title').value.trim(), content: $('#ef-content').value.trim(), allow_comments: $('#ef-comments').checked }) });
-          toast('Konu güncellendi'); hideModal(); loadSection('forums');
-        } catch (e) { $('#ef-error').textContent = e.message; }
-      });
-    }
-    if (del) {
-      if (!confirm('Konu silinsin mi?')) return;
-      try { await adminApi('/forum/' + del.dataset.id, { method: 'DELETE' }); toast('Konu silindi'); loadSection('forums'); } catch (e) { toast(e.message, 'error'); }
-    }
+    const edit = e.target.closest('.ann-edit-btn');
+    const del = e.target.closest('.ann-del-btn');
+    if (edit) { const a = anns.find(x => x.id == edit.dataset.id); if (a) showAnnModal(a, anns); }
+    if (del) { if (!confirm('Duyuru silinsin mi?')) return; try { await adminApi('/announcements/'+del.dataset.id, {method:'DELETE'}); toast('Silindi'); loadSection('announcements'); } catch(e){toast(e.message,'error');} }
   });
 }
 
+function showAnnModal(ann, anns) {
+  const isEdit = !!ann;
+  showModal(isEdit ? 'Duyuru Düzenle' : 'Yeni Duyuru', `
+    <div class="form-group"><label>Başlık</label><input id="ann-title" value="${escHtml(ann?.title||'')}" placeholder="Duyuru başlığı..." /></div>
+    <div class="form-group"><label>İçerik</label><textarea id="ann-content" rows="3" placeholder="Duyuru metni...">${escHtml(ann?.content||'')}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Arka Plan Rengi</label><input id="ann-bg" type="color" value="${ann?.bg_color||'#dc2626'}" style="height:38px;cursor:pointer" /></div>
+      <div class="form-group"><label>Yazı Rengi</label><input id="ann-text-color" type="color" value="${ann?.text_color||'#ffffff'}" style="height:38px;cursor:pointer" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Kenarlık Rengi</label><input id="ann-border" type="color" value="${ann?.border_color||'#991b1b'}" style="height:38px;cursor:pointer" /></div>
+      <div class="form-group"><label>Konum</label>
+        <select id="ann-pos">
+          <option value="top" ${ann?.position==='top'?'selected':''}>Üst</option>
+          <option value="bottom" ${ann?.position==='bottom'?'selected':''}>Alt</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Boyut</label>
+        <select id="ann-size">
+          <option value="small" ${ann?.size==='small'?'selected':''}>Küçük</option>
+          <option value="normal" ${ann?.size==='normal'||!ann?.size?'selected':''}>Normal</option>
+          <option value="large" ${ann?.size==='large'?'selected':''}>Büyük</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Durum</label>
+        <select id="ann-active">
+          <option value="1" ${ann?.active!==0?'selected':''}>Aktif</option>
+          <option value="0" ${ann?.active===0?'selected':''}>Pasif</option>
+        </select>
+      </div>
+    </div>
+    <div style="background:var(--bg4);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Süre Ayarı</div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="form-group" style="margin-bottom:0"><label>Değer (0 = süresiz)</label><input id="ann-dur-val" type="number" min="0" value="0" /></div>
+        <div class="form-group" style="margin-bottom:0"><label>Birim</label>
+          <select id="ann-dur-type">
+            <option value="seconds">Saniye</option>
+            <option value="minutes">Dakika</option>
+            <option value="hours" selected>Saat</option>
+            <option value="days">Gün</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="ann-preview" style="margin-bottom:16px"></div>
+    <button class="btn btn-primary" id="ann-save-btn" style="width:100%;justify-content:center">${isEdit?'Güncelle':'Oluştur'}</button>
+    <div id="ann-error" class="form-error mt-4"></div>
+  `);
+
+  function updatePreview() {
+    const pre = $('#ann-preview'); if (!pre) return;
+    const bg = $('#ann-bg')?.value||'#dc2626', tc = $('#ann-text-color')?.value||'#fff', bc = $('#ann-border')?.value||'#991b1b';
+    const title = $('#ann-title')?.value||'Başlık', content = $('#ann-content')?.value||'İçerik';
+    pre.innerHTML = `<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Önizleme</div>
+      <div style="background:${bg};color:${tc};border:2px solid ${bc};border-radius:8px;padding:10px 14px;font-size:13px">
+        <strong>${escHtml(title)}</strong> <span>${escHtml(content)}</span>
+      </div>`;
+  }
+  ['#ann-bg','#ann-text-color','#ann-border','#ann-title','#ann-content'].forEach(sel => { const el=$(sel); if(el) el.addEventListener('input', updatePreview); });
+  updatePreview();
+
+  $('#ann-save-btn').addEventListener('click', async () => {
+    const body = {
+      title: $('#ann-title').value.trim(), content: $('#ann-content').value.trim(),
+      bg_color: $('#ann-bg').value, text_color: $('#ann-text-color').value,
+      border_color: $('#ann-border').value, position: $('#ann-pos').value,
+      size: $('#ann-size').value, active: parseInt($('#ann-active').value),
+      duration_type: $('#ann-dur-type').value, duration_value: $('#ann-dur-val').value
+    };
+    if (!body.title || !body.content) { $('#ann-error').textContent = 'Başlık ve içerik zorunlu'; return; }
+    try {
+      if (isEdit) await adminApi('/announcements/'+ann.id, {method:'PUT', body:JSON.stringify(body)});
+      else await adminApi('/announcements', {method:'POST', body:JSON.stringify(body)});
+      toast(isEdit ? 'Duyuru güncellendi' : 'Duyuru oluşturuldu'); hideModal(); loadSection('announcements');
+    } catch (e) { $('#ann-error').textContent = e.message; }
+  });
+}
+
+// ===== FORUMS =====
+async function renderForums(main) {
+  let forums = [];
+  try { forums = await adminApi('/forums'); } catch (e) { main.innerHTML = `<p style="color:var(--red2);padding:20px">${e.message}</p>`; return; }
+  main.innerHTML = `
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-comments"></i></div> Konular <span style="font-size:13px;font-weight:400;color:var(--text2)">(${forums.length})</span></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="forum-search" placeholder="Konu ara..." /></div>
+    </div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>Başlık</th><th>Yazar</th><th>Görüntülenme</th><th>Tarih</th><th>İşlem</th></tr></thead>
+      <tbody id="forums-tbody"></tbody>
+    </table></div></div>`;
+  const render = (list) => {
+    const t = $('#forums-tbody'); if (!t) return;
+    t.innerHTML = list.map(f => `<tr>
+      <td style="color:var(--text3);font-size:11px">#${f.id}</td>
+      <td><a href="/forum/${escHtml(f.slug)}" target="_blank" style="color:var(--red2)">${escHtml((f.title||'').substring(0,60))}${(f.title||'').length>60?'...':''}</a></td>
+      <td style="font-size:12px">${escHtml(f.username||'Silindi')}</td>
+      <td style="font-size:12px">${f.views||0}</td>
+      <td style="font-size:11px;color:var(--text3)">${timeAgo(f.created_at)}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-outline btn-xs ef-btn" data-id="${f.id}"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-danger btn-xs df-btn" data-id="${f.id}"><i class="fas fa-trash"></i></button>
+      </div></td>
+    </tr>`).join('');
+    t.addEventListener('click', async e => {
+      const ef = e.target.closest('.ef-btn'), df = e.target.closest('.df-btn');
+      if (ef) { const f = forums.find(x=>x.id==ef.dataset.id); if(f) showForumEditModal(f); }
+      if (df) { if (!confirm('Konu silinsin mi?')) return; try{await adminApi('/forum/'+df.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('forums');}catch(e){toast(e.message,'error');} }
+    });
+  };
+  render(forums);
+  $('#forum-search').addEventListener('input', e => { const q=e.target.value.toLowerCase(); render(forums.filter(f=>f.title.toLowerCase().includes(q)||(f.username||'').toLowerCase().includes(q))); });
+}
+
+function showForumEditModal(forum) {
+  showModal('Konu Düzenle', `
+    <div class="form-group"><label>Başlık</label><input id="ef-title" value="${escHtml(forum.title)}" /></div>
+    <div class="form-group"><label>İçerik</label><textarea id="ef-content" rows="8">${escHtml(forum.content)}</textarea></div>
+    <label class="checkbox-label" style="margin-bottom:12px"><input type="checkbox" id="ef-comments" ${forum.allow_comments?'checked':''} /> Yorumlara izin ver</label>
+    <button class="btn btn-primary" id="ef-submit" style="width:100%;justify-content:center">Kaydet</button>
+    <div id="ef-error" class="form-error mt-4"></div>
+  `);
+  $('#ef-submit').addEventListener('click', async () => {
+    try { await adminApi('/forum/'+forum.id,{method:'PUT',body:JSON.stringify({title:$('#ef-title').value.trim(),content:$('#ef-content').value.trim(),allow_comments:$('#ef-comments').checked})}); toast('Güncellendi'); hideModal(); loadSection('forums'); }
+    catch(e) { $('#ef-error').textContent=e.message; }
+  });
+}
+
+// ===== BOOKS =====
 async function renderBooks(main) {
   let books = [];
-  try { books = await adminApi('/books'); } catch (e) { main.innerHTML = `<div class="page-title">Kitaplar</div><p style="color:var(--accent-red2)">${e.message}</p>`; return; }
-
+  try { books = await adminApi('/books'); } catch {}
   main.innerHTML = `
-    <div class="section-bar">
-      <div class="page-title" style="margin:0">Kitaplar <span style="font-size:14px;color:var(--text-muted)">(${books.length})</span></div>
-    </div>
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>ID</th><th>Başlık</th><th>Yazar</th><th>Sayfa</th><th>Tarih</th><th>İşlem</th></tr></thead>
-          <tbody id="books-tbody"></tbody>
-        </table>
-      </div>
-    </div>`;
-
-  const tbody = $('#books-tbody');
-  if (!books.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Kitap yok</td></tr>'; return; }
-  tbody.innerHTML = books.map(b => `<tr>
-    <td style="color:var(--text-muted)">#${b.id}</td>
-    <td><a href="/kitap/${escHtml(b.slug)}" target="_blank" style="color:var(--accent-red2)">${escHtml(b.title.substring(0, 60))}</a></td>
-    <td>${escHtml(b.username || 'Silindi')}</td>
-    <td>${b.page_count}</td>
-    <td style="font-size:11px">${timeAgo(b.created_at)}</td>
-    <td><button class="btn btn-danger btn-sm del-book-btn" data-id="${b.id}"><i class="fas fa-trash"></i></button></td>
-  </tr>`).join('');
-
-  tbody.addEventListener('click', async e => {
-    const del = e.target.closest('.del-book-btn');
-    if (del) {
-      if (!confirm('Kitap ve tüm sayfaları silinsin mi?')) return;
-      try { await adminApi('/book/' + del.dataset.id, { method: 'DELETE' }); toast('Kitap silindi'); loadSection('books'); } catch (e) { toast(e.message, 'error'); }
-    }
+    <div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-book"></i></div> Kitaplar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${books.length})</span></div></div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>Başlık</th><th>Yazar</th><th>Sayfa</th><th>Tarih</th><th>İşlem</th></tr></thead>
+      <tbody>${books.map(b=>`<tr>
+        <td style="color:var(--text3);font-size:11px">#${b.id}</td>
+        <td><a href="/kitap/${escHtml(b.slug)}" target="_blank" style="color:var(--red2)">${escHtml((b.title||'').substring(0,50))}</a></td>
+        <td style="font-size:12px">${escHtml(b.username||'Silindi')}</td>
+        <td>${b.page_count}</td>
+        <td style="font-size:11px;color:var(--text3)">${timeAgo(b.created_at)}</td>
+        <td><button class="btn btn-danger btn-xs db-btn" data-id="${b.id}"><i class="fas fa-trash"></i></button></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`;
+  $('#admin-main').addEventListener('click', async e => {
+    const db = e.target.closest('.db-btn');
+    if (db) { if(!confirm('Kitap silinsin mi?')) return; try{await adminApi('/book/'+db.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('books');}catch(e){toast(e.message,'error');} }
   });
 }
 
+// ===== GROUPS =====
 async function renderGroups(main) {
   let groups = [];
-  try { groups = await adminApi('/groups'); } catch (e) { main.innerHTML = `<div class="page-title">Gruplar</div><p style="color:var(--accent-red2)">${e.message}</p>`; return; }
-
+  try { groups = await adminApi('/groups'); } catch {}
   main.innerHTML = `
-    <div class="section-bar">
-      <div class="page-title" style="margin:0">Gruplar <span style="font-size:14px;color:var(--text-muted)">(${groups.length})</span></div>
-    </div>
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>ID</th><th>İsim</th><th>Tür</th><th>Sahip</th><th>Üye</th><th>Tarih</th><th>İşlem</th></tr></thead>
-          <tbody id="groups-tbody"></tbody>
-        </table>
-      </div>
-    </div>`;
-
-  const tbody = $('#groups-tbody');
-  if (!groups.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">Grup yok</td></tr>'; return; }
-  tbody.innerHTML = groups.map(g => `<tr>
-    <td style="color:var(--text-muted)">#${g.id}</td>
-    <td><a href="/grup/${escHtml(g.slug)}" target="_blank" style="color:var(--accent-red2)">${escHtml(g.name)}</a></td>
-    <td>${g.type === 'private' ? '<span class="badge badge-red">Özel</span>' : '<span class="badge badge-green">Açık</span>'}</td>
-    <td>${escHtml(g.owner_name || 'Silindi')}</td>
-    <td>${g.member_count}</td>
-    <td style="font-size:11px">${timeAgo(g.created_at)}</td>
-    <td><button class="btn btn-danger btn-sm del-group-btn" data-id="${g.id}"><i class="fas fa-trash"></i></button></td>
-  </tr>`).join('');
-
-  tbody.addEventListener('click', async e => {
-    const del = e.target.closest('.del-group-btn');
-    if (del) {
-      if (!confirm('Grup ve tüm içeriği silinsin mi?')) return;
-      try { await adminApi('/group/' + del.dataset.id, { method: 'DELETE' }); toast('Grup silindi'); loadSection('groups'); } catch (e) { toast(e.message, 'error'); }
-    }
+    <div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users-cog"></i></div> Gruplar</div></div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>İsim</th><th>Tür</th><th>Sahip</th><th>Üye</th><th>Tarih</th><th>İşlem</th></tr></thead>
+      <tbody>${groups.map(g=>`<tr>
+        <td style="color:var(--text3);font-size:11px">#${g.id}</td>
+        <td><a href="/grup/${escHtml(g.slug)}" target="_blank" style="color:var(--red2)">${escHtml(g.name)}</a></td>
+        <td>${g.type==='private'?'<span class="badge badge-red">Özel</span>':'<span class="badge badge-green">Açık</span>'}</td>
+        <td style="font-size:12px">${escHtml(g.owner_name||'Silindi')}</td>
+        <td>${g.member_count}</td>
+        <td style="font-size:11px;color:var(--text3)">${timeAgo(g.created_at)}</td>
+        <td><button class="btn btn-danger btn-xs dg-btn" data-id="${g.id}"><i class="fas fa-trash"></i></button></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`;
+  $('#admin-main').addEventListener('click', async e => {
+    const dg = e.target.closest('.dg-btn');
+    if (dg) { if(!confirm('Grup silinsin mi?')) return; try{await adminApi('/group/'+dg.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('groups');}catch(e){toast(e.message,'error');} }
   });
 }
 
+// ===== LEVELS =====
 async function renderLevels(main) {
   let levels = [];
-  try { levels = await adminApi('/levels'); } catch (e) { main.innerHTML = `<p style="color:var(--accent-red2)">${e.message}</p>`; return; }
-
+  try { levels = await adminApi('/levels'); } catch {}
   main.innerHTML = `
-    <div class="section-bar">
-      <div class="page-title" style="margin:0">Seviyeler</div>
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-layer-group"></i></div> Seviyeler</div>
       <button class="btn btn-primary btn-sm" id="add-level-btn"><i class="fas fa-plus"></i> Ekle</button>
     </div>
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>ID</th><th>İkon</th><th>İsim</th><th>Renk</th><th>Min Forum</th><th>Min Kitap</th><th>Min Yorum</th><th>Sıra</th><th>İşlem</th></tr></thead>
-          <tbody id="levels-tbody"></tbody>
-        </table>
-      </div>
-    </div>`;
-
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>İkon</th><th>İsim</th><th>Renk</th><th>Min Konu</th><th>Min Kitap</th><th>Min Yorum</th><th>Sıra</th><th>İşlem</th></tr></thead>
+      <tbody id="levels-tbody"></tbody>
+    </table></div></div>`;
   renderLevelsTable(levels);
-
   $('#add-level-btn').addEventListener('click', () => showLevelModal(null, () => loadSection('levels')));
 }
 
 function renderLevelsTable(levels) {
-  const tbody = $('#levels-tbody'); if (!tbody) return;
-  if (!levels.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:32px">Seviye yok</td></tr>'; return; }
-  tbody.innerHTML = levels.map(l => `<tr>
-    <td style="color:var(--text-muted)">#${l.id}</td>
-    <td><i class="${escHtml(l.icon)}" style="color:${escHtml(l.color)};font-size:16px"></i></td>
+  const t = $('#levels-tbody'); if (!t) return;
+  t.innerHTML = levels.map(l => `<tr>
+    <td style="color:var(--text3);font-size:11px">#${l.id}</td>
+    <td><i class="${escHtml(l.icon)}" style="color:${escHtml(l.color)};font-size:18px"></i></td>
     <td><strong style="color:${escHtml(l.color)}">${escHtml(l.name)}</strong></td>
-    <td><div style="width:22px;height:22px;border-radius:50%;background:${escHtml(l.color)};display:inline-block"></div> ${escHtml(l.color)}</td>
-    <td>${l.min_forums >= 9999999 ? '∞' : l.min_forums}</td>
-    <td>${l.min_books >= 9999999 ? '∞' : l.min_books}</td>
-    <td>${l.min_comments >= 9999999 ? '∞' : l.min_comments}</td>
+    <td><div style="width:20px;height:20px;border-radius:50%;background:${escHtml(l.color)};display:inline-block;vertical-align:middle"></div> <span style="font-size:11px;color:var(--text2)">${escHtml(l.color)}</span></td>
+    <td>${l.min_forums>=9999999?'∞':l.min_forums}</td>
+    <td>${l.min_books>=9999999?'∞':l.min_books}</td>
+    <td>${l.min_comments>=9999999?'∞':l.min_comments}</td>
     <td>${l.order_num}</td>
-    <td>
-      <div style="display:flex;gap:4px">
-        <button class="btn btn-outline btn-sm edit-level-btn" data-id="${l.id}"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-danger btn-sm del-level-btn" data-id="${l.id}"><i class="fas fa-trash"></i></button>
-      </div>
-    </td>
+    <td><div style="display:flex;gap:4px">
+      <button class="btn btn-outline btn-xs el-btn" data-id="${l.id}"><i class="fas fa-edit"></i></button>
+      <button class="btn btn-danger btn-xs dl-btn" data-id="${l.id}"><i class="fas fa-trash"></i></button>
+    </div></td>
   </tr>`).join('');
-
-  tbody.addEventListener('click', async e => {
-    const edit = e.target.closest('.edit-level-btn');
-    const del = e.target.closest('.del-level-btn');
-    if (edit) {
-      const level = levels.find(l => l.id == edit.dataset.id);
-      if (level) showLevelModal(level, () => loadSection('levels'));
-    }
-    if (del) {
-      if (!confirm('Seviye silinsin mi?')) return;
-      try { await adminApi('/level/' + del.dataset.id, { method: 'DELETE' }); toast('Seviye silindi'); loadSection('levels'); } catch (e) { toast(e.message, 'error'); }
-    }
+  t.addEventListener('click', async e => {
+    const el=e.target.closest('.el-btn'), dl=e.target.closest('.dl-btn');
+    if (el) { const lv=levels.find(x=>x.id==el.dataset.id); if(lv) showLevelModal(lv, ()=>loadSection('levels')); }
+    if (dl) { if(!confirm('Seviye silinsin mi?')) return; try{await adminApi('/level/'+dl.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('levels');}catch(e){toast(e.message,'error');} }
   });
 }
-
-const ALL_FA_ICONS = ['fas fa-star','fas fa-fire','fas fa-crown','fas fa-gem','fas fa-dragon','fas fa-shield-alt','fas fa-bolt','fas fa-seedling','fas fa-pen','fas fa-book','fas fa-trophy','fas fa-medal','fas fa-rocket','fas fa-skull','fas fa-chess-queen','fas fa-fist-raised','fas fa-leaf','fas fa-feather','fas fa-eye','fas fa-infinity','fas fa-atom','fas fa-brain','fas fa-heart','fas fa-sun','fas fa-moon','fas fa-dove','fas fa-paw','fas fa-anchor','fas fa-flask','fas fa-code','fas fa-terminal','fas fa-key','fas fa-hat-wizard','fas fa-sword','fas fa-magic','fas fa-wand-magic-sparkles','fas fa-chess-king','fas fa-chess-knight','fas fa-chess-rook','fas fa-chess-bishop','fas fa-chess-pawn','fas fa-ghost','fas fa-cat','fas fa-dog','fas fa-horse','fas fa-dragon','fas fa-crow','fas fa-spider','fas fa-fish','fas fa-frog','fas fa-hippo','fas fa-kiwi-bird','fas fa-otter','fas fa-mountain','fas fa-tree','fas fa-snowflake','fas fa-cloud','fas fa-cloud-bolt','fas fa-rainbow','fas fa-tornado','fas fa-wind','fas fa-fire-flame-curved','fas fa-volcano','fas fa-ice-cream','fas fa-pizza-slice','fas fa-coffee','fas fa-beer-mug-empty','fas fa-wine-glass','fas fa-mug-hot','fas fa-candy-cane','fas fa-lemon','fas fa-apple-whole','fas fa-carrot','fas fa-pepper-hot','fas fa-person','fas fa-person-running','fas fa-person-swimming','fas fa-person-biking','fas fa-person-skating','fas fa-person-skiing','fas fa-dumbbell','fas fa-baseball','fas fa-basketball','fas fa-football','fas fa-soccer-ball','fas fa-tennis-ball','fas fa-volleyball','fas fa-golf-ball-tee','fas fa-table-tennis-paddle-ball','fas fa-gamepad','fas fa-dice','fas fa-dice-d6','fas fa-dice-d20','fas fa-puzzle-piece','fas fa-chess','fas fa-guitar','fas fa-music','fas fa-headphones','fas fa-microphone','fas fa-drum','fas fa-piano','fas fa-trumpet','fas fa-violin','fas fa-palette','fas fa-paintbrush','fas fa-pencil','fas fa-eraser','fas fa-scissors','fas fa-ruler','fas fa-compass','fas fa-glasses','fas fa-binoculars','fas fa-telescope','fas fa-microscope','fas fa-flask-vial','fas fa-dna','fas fa-bacteria','fas fa-virus','fas fa-capsules','fas fa-pills','fas fa-syringe','fas fa-stethoscope','fas fa-heartbeat','fas fa-hospital','fas fa-cross','fas fa-hands-praying','fas fa-place-of-worship','fas fa-moon','fas fa-star-and-crescent','fas fa-yin-yang','fas fa-om','fas fa-khanda','fas fa-menorah','fas fa-torah','fas fa-church','fas fa-mosque','fas fa-synagogue','fas fa-robot','fas fa-microchip','fas fa-cpu','fas fa-laptop','fas fa-mobile','fas fa-tablet','fas fa-desktop','fas fa-keyboard','fas fa-mouse','fas fa-printer','fas fa-camera','fas fa-video','fas fa-tv','fas fa-radio','fas fa-satellite','fas fa-wifi','fas fa-signal','fas fa-bluetooth','fas fa-battery-full','fas fa-plug','fas fa-lightbulb','fas fa-flashlight','fas fa-magnifying-glass','fas fa-fingerprint','fas fa-lock','fas fa-unlock','fas fa-shield','fas fa-user-secret','fas fa-mask','fas fa-eye-slash','fas fa-user-ninja','fas fa-car','fas fa-truck','fas fa-bicycle','fas fa-motorcycle','fas fa-plane','fas fa-ship','fas fa-train','fas fa-bus','fas fa-helicopter','fas fa-rocket','fas fa-space-shuttle','fas fa-satellite-dish','fas fa-globe','fas fa-map','fas fa-location-dot','fas fa-compass-drafting','fas fa-flag','fas fa-flag-usa','fas fa-building','fas fa-house','fas fa-city','fas fa-bridge','fas fa-monument','fas fa-landmark','fas fa-university','fas fa-school','fas fa-store','fas fa-warehouse','fas fa-industry','fas fa-hammer','fas fa-wrench','fas fa-screwdriver','fas fa-gear','fas fa-gears','fas fa-toolbox','fas fa-box','fas fa-box-open','fas fa-boxes-stacked','fas fa-archive','fas fa-trash','fas fa-recycle','fas fa-coins','fas fa-dollar-sign','fas fa-euro-sign','fas fa-bitcoin-sign','fas fa-wallet','fas fa-credit-card','fas fa-money-bill','fas fa-piggy-bank','fas fa-chart-line','fas fa-chart-bar','fas fa-chart-pie','fas fa-trending-up','fas fa-arrow-up','fas fa-arrow-down','fas fa-arrows-alt','fas fa-expand','fas fa-compress','fas fa-plus','fas fa-minus','fas fa-times','fas fa-check','fas fa-question','fas fa-exclamation','fas fa-info','fas fa-bell','fas fa-envelope','fas fa-paper-plane','fas fa-comment','fas fa-comments','fas fa-quote-left','fas fa-quote-right','fas fa-hashtag','fas fa-at','fas fa-link','fas fa-share','fas fa-bookmark','fas fa-tag','fas fa-tags','fas fa-thumbs-up','fas fa-thumbs-down','fas fa-hand-peace','fas fa-hand-point-right','fas fa-handshake','fas fa-hands-helping','fas fa-clap','fas fa-award','fas fa-certificate','fas fa-graduation-cap','fas fa-user-graduate','fas fa-chalkboard-teacher','fas fa-book-open','fas fa-journal-whills','fas fa-scroll','fas fa-feather-alt','fas fa-quill','fas fa-pen-nib','fas fa-signature','fas fa-stamp','fas fa-newspaper','fas fa-photo-film','fas fa-film','fas fa-clapperboard','fas fa-masks-theater','fas fa-ticket','fas fa-calendar','fas fa-clock','fas fa-hourglass','fas fa-stopwatch','fas fa-timer','fas fa-history','fas fa-undo','fas fa-redo','fas fa-sync'];
 
 function showLevelModal(level, cb) {
-  const isInfMin = (val) => val === -1 || val === 9999999;
-  const infVal = (v) => v === -1 || v === 9999999 ? '∞' : v;
-
-  showModal(level ? 'Seviye Düzenle' : 'Yeni Seviye', `
+  showModal(level?'Seviye Düzenle':'Yeni Seviye', `
     <div class="form-row">
-      <div class="form-group"><label>İsim</label><input id="lv-name" type="text" value="${level ? escHtml(level.name) : ''}" /></div>
-      <div class="form-group">
-        <label>İkon</label>
-        <input id="lv-icon" type="text" value="${level ? escHtml(level.icon) : 'fas fa-star'}" placeholder="fas fa-star" style="margin-bottom:6px" />
-        <input id="lv-icon-search" type="text" placeholder="İkon ara... (star, fire, crown...)" style="margin-bottom:6px" />
-        <div id="lv-icon-grid" style="display:flex;flex-wrap:wrap;gap:5px;max-height:180px;overflow-y:auto;background:var(--bg-card2);padding:8px;border-radius:8px;border:1px solid var(--border)"></div>
-      </div>
+      <div class="form-group"><label>İsim</label><input id="lv-name" value="${escHtml(level?.name||'')}" /></div>
+      <div class="form-group"><label>İkon (FontAwesome)</label><input id="lv-icon" value="${escHtml(level?.icon||'fas fa-star')}" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Renk</label><input id="lv-color" type="color" value="${level ? level.color : '#dc2626'}" style="height:38px;cursor:pointer" /></div>
-      <div class="form-group"><label>Sıra</label><input id="lv-order" type="number" value="${level ? level.order_num : 0}" /></div>
+      <div class="form-group"><label>Renk</label><input id="lv-color" type="color" value="${level?.color||'#dc2626'}" style="height:38px;cursor:pointer" /></div>
+      <div class="form-group"><label>Sıra</label><input id="lv-order" type="number" value="${level?.order_num||0}" /></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-      <div class="form-group">
-        <label>Min Konu</label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input id="lv-forums" type="number" min="0" value="${level ? (isInfMin(level.min_forums) ? '' : level.min_forums) : 0}" placeholder="0" style="flex:1" />
-          <button type="button" id="lv-forums-inf" title="Sonsuz" style="background:var(--bg-card2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-secondary);font-size:16px;flex-shrink:0;transition:all 0.15s" class="${level && isInfMin(level.min_forums) ? 'inf-active' : ''}">∞</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Min Kitap</label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input id="lv-books" type="number" min="0" value="${level ? (isInfMin(level.min_books) ? '' : level.min_books) : 0}" placeholder="0" style="flex:1" />
-          <button type="button" id="lv-books-inf" title="Sonsuz" style="background:var(--bg-card2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-secondary);font-size:16px;flex-shrink:0;transition:all 0.15s" class="${level && isInfMin(level.min_books) ? 'inf-active' : ''}">∞</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Min Kitap Sayfası</label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input id="lv-bookpages" type="number" min="0" value="${level ? (isInfMin(level.min_book_pages || 0) ? '' : (level.min_book_pages || 0)) : 0}" placeholder="0" style="flex:1" />
-          <button type="button" id="lv-bookpages-inf" title="Sonsuz" style="background:var(--bg-card2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-secondary);font-size:16px;flex-shrink:0;transition:all 0.15s" class="${level && isInfMin(level.min_book_pages || 0) ? 'inf-active' : ''}">∞</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Min Yorum</label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input id="lv-comments" type="number" min="0" value="${level ? (isInfMin(level.min_comments) ? '' : level.min_comments) : 0}" placeholder="0" style="flex:1" />
-          <button type="button" id="lv-comments-inf" title="Sonsuz" style="background:var(--bg-card2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-secondary);font-size:16px;flex-shrink:0;transition:all 0.15s" class="${level && isInfMin(level.min_comments) ? 'inf-active' : ''}">∞</button>
-        </div>
-      </div>
-      <div class="form-group" style="align-self:end">
-        <label style="margin-bottom:8px">Koşul Türü</label>
-        <label class="checkbox-label" style="font-size:13px">
-          <input type="checkbox" id="lv-require-any" ${level && level.require_any ? 'checked' : ''} />
-          Herhangi biri yeterli (VEYA)
-        </label>
+    <div class="form-row">
+      <div class="form-group"><label>Min Konu</label><input id="lv-forums" type="number" value="${level?.min_forums||0}" /></div>
+      <div class="form-group"><label>Min Kitap</label><input id="lv-books" type="number" value="${level?.min_books||0}" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Min Yorum</label><input id="lv-comments" type="number" value="${level?.min_comments||0}" /></div>
+      <div class="form-group"><label>Herhangi Biri (OR)</label>
+        <select id="lv-reqany"><option value="0" ${!level?.require_any?'selected':''}>Hepsini Gerektir</option><option value="1" ${level?.require_any?'selected':''}>Herhangi Biri Yeterli</option></select>
       </div>
     </div>
-    <div style="margin-top:4px;padding:10px;background:rgba(220,38,38,0.05);border-radius:8px;border:1px solid rgba(220,38,38,0.15)">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:600">Günlük Limit (Normal Üye / VIP / Plus) — -1 = Sınırsız</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <div>
-          <label style="font-size:11px">Konu / gün</label>
-          <div style="display:flex;gap:4px">
-            <input id="lv-dlimit-forums" type="number" min="-1" value="${level ? (level.daily_forums ?? -1) : -1}" placeholder="-1" title="Normal" />
-            <input id="lv-dlimit-forums-vip" type="number" min="-1" value="${level ? (level.daily_forums_vip ?? -1) : -1}" placeholder="-1" title="VIP" style="border-color:rgba(251,191,36,0.4)" />
-            <input id="lv-dlimit-forums-plus" type="number" min="-1" value="${level ? (level.daily_forums_plus ?? -1) : -1}" placeholder="-1" title="Plus" style="border-color:rgba(129,140,248,0.4)" />
-          </div>
-        </div>
-        <div>
-          <label style="font-size:11px">Kitap / gün</label>
-          <div style="display:flex;gap:4px">
-            <input id="lv-dlimit-books" type="number" min="-1" value="${level ? (level.daily_books ?? -1) : -1}" placeholder="-1" />
-            <input id="lv-dlimit-books-vip" type="number" min="-1" value="${level ? (level.daily_books_vip ?? -1) : -1}" placeholder="-1" style="border-color:rgba(251,191,36,0.4)" />
-            <input id="lv-dlimit-books-plus" type="number" min="-1" value="${level ? (level.daily_books_plus ?? -1) : -1}" placeholder="-1" style="border-color:rgba(129,140,248,0.4)" />
-          </div>
-        </div>
-        <div>
-          <label style="font-size:11px">Sayfa / gün</label>
-          <div style="display:flex;gap:4px">
-            <input id="lv-dlimit-pages" type="number" min="-1" value="${level ? (level.daily_book_pages ?? -1) : -1}" placeholder="-1" />
-            <input id="lv-dlimit-pages-vip" type="number" min="-1" value="${level ? (level.daily_book_pages_vip ?? -1) : -1}" placeholder="-1" style="border-color:rgba(251,191,36,0.4)" />
-            <input id="lv-dlimit-pages-plus" type="number" min="-1" value="${level ? (level.daily_book_pages_plus ?? -1) : -1}" placeholder="-1" style="border-color:rgba(129,140,248,0.4)" />
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:12px;margin-top:4px;font-size:10px;color:var(--text-muted)">
-        <span>Normal (siyah)</span>
-        <span style="color:#fbbf24">VIP (sarı)</span>
-        <span style="color:#818cf8">Plus (mor)</span>
-      </div>
-    </div>
-    <div style="margin-top:8px;padding:10px;background:var(--bg-card2);border-radius:8px;display:flex;align-items:center;gap:10px">
-      <i id="lv-preview-icon" class="${level ? level.icon : 'fas fa-star'}" style="color:${level ? level.color : '#dc2626'};font-size:20px"></i>
-      <span id="lv-preview-name" style="font-weight:600;color:${level ? level.color : '#dc2626'}">${level ? level.name : 'Önizleme'}</span>
-    </div>
-    <button class="btn btn-primary" id="lv-submit" style="width:100%;margin-top:16px">${level ? 'Güncelle' : 'Ekle'}</button>
-    <div id="lv-error" class="form-error" style="margin-top:8px"></div>
+    <button class="btn btn-primary" id="lv-save" style="width:100%;justify-content:center">${level?'Güncelle':'Oluştur'}</button>
+    <div id="lv-error" class="form-error mt-4"></div>
   `);
-
-  const style = document.createElement('style');
-  style.textContent = '.inf-active { color: var(--accent-red2) !important; border-color: var(--accent-red) !important; background: rgba(220,38,38,0.12) !important; }';
-  document.head.appendChild(style);
-
-  function renderIconGrid(filter) {
-    const grid = $('#lv-icon-grid'); if (!grid) return;
-    const filtered = filter ? ALL_FA_ICONS.filter(ic => ic.includes(filter.toLowerCase())) : ALL_FA_ICONS;
-    grid.innerHTML = filtered.map(ic =>
-      `<button type="button" title="${ic}" style="background:none;border:1px solid var(--border);border-radius:6px;padding:6px 8px;cursor:pointer;color:var(--text-secondary);font-size:16px;transition:all 0.15s;min-width:36px" onclick="document.getElementById('lv-icon').value='${ic}';document.getElementById('lv-icon').dispatchEvent(new Event('input'))"><i class="${ic}"></i></button>`
-    ).join('');
-  }
-  renderIconGrid('');
-
-  $('#lv-icon-search').addEventListener('input', e => renderIconGrid(e.target.value.trim()));
-
-  ['lv-name', 'lv-icon', 'lv-color'].forEach(id => {
-    $('#' + id)?.addEventListener('input', () => {
-      const icon = $('#lv-icon').value; const color = $('#lv-color').value; const name = $('#lv-name').value;
-      $('#lv-preview-icon').className = icon; $('#lv-preview-icon').style.color = color;
-      $('#lv-preview-name').textContent = name || 'Önizleme'; $('#lv-preview-name').style.color = color;
-    });
-  });
-
-  ['forums','books','bookpages','comments'].forEach(f => {
-    const btn = $(`#lv-${f}-inf`);
-    const inp = $(`#lv-${f}`);
-    if (!btn || !inp) return;
-    btn.addEventListener('click', () => {
-      if (btn.classList.contains('inf-active')) {
-        btn.classList.remove('inf-active'); inp.disabled = false; inp.value = 0;
-      } else {
-        btn.classList.add('inf-active'); inp.disabled = true; inp.value = '';
-      }
-    });
-  });
-
-  $('#lv-submit').addEventListener('click', async () => {
-    const getVal = (id) => {
-      const btn = $(`#${id}-inf`);
-      if (btn && btn.classList.contains('inf-active')) return 9999999;
-      return parseInt($(`#${id}`).value) || 0;
-    };
-    const body = {
-      name: $('#lv-name').value.trim(),
-      icon: $('#lv-icon').value.trim(),
-      color: $('#lv-color').value,
-      min_forums: getVal('lv-forums'),
-      min_books: getVal('lv-books'),
-      min_book_pages: getVal('lv-bookpages'),
-      min_comments: getVal('lv-comments'),
-      require_any: $('#lv-require-any').checked ? 1 : 0,
-      order_num: parseInt($('#lv-order').value) || 0,
-      daily_forums: parseInt($('#lv-dlimit-forums').value) ?? -1,
-      daily_books: parseInt($('#lv-dlimit-books').value) ?? -1,
-      daily_book_pages: parseInt($('#lv-dlimit-pages').value) ?? -1,
-      daily_forums_vip: parseInt($('#lv-dlimit-forums-vip').value) ?? -1,
-      daily_books_vip: parseInt($('#lv-dlimit-books-vip').value) ?? -1,
-      daily_book_pages_vip: parseInt($('#lv-dlimit-pages-vip').value) ?? -1,
-      daily_forums_plus: parseInt($('#lv-dlimit-forums-plus').value) ?? -1,
-      daily_books_plus: parseInt($('#lv-dlimit-books-plus').value) ?? -1,
-      daily_book_pages_plus: parseInt($('#lv-dlimit-pages-plus').value) ?? -1,
-    };
-    if (!body.name) { $('#lv-error').textContent = 'İsim zorunlu'; return; }
+  $('#lv-save').addEventListener('click', async () => {
+    const body = { name:$('#lv-name').value.trim(), icon:$('#lv-icon').value.trim(),
+      color:$('#lv-color').value, order_num:parseInt($('#lv-order').value)||0,
+      min_forums:parseInt($('#lv-forums').value)||0, min_books:parseInt($('#lv-books').value)||0,
+      min_comments:parseInt($('#lv-comments').value)||0, require_any:parseInt($('#lv-reqany').value)||0 };
     try {
-      if (level) await adminApi('/level/' + level.id, { method: 'PUT', body: JSON.stringify(body) });
-      else await adminApi('/levels', { method: 'POST', body: JSON.stringify(body) });
-      toast(level ? 'Seviye güncellendi' : 'Seviye eklendi'); hideModal(); cb && cb();
-    } catch (e) { $('#lv-error').textContent = e.message; }
+      if (level) await adminApi('/level/'+level.id, {method:'PUT', body:JSON.stringify(body)});
+      else await adminApi('/levels', {method:'POST', body:JSON.stringify(body)});
+      toast(level?'Güncellendi':'Oluşturuldu'); hideModal(); cb();
+    } catch(e) { $('#lv-error').textContent=e.message; }
   });
 }
 
+// ===== TAGS =====
 async function renderTags(main) {
   let tags = [];
-  try { tags = await adminApi('/tags'); } catch (e) { main.innerHTML = `<p style="color:var(--accent-red2)">${e.message}</p>`; return; }
-
+  try { tags = await adminApi('/tags'); } catch {}
   main.innerHTML = `
-    <div class="section-bar">
-      <div class="page-title" style="margin:0">Konu Türleri</div>
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-tags"></i></div> Etiketler</div>
       <button class="btn btn-primary btn-sm" id="add-tag-btn"><i class="fas fa-plus"></i> Ekle</button>
     </div>
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>ID</th><th>İsim</th><th>Renk</th><th>Kullanım</th><th>İşlem</th></tr></thead>
-          <tbody id="tags-tbody"></tbody>
-        </table>
-      </div>
-    </div>`;
-
-  renderTagsTable(tags);
-
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>İsim</th><th>Renk</th><th>Tür</th><th>İşlem</th></tr></thead>
+      <tbody>${tags.map(t=>`<tr>
+        <td style="color:var(--text3);font-size:11px">#${t.id}</td>
+        <td><span class="badge" style="background:${escHtml(t.color)}22;color:${escHtml(t.color)};border:1px solid ${escHtml(t.color)}44">${escHtml(t.name)}</span></td>
+        <td><div style="width:20px;height:20px;border-radius:50%;background:${escHtml(t.color)};display:inline-block"></div></td>
+        <td>${t.is_system?'<span class="badge badge-blue">Sistem</span>':'<span class="badge badge-gray">Özel</span>'}</td>
+        <td><div style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-xs et-btn" data-id="${t.id}"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-xs dt-btn" data-id="${t.id}"><i class="fas fa-trash"></i></button>
+        </div></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`;
   $('#add-tag-btn').addEventListener('click', () => showTagModal(null, () => loadSection('tags')));
-}
-
-function renderTagsTable(tags) {
-  const tbody = $('#tags-tbody'); if (!tbody) return;
-  if (!tags.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px">Tag yok</td></tr>'; return; }
-  tbody.innerHTML = tags.map(t => `<tr>
-    <td style="color:var(--text-muted)">#${t.id}</td>
-    <td><span class="badge" style="background:${escHtml(t.color)};padding:4px 10px;border-radius:4px">${escHtml(t.name)}</span></td>
-    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;border-radius:50%;background:${escHtml(t.color)}"></div>${escHtml(t.color)}</div></td>
-    <td>${t.is_system ? '<span class="badge badge-green">Sistem</span>' : '<span class="badge badge-gray">Özel</span>'}</td>
-    <td>
-      <div style="display:flex;gap:4px">
-        <button class="btn btn-outline btn-sm edit-tag-btn" data-id="${t.id}"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-danger btn-sm del-tag-btn" data-id="${t.id}"><i class="fas fa-trash"></i></button>
-      </div>
-    </td>
-  </tr>`).join('');
-
-  tbody.addEventListener('click', async e => {
-    const edit = e.target.closest('.edit-tag-btn');
-    const del = e.target.closest('.del-tag-btn');
-    if (edit) {
-      const tag = tags.find(t => t.id == edit.dataset.id);
-      if (tag) showTagModal(tag, () => loadSection('tags'));
-    }
-    if (del) {
-      if (!confirm('Tag silinsin mi?')) return;
-      try { await adminApi('/tag/' + del.dataset.id, { method: 'DELETE' }); toast('Tag silindi'); loadSection('tags'); } catch (e) { toast(e.message, 'error'); }
-    }
+  $('#admin-main').addEventListener('click', async e => {
+    const et=e.target.closest('.et-btn'), dt=e.target.closest('.dt-btn');
+    if (et) { const tag=tags.find(x=>x.id==et.dataset.id); if(tag) showTagModal(tag, ()=>loadSection('tags')); }
+    if (dt) { if(!confirm('Etiket silinsin mi?')) return; try{await adminApi('/tag/'+dt.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('tags');}catch(e){toast(e.message,'error');} }
   });
 }
 
 function showTagModal(tag, cb) {
-  showModal(tag ? 'Tag Düzenle' : 'Yeni Tag', `
+  showModal(tag?'Etiket Düzenle':'Yeni Etiket', `
     <div class="form-row">
-      <div class="form-group"><label>İsim</label><input id="tag-name" type="text" value="${tag ? escHtml(tag.name) : ''}" /></div>
-      <div class="form-group"><label>Renk</label><input id="tag-color" type="color" value="${tag ? tag.color : '#dc2626'}" style="height:38px;cursor:pointer" /></div>
+      <div class="form-group"><label>İsim</label><input id="tg-name" value="${escHtml(tag?.name||'')}" /></div>
+      <div class="form-group"><label>Renk</label><input id="tg-color" type="color" value="${tag?.color||'#dc2626'}" style="height:38px;cursor:pointer" /></div>
     </div>
-    <div style="margin-top:12px;padding:12px;background:var(--bg-card2);border-radius:8px;display:flex;align-items:center;gap:10px">
-      <span id="tag-preview" class="badge" style="background:${tag ? tag.color : '#dc2626'};padding:4px 10px;border-radius:4px;font-size:13px">${tag ? tag.name : 'Önizleme'}</span>
-    </div>
-    <button class="btn btn-primary" id="tag-submit" style="width:100%;margin-top:16px">${tag ? 'Güncelle' : 'Ekle'}</button>
-    <div id="tag-error" class="form-error" style="margin-top:8px"></div>
+    <button class="btn btn-primary" id="tg-save" style="width:100%;justify-content:center">${tag?'Güncelle':'Oluştur'}</button>
+    <div id="tg-error" class="form-error mt-4"></div>
   `);
-
-  ['tag-name', 'tag-color'].forEach(id => {
-    $('#' + id)?.addEventListener('input', () => {
-      const name = $('#tag-name').value; const color = $('#tag-color').value;
-      const preview = $('#tag-preview');
-      preview.textContent = name || 'Önizleme';
-      preview.style.background = color;
-    });
-  });
-
-  $('#tag-submit').addEventListener('click', async () => {
-    const body = { name: $('#tag-name').value.trim(), color: $('#tag-color').value };
-    if (!body.name) { $('#tag-error').textContent = 'İsim zorunlu'; return; }
+  $('#tg-save').addEventListener('click', async () => {
+    const body = {name:$('#tg-name').value.trim(), color:$('#tg-color').value};
     try {
-      if (tag) await adminApi('/tag/' + tag.id, { method: 'PUT', body: JSON.stringify(body) });
-      else await adminApi('/tags', { method: 'POST', body: JSON.stringify(body) });
-      toast(tag ? 'Tag güncellendi' : 'Tag eklendi'); hideModal(); cb && cb();
-    } catch (e) { $('#tag-error').textContent = e.message; }
+      if (tag) await adminApi('/tag/'+tag.id, {method:'PUT', body:JSON.stringify(body)});
+      else await adminApi('/tags', {method:'POST', body:JSON.stringify(body)});
+      toast(tag?'Güncellendi':'Oluşturuldu'); hideModal(); cb();
+    } catch(e) { $('#tg-error').textContent=e.message; }
   });
 }
 
+// ===== LOGS =====
 async function renderLogs(main) {
   let logs = [];
-  try { logs = await adminApi('/logs'); } catch (e) { main.innerHTML = `<p style="color:var(--accent-red2)">${e.message}</p>`; return; }
-
+  try { logs = await adminApi('/logs?limit=200'); } catch {}
   main.innerHTML = `
-    <div class="section-bar">
-      <div class="page-title" style="margin:0">Sistem Logları <span style="font-size:14px;color:var(--text-muted)">(${logs.length})</span></div>
-      <input type="text" id="log-search" placeholder="Ara..." style="max-width:220px" />
-    </div>
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Tarih</th><th>Aktör</th><th>İşlem</th><th>Hedef</th><th>IP</th><th>Detay</th></tr></thead>
-          <tbody id="logs-tbody"></tbody>
-        </table>
-      </div>
-    </div>`;
-
-  renderLogsTable(logs);
-  $('#log-search').addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    renderLogsTable(logs.filter(l => (l.actor || '').toLowerCase().includes(q) || (l.action || '').toLowerCase().includes(q) || (l.target || '').toLowerCase().includes(q)));
-  });
+    <div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-history"></i></div> Sistem Logları</div></div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Aktör</th><th>İşlem</th><th>Hedef</th><th>Detay</th><th>IP</th><th>Zaman</th></tr></thead>
+      <tbody>${logs.map(l=>`<tr>
+        <td style="font-weight:600;color:var(--red2)">${escHtml(l.actor)}</td>
+        <td><span class="badge badge-gray">${escHtml(l.action)}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${escHtml(l.target||'-')}</td>
+        <td style="font-size:11px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(l.detail||'-')}</td>
+        <td style="font-size:11px;color:var(--text3)">${escHtml(l.ip||'-')}</td>
+        <td style="font-size:11px;color:var(--text3)">${timeAgo(l.created_at)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`;
 }
 
-function renderLogsTable(logs) {
-  const tbody = $('#logs-tbody'); if (!tbody) return;
-  if (!logs.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Log yok</td></tr>'; return; }
-  const actionColors = { ban_user: 'badge-red', delete_user: 'badge-red', delete_forum: 'badge-orange', delete_book: 'badge-orange', delete_group: 'badge-orange', login: 'badge-green', register: 'badge-green', create_forum: 'badge-gray', create_book: 'badge-gray', create_group: 'badge-gray' };
-  tbody.innerHTML = logs.map(l => `<tr>
-    <td style="font-size:11px;white-space:nowrap">${formatDate(l.created_at)}</td>
-    <td><strong>${escHtml(l.actor || '-')}</strong></td>
-    <td><span class="badge ${actionColors[l.action] || 'badge-gray'}">${escHtml(l.action)}</span></td>
-    <td style="color:var(--text-secondary)">${escHtml(l.target || '-')}</td>
-    <td style="font-size:11px;color:var(--text-muted)">${escHtml(l.ip || '-')}</td>
-    <td style="color:var(--text-secondary);font-size:12px">${escHtml(l.detail || '-')}</td>
-  </tr>`).join('');
+// ===== MESSAGES =====
+async function renderAdminMessages(main) {
+  main.innerHTML = `
+    <div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-envelope"></i></div> Mesajlar</div></div>
+    <div class="card"><div class="card-body" style="color:var(--text2);text-align:center;padding:40px">
+      <i class="fas fa-lock" style="font-size:32px;margin-bottom:12px;color:var(--text3)"></i>
+      <div>Kullanıcı mesajları gizlilik nedeniyle admin panelinde görüntülenemez.</div>
+    </div></div>`;
 }
 
+// ===== SETTINGS =====
 async function renderSettings(main) {
   let settings = {};
-  try { settings = await adminApi('/settings'); } catch (e) { main.innerHTML = `<p style="color:var(--accent-red2)">${e.message}</p>`; return; }
+  try { const rows = await adminApi('/settings'); rows.forEach(r => { settings[r.key]=r.value; }); } catch {}
 
   main.innerHTML = `
-    <div class="page-title">Ayarlar</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-cog"></i></div> Site Ayarları</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="card">
-        <div class="card-header">Admin Şifresi</div>
+        <div class="card-header"><span><i class="fas fa-palette" style="color:var(--red2);margin-right:8px"></i>Genel</span></div>
         <div class="card-body">
-          <div class="form-group"><label>Yeni Admin Şifresi</label><input type="password" id="new-admin-pw" placeholder="••••••" /></div>
-          <div class="form-group"><label>Şifre Tekrar</label><input type="password" id="new-admin-pw2" placeholder="••••••" /></div>
-          <button class="btn btn-primary" id="save-admin-pw">Değiştir</button>
-          <div id="apw-msg" class="form-error" style="margin-top:8px"></div>
+          <div class="form-group"><label>Site Adı</label><input id="s-sitename" value="${escHtml(settings['site_name']||'Demlik')}" /></div>
+          <div class="form-group"><label>Logo URL (boş = mevcut)</label><input id="s-logo" value="${escHtml(settings['site_logo']||'')}" placeholder="https://..." /></div>
+          <div class="form-group"><label>Site Açıklaması</label><textarea id="s-desc" rows="3">${escHtml(settings['site_description']||'')}</textarea></div>
+          <button class="btn btn-primary" id="s-general-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
+          <div id="s-general-msg" class="form-error mt-4"></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-header">KVKK Metni</div>
+        <div class="card-header"><span><i class="fas fa-lock" style="color:var(--red2);margin-right:8px"></i>Güvenlik</span></div>
         <div class="card-body">
-          <div class="form-group"><label>KVKK Aydınlatma Metni</label><textarea id="kvkk-text" rows="12">${escHtml(settings.kvkk_text || '')}</textarea></div>
-          <button class="btn btn-primary" id="save-kvkk">Kaydet</button>
-          <div id="kvkk-msg" class="form-error" style="margin-top:8px"></div>
+          <div class="form-group"><label>Yeni Admin Şifresi</label><input id="s-newpw" type="password" placeholder="Boş bırakırsan değişmez" /></div>
+          <div class="form-group"><label>Şifreyi Onayla</label><input id="s-newpw2" type="password" placeholder="••••••" /></div>
+          <button class="btn btn-primary" id="s-pw-save" style="width:100%;justify-content:center"><i class="fas fa-key"></i> Şifreyi Güncelle</button>
+          <div id="s-pw-msg" class="form-error mt-4"></div>
         </div>
       </div>
-      <div class="card" style="grid-column:1/-1">
-        <div class="card-header"><i class="fas fa-shoe-prints"></i> Footer Ayarları</div>
+      <div class="card">
+        <div class="card-header"><span><i class="fas fa-file-alt" style="color:var(--red2);margin-right:8px"></i>Footer</span></div>
         <div class="card-body">
-          <div style="display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px 16px">
-            <label style="white-space:nowrap;margin:0">"Created By" Yazısı</label>
-            <label class="checkbox-label" style="margin:0">
-              <input type="checkbox" id="footer-created-cb" ${settings.footer_created_visible !== '0' ? 'checked' : ''} />
-              <span style="color:var(--text-secondary);font-size:13px">Göster (Created By. İsmail DEMİRCAN)</span>
-            </label>
-            <label style="white-space:nowrap;margin:0">Copyright Metni</label>
-            <input type="text" id="footer-copyright-text" value="${escHtml(settings.footer_copyright_text || '©\u00a0Copyright 2026')}" placeholder="© Copyright 2026" />
-          </div>
-          <div style="margin-top:6px;font-size:12px;color:var(--text-muted)">
-            Not: Copyright metni her zaman görünür. Sadece "Created By" kısmını açıp kapatabilirsiniz.
-          </div>
-          <button class="btn btn-primary" style="margin-top:14px" id="save-footer">Kaydet</button>
-          <div id="footer-msg" class="form-error" style="margin-top:8px"></div>
+          <div class="form-group"><label>Footer Yazısı</label><input id="s-footer" value="${escHtml(settings['footer_copyright_text']||'')}" placeholder="© Copyright 2026" /></div>
+          <label class="checkbox-label" style="margin-bottom:12px">
+            <input type="checkbox" id="s-footer-created" ${settings['footer_created_visible']!=='0'?'checked':''} />
+            "Created By" yazısını göster
+          </label>
+          <button class="btn btn-primary" id="s-footer-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
+          <div id="s-footer-msg" class="form-error mt-4"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span><i class="fas fa-shield-halved" style="color:var(--red2);margin-right:8px"></i>KVKK Metni</span></div>
+        <div class="card-body">
+          <div class="form-group"><textarea id="s-kvkk" rows="6">${escHtml(settings['kvkk_text']||'')}</textarea></div>
+          <button class="btn btn-primary" id="s-kvkk-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
+          <div id="s-kvkk-msg" class="form-error mt-4"></div>
         </div>
       </div>
     </div>`;
 
-  $('#save-admin-pw').addEventListener('click', async () => {
-    const pw = $('#new-admin-pw').value;
-    const pw2 = $('#new-admin-pw2').value;
-    if (!pw) { $('#apw-msg').textContent = 'Şifre boş olamaz'; return; }
-    if (pw !== pw2) { $('#apw-msg').textContent = 'Şifreler uyuşmuyor'; return; }
-    if (pw.length < 6) { $('#apw-msg').textContent = 'En az 6 karakter'; return; }
+  async function saveSetting(key, value, msgEl) {
     try {
-      await adminApi('/settings', { method: 'POST', body: JSON.stringify({ key: 'admin_password', value: pw }) });
-      const msgBuf = new TextEncoder().encode(pw);
-      const hashBuf = await crypto.subtle.digest('SHA-256', msgBuf);
-      const hashArr = Array.from(new Uint8Array(hashBuf));
-      adminToken = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
-      sessionStorage.setItem('admin_token', adminToken);
-      toast('Admin şifresi güncellendi');
-      $('#new-admin-pw').value = ''; $('#new-admin-pw2').value = '';
-      $('#apw-msg').style.color = '#4ade80'; $('#apw-msg').textContent = 'Güncellendi ✓';
-    } catch (e) { $('#apw-msg').textContent = e.message; }
+      await fetch('/api/admin/settings', { method:'POST', headers:{'Content-Type':'application/json','X-Admin-Token':adminToken}, body:JSON.stringify({key,value}) });
+      toast('Kaydedildi');
+    } catch(e) { if(msgEl) msgEl.textContent = e.message; }
+  }
+
+  $('#s-general-save').addEventListener('click', async () => {
+    const msg = $('#s-general-msg');
+    await saveSetting('site_name', $('#s-sitename').value.trim(), msg);
+    await saveSetting('site_logo', $('#s-logo').value.trim(), msg);
+    await saveSetting('site_description', $('#s-desc').value.trim(), msg);
   });
 
-  $('#save-kvkk').addEventListener('click', async () => {
-    const text = $('#kvkk-text').value;
-    try {
-      await adminApi('/settings', { method: 'POST', body: JSON.stringify({ key: 'kvkk_text', value: text }) });
-      toast('KVKK metni güncellendi');
-      $('#kvkk-msg').style.color = '#4ade80'; $('#kvkk-msg').textContent = 'Kaydedildi ✓';
-    } catch (e) { $('#kvkk-msg').textContent = e.message; }
+  $('#s-pw-save').addEventListener('click', async () => {
+    const msg = $('#s-pw-msg');
+    const pw = $('#s-newpw').value, pw2 = $('#s-newpw2').value;
+    if (!pw) { msg.textContent='Şifre boş olamaz'; return; }
+    if (pw !== pw2) { msg.textContent='Şifreler eşleşmiyor'; return; }
+    const msgBuf = new TextEncoder().encode(pw);
+    const hashBuf = await crypto.subtle.digest('SHA-256', msgBuf);
+    const hashHex = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    await saveSetting('admin_password', hashHex, msg);
+    adminToken = hashHex; sessionStorage.setItem('admin_token', adminToken);
+    msg.style.color='var(--green)'; msg.textContent='Şifre güncellendi';
   });
 
-  $('#save-footer').addEventListener('click', async () => {
-    const createdVisible = $('#footer-created-cb').checked ? '1' : '0';
-    const copyrightText = $('#footer-copyright-text').value.trim() || '©\u00a0Copyright 2026';
-    try {
-      await adminApi('/settings', { method: 'POST', body: JSON.stringify({ key: 'footer_created_visible', value: createdVisible }) });
-      await adminApi('/settings', { method: 'POST', body: JSON.stringify({ key: 'footer_copyright_text', value: copyrightText }) });
-      toast('Footer ayarları kaydedildi');
-      $('#footer-msg').style.color = '#4ade80'; $('#footer-msg').textContent = 'Kaydedildi ✓';
-    } catch (e) { $('#footer-msg').textContent = e.message; }
-  });
-}
-
-async function renderAdminMessages(main) {
-  let convs = [];
-  try { convs = await adminApi('/conversations'); } catch (e) { main.innerHTML = `<p style="color:var(--accent-red2)">${e.message}</p>`; return; }
-
-  main.innerHTML = `
-    <div class="section-bar">
-      <div class="page-title" style="margin:0">Mesajlar <span style="font-size:14px;color:var(--text-muted)">(${convs.length})</span></div>
-      <input type="text" id="msg-search" placeholder="Kullanıcı ara..." style="max-width:220px" />
-    </div>
-    <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;height:600px">
-      <div class="card" style="overflow:hidden;display:flex;flex-direction:column">
-        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Konuşmalar</div>
-        <div id="admin-conv-list" style="overflow-y:auto;flex:1">
-          ${convs.map(c => `<div class="admin-conv-item" data-id="${c.id}" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(220,38,38,0.05);transition:background 0.15s" onmouseover="this.style.background='var(--bg-card2)'" onmouseout="this.style.background=''">
-            <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${escHtml(c.user1)} ↔ ${escHtml(c.user2)}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${c.message_count} mesaj · ${timeAgo(c.last_message_at)}</div>
-          </div>`).join('')}
-        </div>
-      </div>
-      <div class="card" id="admin-msg-view" style="overflow:hidden;display:flex;flex-direction:column">
-        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px">Bir konuşma seçin</div>
-      </div>
-    </div>`;
-
-  $('#msg-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    $$('.admin-conv-item').forEach(el => {
-      el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
+  $('#s-footer-save').addEventListener('click', async () => {
+    const msg = $('#s-footer-msg');
+    await saveSetting('footer_copyright_text', $('#s-footer').value.trim(), msg);
+    await saveSetting('footer_created_visible', $('#s-footer-created').checked?'1':'0', msg);
   });
 
-  $$('.admin-conv-item').forEach(el => {
-    el.addEventListener('click', async () => {
-      $$('.admin-conv-item').forEach(x => x.style.fontWeight = 'normal');
-      el.style.fontWeight = '700';
-      const view = $('#admin-msg-view');
-      view.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-      try {
-        const msgs = await adminApi(`/conversations/${el.dataset.id}/messages`);
-        view.innerHTML = `<div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);flex-shrink:0">${msgs.length} mesaj</div>
-          <div style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:6px">
-            ${msgs.map(m => `<div style="display:flex;gap:8px;align-items:flex-start${m.deleted_for_all ? ';opacity:0.5' : ''}">
-              <span style="font-size:11px;color:var(--text-muted);width:80px;flex-shrink:0">${escHtml(m.sender_username)}</span>
-              <div style="flex:1;background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;color:${m.deleted_for_all ? 'var(--text-muted)' : 'var(--text-primary)'};word-break:break-word">
-                ${m.deleted_for_all ? '<i>Silindi</i>' : escHtml(m.content || (m.image_url ? '📷 Fotoğraf' : ''))}
-              </div>
-              <span style="font-size:10px;color:var(--text-muted);flex-shrink:0">${timeAgo(m.created_at)}</span>
-            </div>`).join('')}
-          </div>`;
-      } catch (e) { view.innerHTML = `<p style="color:var(--accent-red2);padding:16px">${e.message}</p>`; }
-    });
+  $('#s-kvkk-save').addEventListener('click', async () => {
+    await saveSetting('kvkk_text', $('#s-kvkk').value.trim(), $('#s-kvkk-msg'));
   });
-}
-
-function escHtml(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }

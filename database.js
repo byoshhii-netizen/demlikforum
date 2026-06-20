@@ -313,6 +313,41 @@ async function initDb() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS title TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS location TEXT DEFAULT '';
     ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMP;
+
+    CREATE TABLE IF NOT EXISTS announcements (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      bg_color TEXT DEFAULT '#dc2626',
+      text_color TEXT DEFAULT '#ffffff',
+      border_color TEXT DEFAULT '#991b1b',
+      position TEXT DEFAULT 'top',
+      size TEXT DEFAULT 'normal',
+      expires_at TIMESTAMP,
+      active INTEGER DEFAULT 1,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_permissions (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT UNIQUE NOT NULL,
+      can_ban_users INTEGER DEFAULT 0,
+      can_delete_content INTEGER DEFAULT 0,
+      can_edit_content INTEGER DEFAULT 0,
+      can_manage_levels INTEGER DEFAULT 0,
+      can_manage_tags INTEGER DEFAULT 0,
+      can_manage_announcements INTEGER DEFAULT 0,
+      can_view_logs INTEGER DEFAULT 0,
+      can_manage_settings INTEGER DEFAULT 0,
+      can_manage_admins INTEGER DEFAULT 0,
+      can_view_users INTEGER DEFAULT 1,
+      granted_by BIGINT,
+      granted_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    ALTER TABLE settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_permissions_id BIGINT;
   `);
 
   // Seed default levels
