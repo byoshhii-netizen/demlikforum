@@ -578,15 +578,19 @@ app.post('/api/forum/:slug/view', async (req, res) => {
 
 app.post('/api/forums', authMiddleware, async (req, res) => {
   try {
-    const { title, content, banner_image, allow_comments, tagIds, customTags } = req.body;
+    const { title, content, banner_image, allow_comments, tagIds, customTags, banner_fit } = req.body;
     if (!title || !content) return res.status(400).json({ error: 'Başlık ve içerik zorunlu' });
     const limitErr = await checkDailyLimit(req.user.id, req.user, 'forums');
     if (limitErr) return res.status(429).json({ error: limitErr });
     const tempSlug = slugify(title, { lower: true, strict: false, locale: 'tr' }).substring(0, 60) + '-' + uuidv4().substring(0, 8);
-    const customTagsStr = Array.isArray(customTags) ? customTags.join(',') : (customTags || '');
+    // İçerik içindeki #tag'ları da custom_tags'e merge et
+    const contentHashtags = (content.match(/#([a-zA-Z0-9_\u00c7\u00e7\u011e\u011f\u0130\u0131\u00d6\u00f6\u015e\u015f\u00dc\u00fc]+)/g) || []).map(t => t.slice(1).toLowerCase());
+    const manualTags = Array.isArray(customTags) ? customTags : (customTags ? customTags.split(',').map(t => t.trim()).filter(Boolean) : []);
+    const allCustomTags = [...new Set([...manualTags.map(t => t.toLowerCase()), ...contentHashtags])];
+    const customTagsStr = allCustomTags.join(',');
     const { rows } = await query(
-      'INSERT INTO forums (user_id,title,content,banner_image,slug,allow_comments,custom_tags) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
-      [req.user.id, title, content, banner_image || '', tempSlug, allow_comments !== false ? 1 : 0, customTagsStr]);
+      'INSERT INTO forums (user_id,title,content,banner_image,slug,allow_comments,custom_tags,banner_fit) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',
+      [req.user.id, title, content, banner_image || '', tempSlug, allow_comments !== false ? 1 : 0, customTagsStr, banner_fit || 'cover']);
     const id = rows[0].id;
     const realSlug = makeSlug(title, id);
     await query('UPDATE forums SET slug=$1 WHERE id=$2', [realSlug, id]);
@@ -610,11 +614,17 @@ app.put('/api/forum/:slug', authMiddleware, async (req, res) => {
   if (!fRows.length) return res.status(404).json({ error: 'Konu bulunamadı' });
   const forum = fRows[0];
   if (forum.user_id != req.user.id) return res.status(403).json({ error: 'Yetki yok' });
-  const { title, content, banner_image, allow_comments, tagIds, customTags } = req.body;
-  const customTagsStr = Array.isArray(customTags) ? customTags.join(',') : (customTags !== undefined ? customTags : forum.custom_tags);
-  await query('UPDATE forums SET title=$1,content=$2,banner_image=$3,allow_comments=$4,custom_tags=$5,updated_at=NOW() WHERE id=$6',
+  const { title, content, banner_image, allow_comments, tagIds, customTags, banner_fit } = req.body;
+  // İçerik içindeki #tag'ları da custom_tags'e merge et
+  const newContent = content || forum.content;
+  const contentHashtags = (newContent.match(/#([a-zA-Z0-9_\u00c7\u00e7\u011e\u011f\u0130\u0131\u00d6\u00f6\u015e\u015f\u00dc\u00fc]+)/g) || []).map(t => t.slice(1).toLowerCase());
+  const manualTagsPut = customTags !== undefined ? (Array.isArray(customTags) ? customTags : customTags.split(',').map(t => t.trim()).filter(Boolean)) : (forum.custom_tags ? forum.custom_tags.split(',').map(t => t.trim()).filter(Boolean) : []);
+  const allCustomTagsPut = [...new Set([...manualTagsPut.map(t => t.toLowerCase()), ...contentHashtags])];
+  const customTagsStr = allCustomTagsPut.join(',');
+  await query('UPDATE forums SET title=$1,content=$2,banner_image=$3,allow_comments=$4,custom_tags=$5,banner_fit=$6,updated_at=NOW() WHERE id=$7',
     [title||forum.title, content||forum.content, banner_image??forum.banner_image,
-     allow_comments!==undefined?(allow_comments?1:0):forum.allow_comments, customTagsStr, forum.id]);
+     allow_comments!==undefined?(allow_comments?1:0):forum.allow_comments, customTagsStr,
+     banner_fit||forum.banner_fit||'cover', forum.id]);
   if (tagIds !== undefined) {
     await query('DELETE FROM forum_tags WHERE forum_id=$1', [forum.id]);
     if (Array.isArray(tagIds)) for (const tid of tagIds) { try { await query('INSERT INTO forum_tags (forum_id,tag_id) VALUES ($1,$2)',[forum.id,tid]); } catch {} }

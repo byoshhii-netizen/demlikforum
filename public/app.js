@@ -518,6 +518,20 @@ function showNewForumModal(existing = null) {
       <label>Banner Resim (opsiyonel)</label>
       <input type="file" id="fm-banner-file" accept="image/*" style="margin-bottom:8px" />
       ${existing && existing.banner_image ? `<img id="fm-banner-preview" src="${escHtml(existing.banner_image)}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:4px" />` : `<div id="fm-banner-preview" style="display:none"></div>`}
+      <div style="margin-top:8px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">FOTOĞRAF GÖRÜNÜMÜ</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:6px">
+            <input type="radio" name="fm-fit" value="cover" ${!existing || (existing.banner_fit||'cover')==='cover' ? 'checked' : ''} style="width:auto" /> Kap (Dikdörtgen)
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:6px">
+            <input type="radio" name="fm-fit" value="contain" ${existing && existing.banner_fit==='contain' ? 'checked' : ''} style="width:auto" /> Sığdır (Tam Görünsün)
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:6px">
+            <input type="radio" name="fm-fit" value="original" ${existing && existing.banner_fit==='original' ? 'checked' : ''} style="width:auto" /> Gerçek Boyut
+          </label>
+        </div>
+      </div>
     </div>
     <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="fm-comments" ${!existing || existing.allow_comments ? 'checked' : ''} /> Yorumlara izin ver</label></div>
     <button class="btn btn-primary" id="fm-submit" style="width:100%">${existing ? 'Güncelle' : 'Yayınla'}</button>
@@ -627,10 +641,10 @@ function showNewForumModal(existing = null) {
         });
       }
       if (existing) {
-        await api('/forum/' + existing.slug, { method: 'PUT', body: JSON.stringify({ title, content, banner_image, allow_comments: $('#fm-comments').checked, tagIds, customTags }) });
+        await api('/forum/' + existing.slug, { method: 'PUT', body: JSON.stringify({ title, content, banner_image, allow_comments: $('#fm-comments').checked, tagIds, customTags, banner_fit: document.querySelector('[name="fm-fit"]:checked')?.value || 'cover' }) });
         toast('Konu güncellendi');
       } else {
-        const f = await api('/forums', { method: 'POST', body: JSON.stringify({ title, content, banner_image, allow_comments: $('#fm-comments').checked, tagIds, customTags }) });
+        const f = await api('/forums', { method: 'POST', body: JSON.stringify({ title, content, banner_image, allow_comments: $('#fm-comments').checked, tagIds, customTags, banner_fit: document.querySelector('[name="fm-fit"]:checked')?.value || 'cover' }) });
         toast('Konu oluşturuldu');
         hideModal();
         navigate('/forum/' + f.slug);
@@ -705,7 +719,10 @@ async function renderForumDetail(app, slug) {
           <span><i class="fas fa-eye" style="color:var(--accent-red)"></i> ${forum.views || 0} görüntülenme</span>
           ${forum.share_count ? `<span><i class="fas fa-share-alt" style="color:var(--accent-red)"></i> ${forum.share_count} iletildi</span>` : ''}
         </div>
-      ${forum.banner_image ? `<img src="${escHtml(forum.banner_image)}" class="forum-detail-banner" alt="" />` : ''}
+      ${forum.banner_image ? `<div class="forum-banner-wrap" style="margin-top:16px;margin-bottom:4px;${forum.banner_fit === 'original' ? 'text-align:center' : ''}">
+        <img src="${escHtml(forum.banner_image)}" class="forum-detail-banner" alt=""
+          style="object-fit:${forum.banner_fit === 'contain' ? 'contain' : forum.banner_fit === 'original' ? 'none;height:auto;aspect-ratio:unset;max-width:100%' : 'cover'}" />
+      </div>` : ''}
       <div class="forum-detail-content">${renderContent(forum.content)}</div>
       ${(() => {
         const sTags = Array.isArray(forum.system_tags) ? forum.system_tags : (typeof forum.system_tags === 'string' ? (() => { try { return JSON.parse(forum.system_tags); } catch { return []; } })() : []);

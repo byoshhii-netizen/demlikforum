@@ -359,6 +359,7 @@ async function initDb() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS delete_requested_at TIMESTAMP;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted INTEGER DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_mentions INTEGER DEFAULT 1;
+    ALTER TABLE forums ADD COLUMN IF NOT EXISTS banner_fit TEXT DEFAULT 'cover';
 
     CREATE TABLE IF NOT EXISTS notifications (
       id BIGSERIAL PRIMARY KEY,
