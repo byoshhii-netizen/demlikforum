@@ -452,6 +452,12 @@ function showNewForumModal(existing = null) {
     reader.readAsDataURL(file);
   });
 
+  // Enter tuşu ile input'lardan form submit tetiklenmesini önle
+  ['fm-title', 'fm-custom-tags'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+  });
+
   $('#fm-submit').addEventListener('click', async () => {
     const title = $('#fm-title').value.trim();
     const content = $('#fm-content').value.trim();
@@ -582,7 +588,6 @@ async function renderForumDetail(app, slug) {
           <span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             ${avatarImg(forum, 'avatar-sm')}
             <a href="/profil/${escHtml(forum.username)}" data-link style="color:inherit">${userDisplayName(forum)}</a>
-            ${forum.user_title ? `<span style="font-size:11px;color:var(--accent-red2);font-weight:500">${escHtml(forum.user_title)}</span>` : ''}
             ${forum.user_location ? `<span style="font-size:11px;color:var(--text-muted)"><i class="fas fa-map-marker-alt" style="font-size:10px"></i> ${escHtml(forum.user_location)}</span>` : ''}
           </span>
           <span><i class="fas fa-calendar" style="color:var(--accent-red)"></i> ${formatDate(forum.created_at)}</span>
