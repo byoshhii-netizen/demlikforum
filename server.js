@@ -1307,8 +1307,11 @@ app.post('/api/songs', authMiddleware, upload.fields([
   { name: 'audio', maxCount: 1 },
   { name: 'cover', maxCount: 1 }
 ]), async (req, res) => {
-  if (!req.user.is_artist) return res.status(403).json({ error: 'Artist rozeti gerekli' });
   const { song_type, title, artist_name, distributor, genre, lyrics, share_reason, rules_accepted } = req.body;
+  // Kendi şarkısı için artist rozeti zorunlu, başkasının şarkısı için değil
+  if ((song_type === 'own' || !song_type) && !req.user.is_artist) {
+    return res.status(403).json({ error: 'Kendi şarkını yüklemek için artist rozeti gerekli' });
+  }
   if (!rules_accepted) return res.status(400).json({ error: 'Kuralları kabul etmelisiniz' });
   if (!title || !artist_name) return res.status(400).json({ error: 'Başlık ve sanatçı adı gerekli' });
   if (!req.files?.audio?.[0]) return res.status(400).json({ error: 'Ses dosyası gerekli' });
@@ -1534,6 +1537,7 @@ app.get('/muzik/:slug', async (req, res) => {
 });
 app.get('/artist-basvuru', (req, res) => res.send(injectMeta('Artist Başvurusu – Demlik', 'Demlik artist rozetine başvur', `${SITE_URL}/artist-basvuru`, '')));
 app.get('/artist-panel', (req, res) => res.send(injectMeta('Artist Panel – Demlik', 'Şarkı yükle ve yönet', `${SITE_URL}/artist-panel`, '')));
+app.get('/sarki-yukle', (req, res) => res.send(injectMeta('Şarkı Paylaş – Demlik', 'Başkasının şarkısını topluluğa paylaş', `${SITE_URL}/sarki-yukle`, '')));
 
 // ===== ADMIN YETKİ SİSTEMİ =====
 app.get('/api/admin/permissions/:userId', adminMiddleware, async (req, res) => {

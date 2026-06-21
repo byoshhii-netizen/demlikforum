@@ -153,6 +153,7 @@ function renderRoute(path) {
   if (path.startsWith('/muzik/')) return renderMusicDetail(app, segs[1]);
   if (path === '/artist-basvuru') return renderArtistApply(app);
   if (path === '/artist-panel') return renderArtistPanel(app);
+  if (path === '/sarki-yukle') return renderShareSong(app);
   renderNotFound(app);
 }
 
@@ -2883,8 +2884,9 @@ async function renderMusicList(app) {
         <i class="fas fa-music" style="color:var(--accent-red2)"></i> Müzikler
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        ${currentUser ? `<a href="/artist-basvuru" data-link class="btn btn-outline btn-sm"><i class="fas fa-microphone"></i> Artist Başvurusu</a>` : ''}
+        ${currentUser && !currentUser.is_artist ? `<a href="/artist-basvuru" data-link class="btn btn-outline btn-sm"><i class="fas fa-microphone"></i> Artist Başvurusu</a>` : ''}
         ${currentUser?.is_artist ? `<a href="/artist-panel" data-link class="btn btn-primary btn-sm"><i class="fas fa-upload"></i> Şarkı Yükle</a>` : ''}
+        ${currentUser && !currentUser.is_artist ? `<a href="/sarki-yukle" data-link class="btn btn-outline btn-sm"><i class="fas fa-share"></i> Şarkı Paylaş</a>` : ''}
       </div>
     </div>
     <div class="music-search-bar" style="margin-bottom:20px">
@@ -3303,5 +3305,116 @@ async function renderArtistPanel(app) {
       const data = await apiForm('/songs', fd);
       navigate('/muzik/' + data.slug);
     } catch(e) { msg.style.color='var(--accent-red2)'; msg.textContent=e.message; btn.disabled=false; btn.innerHTML='<i class="fas fa-upload"></i> Şarkıyı Yayınla'; }
+  });
+}
+
+// ===== BAŞKASININ ŞARKISINI PAYLAŞ (artist rozeti gerekmez) =====
+async function renderShareSong(app) {
+  if (!currentUser) { navigate('/giris'); return; }
+  // Artist olanlar kendi panelini kullansın
+  if (currentUser.is_artist) { navigate('/artist-panel'); return; }
+  document.title = 'Şarkı Paylaş – Demlik';
+
+  let rules = { other_rules: '' };
+  try { rules = await api('/music-rules'); } catch {}
+
+  app.innerHTML = `<div class="container page" style="max-width:680px;margin:0 auto">
+    <div class="page-title"><i class="fas fa-share-alt" style="color:var(--accent-red2);margin-right:8px"></i>Şarkı Paylaş</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-body" style="font-size:13px;color:var(--text-secondary);display:flex;align-items:flex-start;gap:10px">
+        <i class="fas fa-info-circle" style="color:var(--accent-red2);margin-top:2px;flex-shrink:0"></i>
+        <div>
+          Bu sayfa <strong>başkasına ait şarkıları</strong> topluluğa paylaşmak içindir.
+          Kendi şarkını yüklemek istiyorsan önce
+          <a href="/artist-basvuru" data-link style="color:var(--accent-red2)">artist başvurusu</a> yapman gerekir.
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="form-group">
+          <label>Şarkı Adı *</label>
+          <input id="ss-title" placeholder="Şarkının adı" />
+        </div>
+        <div class="form-group">
+          <label>Sanatçı (Şarkı Sahibi) *</label>
+          <input id="ss-artist" placeholder="Sanatçının adı" />
+        </div>
+        <div class="form-group">
+          <label>Müzik Türü</label>
+          <input id="ss-genre" placeholder="Pop, Rock, Hip-Hop..." />
+        </div>
+        <div class="form-group">
+          <label>Şarkı Dosyası * (MP3/WAV, max 50MB)</label>
+          <input type="file" id="ss-audio" accept="audio/*" style="background:var(--bg-card2);border:1px dashed var(--border);padding:10px;cursor:pointer;border-radius:8px" />
+        </div>
+        <div class="form-group">
+          <label>Kapak Fotoğrafı (isteğe bağlı)</label>
+          <input type="file" id="ss-cover" accept="image/*" style="background:var(--bg-card2);border:1px dashed var(--border);padding:10px;cursor:pointer;border-radius:8px" />
+        </div>
+        <div class="form-group">
+          <label>Şarkı Sözleri (isteğe bağlı)</label>
+          <textarea id="ss-lyrics" rows="5" placeholder="Şarkı sözlerini buraya yapıştırın..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Neden paylaşıyorsunuz? *</label>
+          <textarea id="ss-reason" rows="2" placeholder="Bu şarkıyı neden topluluğumuzla paylaşmak istediniz?"></textarea>
+        </div>
+        ${rules.other_rules ? `
+        <div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;font-size:13px;color:var(--text-secondary);max-height:120px;overflow-y:auto">
+          ${escHtml(rules.other_rules)}
+        </div>` : ''}
+        <label class="checkbox-label" style="margin-bottom:16px">
+          <input type="checkbox" id="ss-rules" style="width:auto" />
+          <span>Başkasının şarkısını paylaşma kurallarını okudum ve kabul ediyorum</span>
+        </label>
+        <button class="btn btn-primary" id="ss-submit" style="width:100%;justify-content:center">
+          <i class="fas fa-share"></i> Paylaş
+        </button>
+        <div id="ss-msg" style="margin-top:8px;font-size:12px;text-align:center"></div>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('ss-submit').addEventListener('click', async () => {
+    const msg = document.getElementById('ss-msg');
+    const btn = document.getElementById('ss-submit');
+    const title  = document.getElementById('ss-title').value.trim();
+    const artist = document.getElementById('ss-artist').value.trim();
+    const genre  = document.getElementById('ss-genre').value.trim();
+    const audio  = document.getElementById('ss-audio').files[0];
+    const cover  = document.getElementById('ss-cover').files[0];
+    const lyrics = document.getElementById('ss-lyrics').value.trim();
+    const reason = document.getElementById('ss-reason').value.trim();
+    const rules_ok = document.getElementById('ss-rules').checked;
+
+    if (!title)    { msg.style.color='var(--accent-red2)'; msg.textContent='Şarkı adı zorunlu'; return; }
+    if (!artist)   { msg.style.color='var(--accent-red2)'; msg.textContent='Sanatçı adı zorunlu'; return; }
+    if (!audio)    { msg.style.color='var(--accent-red2)'; msg.textContent='Ses dosyası zorunlu'; return; }
+    if (!reason)   { msg.style.color='var(--accent-red2)'; msg.textContent='Paylaşma sebebi zorunlu'; return; }
+    if (!rules_ok) { msg.style.color='var(--accent-red2)'; msg.textContent='Kuralları kabul etmelisiniz'; return; }
+
+    const fd = new FormData();
+    fd.append('song_type', 'other');
+    fd.append('rules_accepted', '1');
+    fd.append('title', title);
+    fd.append('artist_name', artist);
+    fd.append('genre', genre);
+    fd.append('lyrics', lyrics);
+    fd.append('share_reason', reason);
+    fd.append('audio', audio);
+    if (cover) fd.append('cover', cover);
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div> Yükleniyor...';
+    try {
+      const data = await apiForm('/songs', fd);
+      navigate('/muzik/' + data.slug);
+    } catch(e) {
+      msg.style.color = 'var(--accent-red2)';
+      msg.textContent = e.message;
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-share"></i> Paylaş';
+    }
   });
 }
