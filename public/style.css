@@ -274,6 +274,21 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .forum-meta-item i { color: var(--accent-red); font-size: 11px; }
 .forum-card-banner { width: 120px; height: 100%; min-height: 90px; flex-shrink: 0; object-fit: cover; }
 
+/* Forum etiketleri */
+.forum-tags-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.forum-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600; padding: 3px 9px;
+  border-radius: 20px; cursor: pointer; transition: opacity 0.15s;
+  text-decoration: none; white-space: nowrap;
+}
+.forum-tag:hover { opacity: 0.75; }
+.forum-tag-custom {
+  background: rgba(88,101,242,0.12);
+  color: #7c87f5;
+  border: 1px solid rgba(88,101,242,0.25);
+}
+
 /* ===== BOOK CARD ===== */
 .book-card {
   background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);

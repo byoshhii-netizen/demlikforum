@@ -336,25 +336,44 @@ async function renderHome(app) {
 async function renderForumList(app) {
   document.title = 'Konular – Demlik';
   updatePageMeta('Konular – Demlik', 'Toplulukla fikir paylaş, tartış, keşfet.', '');
+
+  // URL'den ?tag= parametresini oku
+  const urlParams = new URLSearchParams(location.search);
+  const activeTag = urlParams.get('tag') || '';
+
   app.innerHTML = `
     <div class="container page">
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-        <div><div class="page-title">Konular</div><div class="page-subtitle">Toplulukla fikir paylaş</div></div>
+        <div>
+          <div class="page-title">Konular</div>
+          <div class="page-subtitle">${activeTag ? `<i class="fas fa-hashtag" style="color:var(--accent-red2)"></i> <strong>${escHtml(activeTag)}</strong> etiketiyle filtreli &nbsp;<a href="/forum" data-link style="font-size:12px;color:var(--accent-red2)"><i class="fas fa-times"></i> Temizle</a>` : 'Toplulukla fikir paylaş'}</div>
+        </div>
         ${currentUser ? `<button class="btn btn-primary" id="new-forum-btn"><i class="fas fa-plus"></i> Yeni Konu Aç</button>` : ''}
       </div>
-      <div class="search-bar"><i class="fas fa-search"></i><input type="text" id="forum-search" placeholder="Konu ara..." /></div>
+      <div class="search-bar"><i class="fas fa-search"></i><input type="text" id="forum-search" placeholder="Konu veya #etiket ara..." /></div>
       <div id="forums-list"><div class="loading-center"><div class="spinner"></div></div></div>
     </div>`;
 
   if (currentUser) $('#new-forum-btn')?.addEventListener('click', () => showNewForumModal());
 
   let forums = [];
-  try { forums = await api('/forums'); } catch {}
+  try {
+    const url = activeTag ? `/forums?tag=${encodeURIComponent(activeTag)}` : '/forums';
+    forums = await api(url);
+  } catch {}
   renderForumListItems(forums);
 
   $('#forum-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    const filtered = forums.filter(f => f.title.toLowerCase().includes(q) || f.content.toLowerCase().includes(q));
+    const q = e.target.value.toLowerCase().replace(/^#/, '');
+    if (!q) { renderForumListItems(forums); return; }
+    const filtered = forums.filter(f => {
+      if (f.title.toLowerCase().includes(q) || f.content.toLowerCase().includes(q)) return true;
+      // Etiket araması
+      const sTags = Array.isArray(f.system_tags) ? f.system_tags : [];
+      if (sTags.some(t => t.name.toLowerCase().includes(q))) return true;
+      if ((f.custom_tags||'').toLowerCase().includes(q)) return true;
+      return false;
+    });
     renderForumListItems(filtered);
   });
 }
@@ -375,11 +394,21 @@ function forumCardHTML(f) {
   const d = new Date(f.created_at);
   const dateStr = d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
   const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+  // Etiketler
+  const systemTags = Array.isArray(f.system_tags) ? f.system_tags : (typeof f.system_tags === 'string' ? (() => { try { return JSON.parse(f.system_tags); } catch { return []; } })() : []);
+  const customTags = f.custom_tags ? f.custom_tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+  const tagsHTML = [
+    ...systemTags.map(t => `<span class="forum-tag" style="background:${escHtml(t.color||'#555')}22;color:${escHtml(t.color||'#aaa')};border:1px solid ${escHtml(t.color||'#555')}44" onclick="event.stopPropagation();navigateTag('${escHtml(t.name)}')">#${escHtml(t.name)}</span>`),
+    ...customTags.map(t => `<span class="forum-tag forum-tag-custom" onclick="event.stopPropagation();navigateTag('${escHtml(t)}')">#${escHtml(t)}</span>`)
+  ].join('');
+
   return `<div class="forum-card" onclick="navigate('/forum/${escHtml(f.slug)}')">
     <div class="forum-card-accent"></div>
     <div class="forum-card-body">
       <div class="forum-card-title">${escHtml(f.title)}</div>
       <div class="forum-card-preview">${preview}${f.content.length > 140 ? '...' : ''}</div>
+      ${tagsHTML ? `<div class="forum-tags-row">${tagsHTML}</div>` : ''}
       <div class="forum-card-meta">
         <span class="forum-meta-item" ${authorClick}><i class="fas fa-user"></i>${escHtml(authorName)}</span>
         <span class="forum-meta-item"><i class="fas fa-eye"></i>${f.views || 0}</span>
@@ -391,6 +420,11 @@ function forumCardHTML(f) {
     ${f.banner_image ? `<img src="${escHtml(f.banner_image)}" class="forum-card-banner" alt="" />` : ''}
   </div>`;
 }
+
+// Hashtag tıklanınca o etikete göre filtrele
+window.navigateTag = function(tag) {
+  navigate('/forum?tag=' + encodeURIComponent(tag));
+};
 
 function showNewForumModal(existing = null) {
   showModal(existing ? 'Konuyu Düzenle' : 'Yeni Konu Aç', `
@@ -596,6 +630,16 @@ async function renderForumDetail(app, slug) {
         </div>
       ${forum.banner_image ? `<img src="${escHtml(forum.banner_image)}" class="forum-detail-banner" alt="" />` : ''}
       <div class="forum-detail-content">${escHtml(forum.content)}</div>
+      ${(() => {
+        const sTags = Array.isArray(forum.system_tags) ? forum.system_tags : (typeof forum.system_tags === 'string' ? (() => { try { return JSON.parse(forum.system_tags); } catch { return []; } })() : []);
+        const cTags = forum.custom_tags ? forum.custom_tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+        if (!sTags.length && !cTags.length) return '';
+        const html = [
+          ...sTags.map(t => `<a href="/forum?tag=${encodeURIComponent(t.name)}" data-link class="forum-tag" style="background:${escHtml(t.color||'#555')}22;color:${escHtml(t.color||'#aaa')};border:1px solid ${escHtml(t.color||'#555')}44">#${escHtml(t.name)}</a>`),
+          ...cTags.map(t => `<a href="/forum?tag=${encodeURIComponent(t)}" data-link class="forum-tag forum-tag-custom">#${escHtml(t)}</a>`)
+        ].join('');
+        return `<div class="forum-tags-row" style="margin:12px 0">${html}</div>`;
+      })()}
       <div class="forum-actions">
         <button class="forum-action-btn ${liked ? 'liked' : ''}" id="like-btn">
           <i class="fas fa-heart"></i> <span id="like-count">${forum.like_count || 0}</span> Beğeni

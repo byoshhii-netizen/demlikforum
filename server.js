@@ -445,13 +445,29 @@ async function purgeDeletedAccounts() {
 
 // ===== FORUMS =====
 app.get('/api/forums', async (req, res) => {
-  const { rows } = await query(`
+  const { tag } = req.query;
+  let baseQuery = `
     SELECT f.*, u.username, u.avatar, u.name_color, u.is_vip, u.is_plus, u.is_admin,
       u.title as user_title, u.location as user_location,
       (SELECT COUNT(*) FROM forum_likes WHERE forum_id=f.id) as like_count,
-      (SELECT COUNT(*) FROM forum_comments WHERE forum_id=f.id) as comment_count
-    FROM forums f LEFT JOIN users u ON f.user_id=u.id
-    ORDER BY f.created_at DESC`);
+      (SELECT COUNT(*) FROM forum_comments WHERE forum_id=f.id) as comment_count,
+      COALESCE((
+        SELECT json_agg(json_build_object('id',t.id,'name',t.name,'color',t.color))
+        FROM tags t INNER JOIN forum_tags ft ON ft.tag_id=t.id WHERE ft.forum_id=f.id
+      ), '[]'::json) as system_tags
+    FROM forums f LEFT JOIN users u ON f.user_id=u.id`;
+
+  if (tag) {
+    // Sistem etiketi veya custom tag ile filtrele
+    baseQuery += ` WHERE (
+      EXISTS (SELECT 1 FROM forum_tags ft INNER JOIN tags t ON t.id=ft.tag_id WHERE ft.forum_id=f.id AND LOWER(t.name)=LOWER($1))
+      OR LOWER(f.custom_tags) LIKE LOWER($2)
+    )`;
+    const { rows } = await query(baseQuery + ' ORDER BY f.created_at DESC', [tag, `%${tag}%`]);
+    return res.json(rows);
+  }
+
+  const { rows } = await query(baseQuery + ' ORDER BY f.created_at DESC');
   res.json(rows);
 });
 
@@ -460,7 +476,11 @@ app.get('/api/forum/:slug', optionalAuth, async (req, res) => {
     SELECT f.*, u.username, u.avatar, u.name_color, u.is_vip, u.is_plus, u.level_id, u.is_admin,
       u.title as user_title, u.location as user_location,
       (SELECT COUNT(*) FROM forum_likes WHERE forum_id=f.id) as like_count,
-      (SELECT COUNT(*) FROM forum_comments WHERE forum_id=f.id) as comment_count
+      (SELECT COUNT(*) FROM forum_comments WHERE forum_id=f.id) as comment_count,
+      COALESCE((
+        SELECT json_agg(json_build_object('id',t.id,'name',t.name,'color',t.color))
+        FROM tags t INNER JOIN forum_tags ft ON ft.tag_id=t.id WHERE ft.forum_id=f.id
+      ), '[]'::json) as system_tags
     FROM forums f LEFT JOIN users u ON f.user_id=u.id WHERE f.slug=$1`, [req.params.slug]);
   if (!rows.length) return res.status(404).json({ error: 'Konu bulunamadı' });
   res.json(rows[0]);
