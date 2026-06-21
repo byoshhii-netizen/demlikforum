@@ -1855,13 +1855,28 @@ function renderLogin(app) {
     <div class="auth-card card card-body">
       <div class="auth-title">Giriş Yap</div>
       <p class="auth-subtitle">Hesabınıza erişin</p>
-      <div class="form-group"><label>E-posta veya Kullanıcı Adı</label><input type="text" id="login-id" placeholder="..." /></div>
-      <div class="form-group"><label>Şifre</label><input type="password" id="login-pw" placeholder="••••••" /></div>
+      <div class="form-group"><label>Kullanıcı Adı</label><input type="text" id="login-id" placeholder="kullanıcı_adı" autocomplete="username" /></div>
+      <div class="form-group">
+        <label>Şifre</label>
+        <div style="position:relative">
+          <input type="password" id="login-pw" placeholder="••••••" autocomplete="current-password" style="padding-right:40px" />
+          <button type="button" id="login-pw-toggle" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;font-size:14px">
+            <i class="fas fa-eye" id="login-pw-icon"></i>
+          </button>
+        </div>
+      </div>
       <button class="btn btn-primary" style="width:100%;margin-top:4px" id="login-btn">Giriş Yap</button>
       <div id="login-error" class="form-error mt-4" style="text-align:center"></div>
       <div class="auth-footer">Hesabın yok mu? <a href="/kayit" data-link class="auth-link">Kayıt Ol</a></div>
     </div>
   </div>`;
+
+  $('#login-pw-toggle').addEventListener('click', () => {
+    const pw = $('#login-pw');
+    const icon = $('#login-pw-icon');
+    if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+    else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+  });
 
   const doLogin = async () => {
     const login = $('#login-id').value.trim();
@@ -1887,15 +1902,23 @@ function renderRegister(app) {
     <div class="auth-card card card-body">
       <div class="auth-title">Kayıt Ol</div>
       <p class="auth-subtitle">Topluluğa katıl</p>
-      <div class="form-group"><label>Kullanıcı Adı</label><input type="text" id="reg-username" placeholder="..." /></div>
+      <div class="form-group"><label>Kullanıcı Adı</label><input type="text" id="reg-username" placeholder="..." autocomplete="username" /></div>
       <div class="form-group">
         <label style="display:flex;align-items:center;gap:8px">
           E-posta
           <span style="font-size:11px;color:var(--text-muted);font-weight:400;font-style:italic">Sallayabilirsiniz. Zaten umursamıyoruz&nbsp;: )</span>
         </label>
-        <input type="email" id="reg-email" placeholder="..." />
+        <input type="email" id="reg-email" placeholder="..." autocomplete="email" />
       </div>
-      <div class="form-group"><label>Şifre</label><input type="password" id="reg-pw" placeholder="••••••" /></div>
+      <div class="form-group">
+        <label>Şifre</label>
+        <div style="position:relative">
+          <input type="password" id="reg-pw" placeholder="••••••" autocomplete="new-password" style="padding-right:40px" />
+          <button type="button" id="reg-pw-toggle" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;font-size:14px">
+            <i class="fas fa-eye" id="reg-pw-icon"></i>
+          </button>
+        </div>
+      </div>
       <div class="form-group">
         <label class="checkbox-label">
           <input type="checkbox" id="reg-kvkk" />
@@ -1907,6 +1930,13 @@ function renderRegister(app) {
       <div class="auth-footer">Zaten hesabın var mı? <a href="/giris" data-link class="auth-link">Giriş Yap</a></div>
     </div>
   </div>`;
+
+  $('#reg-pw-toggle').addEventListener('click', () => {
+    const pw = $('#reg-pw');
+    const icon = $('#reg-pw-icon');
+    if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+    else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+  });
 
   $('#kvkk-btn').addEventListener('click', async () => {
     try {

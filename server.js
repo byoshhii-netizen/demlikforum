@@ -370,7 +370,7 @@ app.post('/api/auth/login', async (req, res) => {
     const ip = getIp(req);
     const { rows: ipBan } = await query("SELECT id FROM users WHERE banned_ip=$1 AND ban_type='ip'", [ip]);
     if (ipBan.length) return res.status(403).json({ error: 'Bu IP adresi yasaklanmış' });
-    const { rows } = await query('SELECT * FROM users WHERE email=$1 OR username=$1', [login]);
+    const { rows } = await query('SELECT * FROM users WHERE username=$1', [login]);
     const user = rows[0];
     if (!user || user.password_hash !== hashPassword(password)) return res.status(401).json({ error: 'Hatalı bilgiler' });
     if (user.banned) return res.status(403).json({ error: 'Hesabınız yasaklandı' });
