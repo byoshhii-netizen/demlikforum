@@ -171,7 +171,7 @@ async function renderDashboard(main) {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
       <div class="card">
-        <div class="card-header"><span><i class="fas fa-shield-alt" style="color:#5865F2;margin-right:8px"></i>Sistem Özeti</span></div>
+        <div class="card-header"><span><i class="fas fa-shield" style="color:#5865F2;margin-right:8px"></i>Sistem Özeti</span></div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg4);border-radius:8px">
             <span style="font-size:13px">Banlı Üye</span><span class="badge badge-red">${banned}</span>
@@ -236,7 +236,7 @@ function renderUsersTable(users) {
         ${u.avatar ? `<img src="${escHtml(u.avatar)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover" />` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px"><i class="fas fa-user"></i></div>`}
         <div>
           <div style="font-weight:600;font-size:13px">${escHtml(u.username)}</div>
-          <div style="font-size:10px;color:var(--text3)">${u.is_admin ? '<span style="color:#7c87f5"><i class="fas fa-shield-alt"></i> Admin</span>' : ''} ${u.is_vip ? '<span style="color:#facc15">VIP</span>' : ''} ${u.is_plus ? '<span style="color:#a855f7">Plus</span>' : ''}</div>
+          <div style="font-size:10px;color:var(--text3)">${u.is_admin ? '<span style="color:#7c87f5"><i class="fas fa-shield"></i> Admin</span>' : ''} ${u.is_vip ? '<span style="color:#facc15">VIP</span>' : ''} ${u.is_plus ? '<span style="color:#a855f7">Plus</span>' : ''}</div>
         </div>
       </div>
     </td>
@@ -253,7 +253,7 @@ function renderUsersTable(users) {
     <td>
       <div style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-outline btn-xs edit-user-btn" data-id="${u.id}" title="Düzenle"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-blue btn-xs perm-user-btn" data-id="${u.id}" title="Yetkiler"><i class="fas fa-shield-alt"></i></button>
+        <button class="btn btn-blue btn-xs perm-user-btn" data-id="${u.id}" title="Yetkiler"><i class="fas fa-shield"></i></button>
         ${u.banned
           ? `<button class="btn btn-green btn-xs unban-user-btn" data-id="${u.id}" title="Ban Kaldır"><i class="fas fa-unlock"></i></button>`
           : `<button class="btn btn-danger btn-xs ban-user-btn" data-id="${u.id}" title="Banla"><i class="fas fa-ban"></i></button>`}
@@ -293,7 +293,7 @@ function showEditUserModal(user) {
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
       <label class="checkbox-label"><input type="checkbox" id="eu-vip" ${user.is_vip?'checked':''} /> VIP</label>
       <label class="checkbox-label"><input type="checkbox" id="eu-plus" ${user.is_plus?'checked':''} /> Plus</label>
-      <label class="checkbox-label"><input type="checkbox" id="eu-admin" ${user.is_admin?'checked':''} /> <i class="fas fa-shield-alt" style="color:#7c87f5"></i> Admin Yetkilisi</label>
+      <label class="checkbox-label"><input type="checkbox" id="eu-admin" ${user.is_admin?'checked':''} /> <i class="fas fa-shield" style="color:#7c87f5"></i> Admin Yetkilisi</label>
     </div>
     <button class="btn btn-primary" id="eu-submit" style="width:100%;justify-content:center">Kaydet</button>
     <div id="eu-error" class="form-error mt-4"></div>
@@ -345,7 +345,7 @@ async function showPermModal(user) {
     { key:'can_manage_announcements', label:'Duyuru Yönet', desc:'Duyuru oluştur/düzenle/sil', icon:'fas fa-bullhorn' },
     { key:'can_view_logs', label:'Log Görüntüle', desc:'Sistem loglarını okuyabilir', icon:'fas fa-history' },
     { key:'can_manage_settings', label:'Site Ayarları', desc:'Site ayarlarını değiştirebilir', icon:'fas fa-cog' },
-    { key:'can_manage_admins', label:'Admin Yönet', desc:'Admin atayabilir/alabilir', icon:'fas fa-shield-alt' },
+    { key:'can_manage_admins', label:'Admin Yönet', desc:'Admin atayabilir/alabilir', icon:'fas fa-shield' },
   ];
   showModal(`Yetki Düzenleme — ${user.username}`, `
     ${isSuperAdmin ? `
@@ -1522,3 +1522,4 @@ async function renderSettings(main) {
     await saveSetting('music_other_rules', document.getElementById('s-music-other').value.trim(), document.getElementById('s-music-msg'));
   });
 }
+
