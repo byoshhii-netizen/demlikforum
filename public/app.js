@@ -3200,7 +3200,7 @@ async function renderMusicList(app) {
           <div style="flex:1">Başlık</div>
           <div style="width:160px;display:none" class="col-dist">Dağıtıcı</div>
           <div style="width:120px">Eklenme</div>
-          <div style="width:60px;text-align:right">Süre</div>
+          <div style="width:80px;text-align:right">Dinlenme</div>
         </div>
         ${songs.map((s, i) => `
           <div class="music-row" data-slug="${escHtml(s.slug)}">
@@ -3217,7 +3217,7 @@ async function renderMusicList(app) {
             </div>
             <div class="music-dist col-dist">${escHtml(s.distributor||'-')}</div>
             <div class="music-date">${timeAgo(s.published_at)}</div>
-            <div class="music-plays" style="text-align:right;font-size:12px;color:var(--text-muted)">${s.play_count}</div>
+            <div class="music-plays" style="text-align:right;font-size:12px;color:var(--text-muted)">${s.play_count} <i class="fas fa-headphones" style="font-size:10px"></i></div>
           </div>`).join('')}
       </div>`;
       el.querySelectorAll('.music-row').forEach(row => {

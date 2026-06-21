@@ -39,41 +39,67 @@ if (!USE_CLOUDINARY) app.use('/uploads', express.static(UPLOAD_DIR));
 // Cloudflare proxy arkasındaysa gerçek IP'yi al
 app.set('trust proxy', 1);
 
+// ===== GÜVENLİK BAŞLIKLARI =====
+app.use((req, res, next) => {
+  // Kaynak kodunu tarayıcı devtools'dan gizleme (tam gizleme mümkün değil ama engelleme sinyali)
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://www.googletagmanager.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
+    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
+    "img-src 'self' data: https: blob:; " +
+    "media-src 'self' https: blob:; " +
+    "connect-src 'self' https://api.spotify.com; " +
+    "frame-src 'none';"
+  );
+  // Statik dosyalarda source map'leri engelle
+  if (req.path.endsWith('.map')) {
+    return res.status(404).end();
+  }
+  next();
+});
+
 const SITE_URL = process.env.SITE_URL || 'https://demlik.up.railway.app';
 
 // ===== RATE LIMITERS =====
 
-// Genel API: dakikada 120 istek
+// Genel API: dakikada 80 istek (daha sıkı)
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 120,
+  max: 80,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Çok fazla istek. Lütfen bekleyin.' },
+  skip: (req) => req.path.startsWith('/uploads/'), // statik dosyaları atla
 });
 
-// Auth (login/register): 15 dakikada 10 deneme
+// Auth (login/register): 15 dakikada 5 deneme (bruteforce önlemi)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Çok fazla giriş denemesi. 15 dakika bekleyin.' },
 });
 
-// Upload: dakikada 10 yükleme
+// Upload: dakikada 5 yükleme
 const uploadLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Çok fazla yükleme. Lütfen bekleyin.' },
 });
 
-// İçerik oluşturma (forum/kitap/mesaj): dakikada 20
+// İçerik oluşturma (forum/kitap/mesaj): dakikada 10
 const createLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 20,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Çok hızlı içerik oluşturuyorsunuz. Yavaşlayın.' },
