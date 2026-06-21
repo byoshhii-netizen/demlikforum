@@ -1610,6 +1610,7 @@ async function renderSettings(app) {
         <div class="settings-nav-item" data-section="password"><i class="fas fa-lock"></i> Şifre</div>
         <div class="settings-nav-item" data-section="appearance"><i class="fas fa-palette"></i> Görünüm</div>
         <div class="settings-nav-item" data-section="spotify"><i class="fab fa-spotify" style="color:#1ED760"></i> Spotify</div>
+        <div class="settings-nav-item" data-section="account" style="color:var(--accent-red2)"><i class="fas fa-exclamation-triangle"></i> Hesap</div>
       </div>
       <div id="settings-content"></div>
     </div>
@@ -1846,6 +1847,72 @@ function renderSettingsSection(section) {
         renderSettingsSection('spotify');
       } catch (e) { $('#spotify-msg').textContent = e.message; }
     });
+  } else if (section === 'account') {
+    el.innerHTML = `
+      <div class="card" style="border-color:rgba(220,38,38,0.3)">
+        <div class="card-header" style="background:rgba(220,38,38,0.06)">
+          <span style="color:var(--accent-red2)"><i class="fas fa-exclamation-triangle"></i> Tehlikeli Bölge</span>
+        </div>
+        <div class="card-body">
+          <div style="font-size:14px;font-weight:600;margin-bottom:8px">Hesabı Sil</div>
+          <ul style="font-size:13px;color:var(--text-secondary);margin:0 0 16px 18px;line-height:1.8">
+            <li>Silme talebinden sonra içeriklerin (forum, kitap, yorumlar) hemen gizlenir</li>
+            <li>Hesap <strong>10 gün</strong> içinde kalıcı olarak silinir</li>
+            <li>10 gün içinde giriş yaparak silme işlemini iptal edebilirsin</li>
+            <li>Bu işlem geri alınamazsa tüm veriler kalıcı silinir</li>
+          </ul>
+          <div class="form-group">
+            <label>Şifreni Girerek Onayla</label>
+            <div style="position:relative">
+              <input type="password" id="delete-pw" placeholder="••••••" style="padding-right:40px" />
+              <button type="button" id="delete-pw-toggle" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;font-size:14px">
+                <i class="fas fa-eye" id="delete-pw-icon"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="delete-confirm-cb" />
+              <span>Hesabımın silineceğini ve bu işlemin 10 gün içinde geri alınabileceğini anlıyorum</span>
+            </label>
+          </div>
+          <button class="btn btn-danger" id="delete-account-btn" style="width:100%;justify-content:center;background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.4);color:var(--accent-red2)">
+            <i class="fas fa-trash-alt"></i> Hesabımı Silmek İstiyorum
+          </button>
+          <div id="delete-msg" class="form-error mt-4" style="text-align:center"></div>
+        </div>
+      </div>`;
+
+    $('#delete-pw-toggle').addEventListener('click', () => {
+      const pw = $('#delete-pw');
+      const icon = $('#delete-pw-icon');
+      if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+      else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+    });
+
+    $('#delete-account-btn').addEventListener('click', async () => {
+      const msg = $('#delete-msg');
+      const pw = $('#delete-pw').value;
+      const confirmed = $('#delete-confirm-cb').checked;
+      if (!pw) { msg.textContent = 'Şifrenizi girin'; return; }
+      if (!confirmed) { msg.textContent = 'Onay kutusunu işaretleyin'; return; }
+      if (!confirm('Emin misiniz? Hesabınız ve içerikleriniz gizlenecek, 10 gün içinde kalıcı silinecek.')) return;
+      const btn = $('#delete-account-btn');
+      btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div>';
+      try {
+        await api('/auth/request-delete', { method: 'POST', body: JSON.stringify({ password: pw }) });
+        // Oturumu kapat
+        currentToken = ''; currentUser = null;
+        localStorage.removeItem('token');
+        updateNavUI();
+        navigate('/');
+        toast('Hesap silme talebiniz alındı. 10 gün içinde giriş yaparak iptal edebilirsiniz.');
+      } catch(e) {
+        msg.textContent = e.message;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash-alt"></i> Hesabımı Silmek İstiyorum';
+      }
+    });
   }
 }
 
@@ -1885,6 +1952,50 @@ function renderLogin(app) {
     if (!login || !password) { $('#login-error').textContent = 'Tüm alanları doldurun'; return; }
     try {
       const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) });
+      // Silinme talebi verilmiş hesap
+      if (data.pending_delete) {
+        const deleteAt = new Date(data.delete_at);
+        const daysLeft = Math.ceil((deleteAt - Date.now()) / 86400000);
+        app.innerHTML = `<div class="auth-page">
+          <div class="auth-card card card-body" style="border-color:rgba(220,38,38,0.4)">
+            <div style="text-align:center;margin-bottom:20px">
+              <div style="font-size:40px;margin-bottom:8px">⚠️</div>
+              <div style="font-size:18px;font-weight:700;color:var(--accent-red2)">Hesabınızın Silinmesi İstendi</div>
+              <p style="font-size:13px;color:var(--text-secondary);margin-top:8px">
+                Hesabınız <strong>${daysLeft} gün</strong> içinde kalıcı olarak silinecek.
+                (${deleteAt.toLocaleDateString('tr-TR', {day:'2-digit',month:'long',year:'numeric'})})
+              </p>
+            </div>
+            <button class="btn btn-primary" id="cancel-delete-btn" style="width:100%;justify-content:center;margin-bottom:10px">
+              <i class="fas fa-undo"></i> Vazgeç, Hesabımı Geri Al
+            </button>
+            <button class="btn btn-outline" id="keep-delete-btn" style="width:100%;justify-content:center;color:var(--accent-red2);border-color:rgba(220,38,38,0.3)">
+              <i class="fas fa-trash"></i> Hayır, Silinsin
+            </button>
+          </div>
+        </div>`;
+        $('#cancel-delete-btn').addEventListener('click', async () => {
+          try {
+            // Geçici tokenla cancel-delete çağır
+            const r = await fetch('/api/auth/cancel-delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.temp_token }
+            });
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.error);
+            // Şimdi normal giriş yap
+            const loginData = await api('/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) });
+            currentToken = loginData.token; currentUser = loginData.user;
+            localStorage.setItem('token', currentToken);
+            updateNavUI(); toast('Hesabın geri alındı, hoş geldin ' + currentUser.username + '!');
+            navigate('/');
+          } catch(e) { toast(e.message, 'error'); }
+        });
+        $('#keep-delete-btn').addEventListener('click', () => {
+          navigate('/');
+        });
+        return;
+      }
       currentToken = data.token; currentUser = data.user;
       localStorage.setItem('token', currentToken);
       updateNavUI(); toast('Hoş geldiniz, ' + currentUser.username + '!');
@@ -2586,6 +2697,17 @@ async function renderFriends(app) {
 function friendItemHTML(f, type, myId) {
   const other_username = f.other_username;
   const other_avatar = f.other_avatar;
+  const isDeleted = f.other_is_deleted == 1 || f.other_is_deleted === true;
+  if (isDeleted) {
+    return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:0.55">
+      <div class="avatar-md avatar-placeholder"><i class="fas fa-user-slash"></i></div>
+      <div style="flex:1">
+        <div style="font-size:14px;color:var(--text-muted);font-style:italic">hesap_yok</div>
+        <div style="font-size:11px;color:var(--text-muted)">Bu hesap silindi</div>
+      </div>
+      ${type === 'accepted' || type === 'outgoing' ? `<button class="btn btn-ghost btn-sm friend-remove" data-id="${f.id}" title="Sil"><i class="fas fa-user-minus"></i></button>` : ''}
+    </div>`;
+  }
   return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
     ${other_avatar ? `<img src="${escHtml(other_avatar)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-user"></i></div>`}
     <div style="flex:1">
@@ -2602,13 +2724,19 @@ function friendItemHTML(f, type, myId) {
 }
 
 function blockItemHTML(b) {
-  return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
-    ${b.avatar ? `<img src="${escHtml(b.avatar)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-user"></i></div>`}
+  const isDeleted = b.is_deleted == 1 || b.is_deleted === true;
+  return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px${isDeleted ? ';opacity:0.55' : ''}">
+    ${!isDeleted && b.avatar ? `<img src="${escHtml(b.avatar)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-${isDeleted ? 'user-slash' : 'user'}"></i></div>`}
     <div style="flex:1">
-      <div style="font-weight:600;font-size:14px">${escHtml(b.username)}</div>
-      <div style="font-size:11px;color:var(--text-muted)"><i class="fas fa-ban"></i> ${new Date(b.created_at).toLocaleDateString('tr-TR')}</div>
+      <div style="font-weight:600;font-size:14px${isDeleted ? ';color:var(--text-muted);font-style:italic' : ''}">
+        ${isDeleted ? 'hesap_gidddiiii' : escHtml(b.username)}
+      </div>
+      <div style="font-size:11px;color:var(--text-muted)">
+        <i class="fas fa-ban"></i> ${new Date(b.created_at).toLocaleDateString('tr-TR')}
+        ${isDeleted ? ' · Bu hesap silindi' : ''}
+      </div>
     </div>
-    <button class="btn btn-outline btn-sm friend-unblock" data-username="${escHtml(b.username)}">Engeli Kaldır</button>
+    ${!isDeleted ? `<button class="btn btn-outline btn-sm friend-unblock" data-username="${escHtml(b.username)}">Engeli Kaldır</button>` : ''}
   </div>`;
 }
 
@@ -3149,17 +3277,24 @@ async function renderMusicDetail(app, slug) {
   });
   audio.addEventListener('ended', () => { playBtn.innerHTML = '<i class="fas fa-play"></i> Oynat'; });
 
-  let played = false;
+  let halfCounted = false;
   playBtn.addEventListener('click', () => {
     if (audio.paused) {
       audio.play();
       playBtn.innerHTML = '<i class="fas fa-pause"></i> Durdur';
-      if (!played) { fetch('/api/songs/'+slug+'/play', {method:'POST'}).catch(()=>{}); played=true; }
     } else {
       audio.pause();
       playBtn.innerHTML = '<i class="fas fa-play"></i> Oynat';
     }
   });
+
+  audio.addEventListener('timeupdate', () => {
+    if (!halfCounted && audio.duration && (audio.currentTime / audio.duration) >= 0.5) {
+      halfCounted = true;
+      fetch('/api/songs/'+slug+'/play-half', {method:'POST'}).catch(()=>{});
+    }
+  });
+
   seek?.addEventListener('input', e => { if(audio.duration) audio.currentTime=(parseFloat(e.target.value)/100)*audio.duration; });
 
   // Detail page ses kontrolü (localStorage'dan başlat)

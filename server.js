@@ -368,12 +368,26 @@ app.post('/api/auth/login', async (req, res) => {
     const { login, password } = req.body;
     if (!login || !password) return res.status(400).json({ error: 'Bilgiler eksik' });
     const ip = getIp(req);
+    // Süresi dolmuş hesapları temizle
+    await purgeDeletedAccounts();
     const { rows: ipBan } = await query("SELECT id FROM users WHERE banned_ip=$1 AND ban_type='ip'", [ip]);
     if (ipBan.length) return res.status(403).json({ error: 'Bu IP adresi yasaklanmış' });
     const { rows } = await query('SELECT * FROM users WHERE username=$1', [login]);
     const user = rows[0];
     if (!user || user.password_hash !== hashPassword(password)) return res.status(401).json({ error: 'Hatalı bilgiler' });
     if (user.banned) return res.status(403).json({ error: 'Hesabınız yasaklandı' });
+    // Silinme talebi verilmiş hesap — kullanıcıya bildir
+    if (user.is_deleted) {
+      const deleteAt = new Date(user.delete_requested_at);
+      deleteAt.setDate(deleteAt.getDate() + 10);
+      return res.status(200).json({
+        pending_delete: true,
+        delete_at: deleteAt.toISOString(),
+        user_id: user.id,
+        // geçici token (sadece cancel-delete için)
+        temp_token: (() => { const t = generateToken(user.id); query('INSERT INTO sessions (token,user_id) VALUES ($1,$2)', [t, user.id]); return t; })()
+      });
+    }
     await query('UPDATE users SET last_active=NOW(), ip=$1 WHERE id=$2', [ip, user.id]);
     const token = generateToken(user.id);
     await query('INSERT INTO sessions (token,user_id) VALUES ($1,$2)', [token, user.id]);
@@ -392,6 +406,42 @@ app.post('/api/auth/logout', authMiddleware, async (req, res) => {
   await query('DELETE FROM sessions WHERE token=$1', [token]);
   res.json({ ok: true });
 });
+
+// ===== HESAP SİLME =====
+
+// Silme talebi oluştur (şifre doğrulama zorunlu)
+app.post('/api/auth/request-delete', authMiddleware, async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Şifre gerekli' });
+  if (req.user.password_hash !== hashPassword(password)) return res.status(401).json({ error: 'Şifre hatalı' });
+  // İçerikleri hemen gizle (is_deleted=1), kalıcı silme 10 gün sonra
+  await query('UPDATE users SET is_deleted=1, delete_requested_at=NOW() WHERE id=$1', [req.user.id]);
+  // Tüm sessionları sil
+  await query('DELETE FROM sessions WHERE user_id=$1', [req.user.id]);
+  await logAction(req.user.username, 'request_account_delete', '');
+  res.json({ ok: true });
+});
+
+// Silme talebini geri al (giriş yaparken)
+app.post('/api/auth/cancel-delete', authMiddleware, async (req, res) => {
+  await query('UPDATE users SET is_deleted=0, delete_requested_at=NULL WHERE id=$1', [req.user.id]);
+  await logAction(req.user.username, 'cancel_account_delete', '');
+  res.json({ ok: true });
+});
+
+// 10 gün geçmiş hesapları kalıcı sil (cron-benzeri, her login isteğinde tetiklenir)
+async function purgeDeletedAccounts() {
+  try {
+    const { rows } = await query(
+      `SELECT id, username FROM users WHERE is_deleted=1 AND delete_requested_at < NOW() - INTERVAL '10 days'`
+    );
+    for (const user of rows) {
+      await query('DELETE FROM users WHERE id=$1', [user.id]);
+      await logAction('system', 'purge_deleted_account', user.username);
+    }
+  } catch(e) { console.error('purge error:', e.message); }
+}
+
 
 // ===== FORUMS =====
 app.get('/api/forums', async (req, res) => {
@@ -1373,6 +1423,12 @@ app.post('/api/songs/:slug/play', async (req, res) => {
   res.json({ ok: true });
 });
 
+// Yarı dinleme sayacı — şarkının %50'sine ulaşınca çağrılır
+app.post('/api/songs/:slug/play-half', async (req, res) => {
+  await query('UPDATE songs SET play_count=play_count+1 WHERE slug=$1', [req.params.slug]);
+  res.json({ ok: true });
+});
+
 // Admin: tüm şarkılar
 app.get('/api/admin/songs', adminMiddleware, async (req, res) => {
   const { rows } = await query(
@@ -1956,7 +2012,8 @@ app.get('/api/friends', authMiddleware, async (req, res) => {
       CASE WHEN f.requester_id=$1 THEN f.addressee_id ELSE f.requester_id END as other_id,
       CASE WHEN f.requester_id=$1 THEN u2.username ELSE u1.username END as other_username,
       CASE WHEN f.requester_id=$1 THEN u2.avatar ELSE u1.avatar END as other_avatar,
-      CASE WHEN f.requester_id=$1 THEN u2.name_color ELSE u1.name_color END as other_name_color
+      CASE WHEN f.requester_id=$1 THEN u2.name_color ELSE u1.name_color END as other_name_color,
+      CASE WHEN f.requester_id=$1 THEN COALESCE(u2.is_deleted,0) ELSE COALESCE(u1.is_deleted,0) END as other_is_deleted
     FROM friendships f
     LEFT JOIN users u1 ON f.requester_id=u1.id
     LEFT JOIN users u2 ON f.addressee_id=u2.id
@@ -2017,7 +2074,7 @@ app.delete('/api/block/:username', authMiddleware, async (req, res) => {
 
 app.get('/api/blocks', authMiddleware, async (req, res) => {
   const { rows } = await query(`
-    SELECT b.*, u.username, u.avatar FROM blocks b
+    SELECT b.*, u.username, u.avatar, COALESCE(u.is_deleted,0) as is_deleted FROM blocks b
     JOIN users u ON b.blocked_id=u.id
     WHERE b.blocker_id=$1 ORDER BY b.created_at DESC
   `, [req.user.id]);

@@ -356,6 +356,8 @@ async function initDb() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_website TEXT DEFAULT '';
     ALTER TABLE songs ADD COLUMN IF NOT EXISTS ban_reason TEXT DEFAULT '';
     ALTER TABLE songs ADD COLUMN IF NOT EXISTS ban_until TIMESTAMP;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS delete_requested_at TIMESTAMP;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted INTEGER DEFAULT 0;
 
     CREATE TABLE IF NOT EXISTS artist_applications (
       id BIGSERIAL PRIMARY KEY,
