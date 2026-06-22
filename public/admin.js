@@ -868,15 +868,67 @@ async function renderLevels(main) {
     const tbody = $('#levels-tbody'); if (!tbody) return;
     if (!levels.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px">Seviye yok</td></tr>'; return; }
     tbody.innerHTML = levels.map(l => `<tr>
-      <td><span style="font-size:18px">${escHtml(l.icon||'')}</span></td>
+      <td><span style="font-size:18px"><i class="${escHtml(l.icon||'fas fa-star')}" style="color:${escHtml(l.color||'#aaa')}"></i></span></td>
       <td style="font-weight:600">${escHtml(l.name)}</td>
       <td><span class="badge" style="background:${escHtml(l.color||'#666')};color:#fff;border:none">${escHtml(l.color||'—')}</span></td>
-      <td style="font-size:12px;color:var(--text2)">Forum: ${l.min_forums||0} / Kitap: ${l.min_books||0} / Sayfa: ${l.min_book_pages||0}</td>
+      <td style="font-size:12px;color:var(--text2)">
+        Forum: ${l.min_forums||0} / Kitap: ${l.min_books||0} / Yorum: ${l.min_comments||0}
+        ${l.require_any ? '<span class="badge badge-blue" style="margin-left:4px">veya</span>' : '<span class="badge badge-gray" style="margin-left:4px">ve</span>'}
+      </td>
       <td style="font-size:12px;color:var(--text2)">${l.order_num}</td>
       <td>
-        <button class="btn btn-danger btn-xs del-level-btn" data-id="${l.id}"><i class="fas fa-trash"></i></button>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-xs edit-level-btn" data-id="${l.id}" title="Düzenle"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-xs del-level-btn" data-id="${l.id}"><i class="fas fa-trash"></i></button>
+        </div>
       </td>
     </tr>`).join('');
+    tbody.querySelectorAll('.edit-level-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const l = levels.find(x => x.id == btn.dataset.id); if (!l) return;
+        showModal(`✏️ Seviye Düzenle — ${l.name}`, `
+          <div class="form-group"><label>İsim</label><input id="elv-name" value="${escHtml(l.name)}" /></div>
+          <div class="form-row">
+            <div class="form-group"><label>Min. Forum</label><input id="elv-forums" type="number" value="${l.min_forums||0}" /></div>
+            <div class="form-group"><label>Min. Kitap</label><input id="elv-books" type="number" value="${l.min_books||0}" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Min. Yorum</label><input id="elv-comments" type="number" value="${l.min_comments||0}" /></div>
+            <div class="form-group"><label>Min. Kitap Sayfası</label><input id="elv-pages" type="number" value="${l.min_book_pages||0}" /></div>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label" style="margin:0">
+              <input type="checkbox" id="elv-require-any" style="width:auto" ${l.require_any ? 'checked' : ''} />
+              <div>
+                <span style="font-weight:600;font-size:13px">Herhangi birini tamamlayınca atla</span>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">İşaretliyse konu, kitap veya yorumdan birini yapan atlar.</div>
+              </div>
+            </label>
+          </div>
+          <div id="elv-err" class="form-error"></div>
+          <button class="btn btn-primary" id="elv-save" style="width:100%;justify-content:center;margin-top:12px"><i class="fas fa-save"></i> Kaydet</button>
+        `);
+        $('#elv-save').addEventListener('click', async () => {
+          const btn2 = $('#elv-save'); const err = $('#elv-err');
+          btn2.disabled=true; btn2.innerHTML='<div class="spinner" style="width:14px;height:14px"></div>';
+          try {
+            const body = {
+              name: $('#elv-name').value.trim() || l.name,
+              min_forums: +$('#elv-forums').value,
+              min_books: +$('#elv-books').value,
+              min_comments: +$('#elv-comments').value,
+              min_book_pages: +$('#elv-pages').value,
+              require_any: $('#elv-require-any').checked ? 1 : 0
+            };
+            await adminApi('/level/'+l.id, { method:'PUT', body:JSON.stringify(body) });
+            toast('Seviye güncellendi');
+            const idx = levels.findIndex(x=>x.id==l.id);
+            if (idx !== -1) levels[idx] = { ...levels[idx], ...body };
+            hideModal(); renderTable();
+          } catch(e) { err.textContent=e.message; btn2.disabled=false; btn2.innerHTML='<i class="fas fa-save"></i> Kaydet'; }
+        });
+      });
+    });
     tbody.querySelectorAll('.del-level-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Bu seviyeyi silmek istediğine emin misin?')) return;
@@ -926,6 +978,15 @@ async function renderLevels(main) {
       <div class="form-row">
         <div class="form-group"><label>Min. Kitap Sayfası</label><input id="lv-pages" type="number" value="0" /></div>
         <div class="form-group"><label>Sıra</label><input id="lv-order" type="number" value="${levels.length+1}" /></div>
+      </div>
+      <div class="form-group">
+        <label class="checkbox-label" style="margin:0">
+          <input type="checkbox" id="lv-require-any" style="width:auto" />
+          <div>
+            <span style="font-weight:600;font-size:13px">Herhangi birini tamamlayınca atla</span>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">İşaretliyse konu, kitap veya yorumdan birini yapan atlar. İşaretsizse hepsini yapması gerekir.</div>
+          </div>
+        </label>
       </div>
       <div id="lv-err" class="form-error"></div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px" id="lv-save-btn"><i class="fas fa-save"></i> Kaydet</button>
@@ -1001,7 +1062,7 @@ async function renderLevels(main) {
       const name = $('#lv-name').value.trim();
       if (!name) { err.textContent='İsim zorunlu'; return; }
       try {
-        const body = { name, icon:$('#lv-icon').value.trim()||'fas fa-star', color:$('#lv-color').value, min_forums:+$('#lv-forums').value, min_books:+$('#lv-books').value, min_book_pages:+$('#lv-pages').value, order_num:+$('#lv-order').value };
+        const body = { name, icon:$('#lv-icon').value.trim()||'fas fa-star', color:$('#lv-color').value, min_forums:+$('#lv-forums').value, min_books:+$('#lv-books').value, min_book_pages:+$('#lv-pages').value, order_num:+$('#lv-order').value, require_any: $('#lv-require-any').checked ? 1 : 0 };
         const nl = await adminApi('/levels', {method:'POST', body:JSON.stringify(body)});
         levels.push(nl); renderTable(); hideModal(); toast('Seviye eklendi');
       } catch(e) { err.textContent=e.message; }

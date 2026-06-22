@@ -205,21 +205,31 @@ async function updateUserLevel(userId) {
   const { rows: levels } = await query('SELECT * FROM levels ORDER BY order_num ASC');
   let bestLevel = levels[0];
   for (const lv of levels) {
-    const minF  = lv.min_forums     >= 9999999 ? Infinity : (parseInt(lv.min_forums)     || 0);
-    const minB  = lv.min_books      >= 9999999 ? Infinity : (parseInt(lv.min_books)      || 0);
-    const minC  = lv.min_comments   >= 9999999 ? Infinity : (parseInt(lv.min_comments)   || 0);
-    const minBP = (parseInt(lv.min_book_pages) || 0) >= 9999999 ? Infinity : (parseInt(lv.min_book_pages) || 0);
+    const minF  = (parseInt(lv.min_forums)     || 0);
+    const minB  = (parseInt(lv.min_books)      || 0);
+    const minC  = (parseInt(lv.min_comments)   || 0);
+    const minBP = (parseInt(lv.min_book_pages) || 0);
+    const reqAny = lv.require_any == 1;
 
-    // Yeni mantık:
-    // - Konu tek başına yeterli (min_forums karşılandıysa ✓)
-    // - Yorum tek başına yeterli (min_comments karşılandıysa ✓)
-    // - Kitap + sayfa ikisi birlikte (min_books VE min_book_pages birlikte karşılanmalı)
-    const meetsForums   = user.forum_count   >= minF;
-    const meetsComments = user.comment_count >= minC;
-    const meetsBook     = user.book_count    >= minB && bookPageCount >= minBP;
+    const meetsForums   = minF  === 0 || user.forum_count   >= minF;
+    const meetsBooks    = minB  === 0 || user.book_count    >= minB;
+    const meetsComments = minC  === 0 || user.comment_count >= minC;
+    const meetsBookPages = minBP === 0 || bookPageCount    >= minBP;
 
-    // Herhangi biri yeterliyse seviyeyi karşılamış sayılır
-    const meets = meetsForums || meetsComments || meetsBook;
+    let meets;
+    if (reqAny) {
+      // require_any=1: koşullardan HERHANGİ BİRİ yeterliyse atlanır
+      const checks = [];
+      if (minF  > 0) checks.push(meetsForums);
+      if (minB  > 0) checks.push(meetsBooks);
+      if (minC  > 0) checks.push(meetsComments);
+      if (minBP > 0) checks.push(meetsBookPages);
+      meets = checks.length === 0 || checks.some(c => c);
+    } else {
+      // require_any=0: TÜMÜ karşılanmalı
+      meets = meetsForums && meetsBooks && meetsComments && meetsBookPages;
+    }
+
     if (meets) bestLevel = lv;
   }
   await query('UPDATE users SET level_id=$1 WHERE id=$2', [bestLevel.id, userId]);

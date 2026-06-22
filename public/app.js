@@ -1786,17 +1786,22 @@ async function renderProfile(app, username) {
     let hint = '';
     if (remaining.length > 0) {
       if (reqAny) {
-        const minLeft = remaining[0];
-        hint = `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">En az: ${remaining.join(' veya ')} yaz</div>`;
+        // "Bunlardan birini tamamlayarak seviye atlayabilirsin"
+        hint = `<div style="font-size:12px;color:var(--text-secondary);margin-top:6px;padding:8px 10px;background:rgba(220,38,38,0.06);border-radius:8px;border:1px solid rgba(220,38,38,0.12)">
+          <i class="fas fa-info-circle" style="color:var(--accent-red2);margin-right:5px"></i>
+          <strong>Şunlardan birini tamamlayarak seviye atlayabilirsin:</strong>
+          <ul style="margin:6px 0 0 16px;list-style:disc">
+            ${remaining.map(r => `<li style="margin:2px 0">${r}</li>`).join('')}
+          </ul>
+        </div>`;
       } else {
-        hint = `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">${remaining.join(', ')} kaldı</div>`;
+        hint = `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">${remaining.join(', ')} kaldı</div>`;
       }
     }
 
     progressHTML = `<div style="margin-top:12px">
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
         ${escHtml(nextLevel.name)} seviyesine ${overallPct}% tamamlandı
-        ${reqAny ? '<span style="color:var(--accent-red2);font-size:10px;margin-left:6px">(herhangi biri)</span>' : ''}
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${overallPct}%"></div></div>
       ${hint}
