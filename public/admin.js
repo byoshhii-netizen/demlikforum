@@ -867,8 +867,21 @@ async function renderLevels(main) {
     showModal('Yeni Seviye Ekle', `
       <div class="form-group"><label>İsim</label><input id="lv-name" /></div>
       <div class="form-row">
-        <div class="form-group"><label>İkon (emoji)</label><input id="lv-icon" placeholder="⭐" /></div>
-        <div class="form-group"><label>Renk</label><input id="lv-color" type="color" value="#dc2626" /></div>
+        <div class="form-group" style="flex:1">
+          <label>İkon <span style="font-size:11px;color:var(--text3)">(FA class veya emoji)</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div id="lv-icon-preview" style="width:36px;height:36px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+              <i class="fas fa-star"></i>
+            </div>
+            <input id="lv-icon" placeholder="fas fa-star veya ⭐" value="fas fa-star" style="flex:1" />
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="lv-icon-picker-btn" style="margin-top:6px;width:100%"><i class="fas fa-icons"></i> İkon Seç</button>
+          <div id="lv-icon-grid" style="display:none;max-height:220px;overflow-y:auto;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:6px;display:grid;grid-template-columns:repeat(8,1fr);gap:4px"></div>
+        </div>
+        <div class="form-group" style="flex:0 0 100px">
+          <label>Renk</label>
+          <input id="lv-color" type="color" value="#dc2626" style="height:36px;padding:2px;cursor:pointer" />
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Min. Forum</label><input id="lv-forums" type="number" value="0" /></div>
@@ -881,12 +894,78 @@ async function renderLevels(main) {
       <div id="lv-err" class="form-error"></div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px" id="lv-save-btn"><i class="fas fa-save"></i> Kaydet</button>
     `);
+
+    // İkon önizleme güncelleyici
+    const iconInput = $('#lv-icon');
+    const iconPreview = $('#lv-icon-preview');
+    const iconGrid = $('#lv-icon-grid');
+    let gridOpen = false;
+
+    const updatePreview = () => {
+      const v = iconInput.value.trim();
+      if (v.startsWith('fa')) {
+        iconPreview.innerHTML = `<i class="${escHtml(v)}"></i>`;
+      } else {
+        iconPreview.textContent = v || '?';
+      }
+    };
+    iconInput.addEventListener('input', updatePreview);
+
+    // İkon grid'ini aç/kapat
+    const FA_ICONS = [
+      'fas fa-star','fas fa-fire','fas fa-crown','fas fa-gem','fas fa-bolt','fas fa-heart',
+      'fas fa-shield','fas fa-dragon','fas fa-feather','fas fa-pen','fas fa-book',
+      'fas fa-seedling','fas fa-leaf','fas fa-tree','fas fa-mountain','fas fa-sun',
+      'fas fa-moon','fas fa-cloud','fas fa-snowflake','fas fa-wind',
+      'fas fa-trophy','fas fa-medal','fas fa-award','fas fa-certificate',
+      'fas fa-graduation-cap','fas fa-user-graduate','fas fa-user',
+      'fas fa-robot','fas fa-skull','fas fa-ghost','fas fa-hat-wizard',
+      'fas fa-rocket','fas fa-satellite','fas fa-meteor','fas fa-globe',
+      'fas fa-map-pin','fas fa-compass','fas fa-binoculars',
+      'fas fa-code','fas fa-laptop-code','fas fa-terminal','fas fa-bug',
+      'fas fa-music','fas fa-headphones','fas fa-microphone','fas fa-guitar',
+      'fas fa-camera','fas fa-palette','fas fa-brush','fas fa-film',
+      'fas fa-gamepad','fas fa-dice','fas fa-chess',
+      'fas fa-coffee','fas fa-mug-hot','fas fa-beer',
+      'fas fa-dumbbell','fas fa-running','fas fa-bicycle','fas fa-futbol',
+      'fas fa-car','fas fa-plane','fas fa-ship',
+      'fas fa-cat','fas fa-dog','fas fa-fish','fas fa-horse',
+      'fas fa-circle','fas fa-square','fas fa-diamond','fas fa-infinity'
+    ];
+
+    $('#lv-icon-picker-btn').addEventListener('click', () => {
+      gridOpen = !gridOpen;
+      if (gridOpen) {
+        iconGrid.style.display = 'grid';
+        iconGrid.innerHTML = FA_ICONS.map(ic => `
+          <button type="button" class="icon-pick-btn" data-icon="${ic}" title="${ic}"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s">
+            <i class="${ic}"></i>
+          </button>`).join('');
+        iconGrid.querySelectorAll('.icon-pick-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            iconInput.value = btn.dataset.icon;
+            updatePreview();
+            iconGrid.style.display = 'none';
+            gridOpen = false;
+            // Seçilen ikonu vurgula
+            iconGrid.querySelectorAll('.icon-pick-btn').forEach(b => b.style.background = 'var(--bg3)');
+            btn.style.background = 'rgba(220,38,38,0.2)';
+          });
+          btn.addEventListener('mouseover', () => btn.style.background = 'rgba(220,38,38,0.1)');
+          btn.addEventListener('mouseout', () => btn.style.background = 'var(--bg3)');
+        });
+      } else {
+        iconGrid.style.display = 'none';
+      }
+    });
+
     $('#lv-save-btn').addEventListener('click', async () => {
       const err = $('#lv-err');
       const name = $('#lv-name').value.trim();
       if (!name) { err.textContent='İsim zorunlu'; return; }
       try {
-        const body = { name, icon:$('#lv-icon').value, color:$('#lv-color').value, min_forums:+$('#lv-forums').value, min_books:+$('#lv-books').value, min_book_pages:+$('#lv-pages').value, order_num:+$('#lv-order').value };
+        const body = { name, icon:$('#lv-icon').value.trim()||'fas fa-star', color:$('#lv-color').value, min_forums:+$('#lv-forums').value, min_books:+$('#lv-books').value, min_book_pages:+$('#lv-pages').value, order_num:+$('#lv-order').value };
         const nl = await adminApi('/levels', {method:'POST', body:JSON.stringify(body)});
         levels.push(nl); renderTable(); hideModal(); toast('Seviye eklendi');
       } catch(e) { err.textContent=e.message; }
