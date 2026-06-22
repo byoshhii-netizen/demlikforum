@@ -608,7 +608,7 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
   overflow: hidden;
 }
 .ebook-page-content {
-  padding: 40px 44px;
+  padding: 32px 36px;
   font-size: 17px;
   line-height: 1.9;
   color: #e8ddd0;
@@ -616,8 +616,10 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
   min-height: 500px;
   word-break: break-word;
   overflow-wrap: anywhere;
-  max-width: 100%;
   width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
   box-sizing: border-box;
   overflow-x: hidden;
 }
@@ -1072,10 +1074,13 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
 @media (max-width: 768px) {
   /* Genel taşma engeli */
   body, html { overflow-x: hidden !important; }
-  
+
   /* Tüm içerik konteynerleri */
-  .container { padding: 0 12px !important; overflow: hidden; }
-  
+  .container { padding: 0 12px !important; overflow: hidden; box-sizing: border-box !important; }
+
+  /* Her şey sığsın */
+  *, *::before, *::after { max-width: 100%; box-sizing: border-box; }
+
   /* Flex içlerinde min-width zorunlu */
   .nav-container, .forum-card-meta, .profile-links,
   .profile-stats, .forum-actions, .section-header,
@@ -1088,29 +1093,29 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
   .forum-detail-title, .forum-detail-content,
   .comment-content, .chat-msg-text,
   .profile-username, .page-reader-title,
-  .page-reader-content { 
-    word-break: break-word !important; 
+  .page-reader-content, h1, h2, h3, h4, p {
+    word-break: break-word !important;
     overflow-wrap: anywhere !important;
     max-width: 100% !important;
   }
 
   /* Resimler taşmasın */
   img { max-width: 100% !important; height: auto !important; }
-  
+
   /* Grid tek kolon */
   .grid-2, .grid-3, .form-row { grid-template-columns: 1fr !important; }
-  
+
   /* Grup detay */
   .group-detail-layout { grid-template-columns: 1fr !important; gap: 12px !important; }
   .chat-container { height: 380px !important; }
-  
+
   /* Forum meta kayma */
   .forum-detail-meta { gap: 8px !important; font-size: 12px !important; }
   .forum-detail-meta span { flex-shrink: 0; }
-  
+
   /* Profil */
   .profile-header { flex-direction: column !important; }
-  
+
   /* Kitap detay */
   .book-detail-header { flex-direction: column !important; }
   .book-detail-cover { width: 100% !important; max-width: 160px !important; align-self: center !important; }
@@ -1122,6 +1127,11 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
   .forum-card { flex-direction: column !important; }
   .forum-card-accent { width: 100% !important; height: 3px !important; }
   .forum-card-banner { width: 100% !important; height: 160px !important; min-height: unset !important; margin: 0 !important; border-radius: 0 0 var(--radius) var(--radius) !important; }
+
+  /* Ebook mobil */
+  .ebook-page-content { padding: 20px 16px !important; font-size: 15px !important; }
+  .ebook-layout { flex-direction: column !important; overflow: hidden !important; }
+  .ebook-reader { border-radius: 8px !important; overflow: hidden !important; }
 
   /* Sayfa okuyucu */
   .page-nav { flex-direction: column !important; }

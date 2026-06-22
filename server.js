@@ -1037,8 +1037,18 @@ app.get('/api/group/:slug/messages', optionalAuth, async (req, res) => {
     const { rows: m } = await query('SELECT id FROM group_members WHERE group_id=$1 AND user_id=$2', [group.id, req.user.id]);
     if (!m.length) return res.status(403).json({ error: 'Üye değilsiniz' });
   }
-  const { rows } = await query(`SELECT gm.*, u.username, u.avatar, u.name_color, u.is_vip FROM group_messages gm LEFT JOIN users u ON gm.user_id=u.id WHERE gm.group_id=$1 ORDER BY gm.created_at ASC LIMIT 200`, [group.id]);
-  res.json(rows);
+  const before_id = req.query.before_id ? parseInt(req.query.before_id) : null;
+  const limit = 60;
+  let sql, params;
+  if (before_id) {
+    sql = `SELECT gm.*, u.username, u.avatar, u.name_color, u.is_vip FROM group_messages gm LEFT JOIN users u ON gm.user_id=u.id WHERE gm.group_id=$1 AND gm.id < $2 ORDER BY gm.created_at DESC LIMIT $3`;
+    params = [group.id, before_id, limit];
+  } else {
+    sql = `SELECT gm.*, u.username, u.avatar, u.name_color, u.is_vip FROM group_messages gm LEFT JOIN users u ON gm.user_id=u.id WHERE gm.group_id=$1 ORDER BY gm.created_at DESC LIMIT $2`;
+    params = [group.id, limit];
+  }
+  const { rows } = await query(sql, params);
+  res.json(rows.reverse()); // en eskiden yeniye
 });
 
 app.post('/api/group/:slug/messages', authMiddleware, async (req, res) => {

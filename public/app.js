@@ -1530,6 +1530,9 @@ async function renderGroupDetail(app, slug) {
       <div>
         ${group.allow_chat ? `
           <div class="chat-container">
+            <div id="load-more-msgs-wrap" style="text-align:center;padding:8px;display:${messages.length >= 60 ? 'block' : 'none'}">
+              <button class="btn btn-outline btn-sm" id="load-more-msgs"><i class="fas fa-history"></i> Önceki Mesajlar</button>
+            </div>
             <div class="chat-messages" id="chat-messages">${messages.map(m => chatMsgHTML(m, isOwner || isMod)).join('')}</div>
             ${(window._chatCanMod = isOwner || isMod, '')}
             ${canSend ? `<div class="chat-input-bar">
@@ -1559,6 +1562,26 @@ async function renderGroupDetail(app, slug) {
 
   const chatEl = $('#chat-messages');
   if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+
+  // Önceki mesajları yükle
+  let oldestMsgId = messages.length > 0 ? messages[0].id : null;
+  $('#load-more-msgs')?.addEventListener('click', async () => {
+    if (!oldestMsgId) return;
+    const btn = $('#load-more-msgs');
+    btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:12px;height:12px;display:inline-block"></div>';
+    try {
+      const older = await api('/group/' + slug + '/messages?before_id=' + oldestMsgId);
+      if (!older.length) { $('#load-more-msgs-wrap').style.display = 'none'; return; }
+      const chatEl2 = $('#chat-messages');
+      const prevHeight = chatEl2.scrollHeight;
+      chatEl2.insertAdjacentHTML('afterbegin', older.map(m => chatMsgHTML(m, isOwner || isMod)).join(''));
+      // Scroll pozisyonunu koru
+      chatEl2.scrollTop = chatEl2.scrollHeight - prevHeight;
+      oldestMsgId = older[0].id;
+      if (older.length < 60) $('#load-more-msgs-wrap').style.display = 'none';
+    } catch(e) { toast(e.message, 'error'); }
+    finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-history"></i> Önceki Mesajlar'; }
+  });
 
   $('#join-btn')?.addEventListener('click', async () => {
     try { await api('/group/' + slug + '/join', { method: 'POST' }); toast('Gruba katıldınız!'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
