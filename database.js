@@ -410,6 +410,61 @@ async function initDb() {
       created_at TIMESTAMP DEFAULT NOW(),
       FOREIGN KEY(uploader_id) REFERENCES users(id) ON DELETE SET NULL
     );
+
+    CREATE TABLE IF NOT EXISTS videos (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      description TEXT DEFAULT '',
+      video_url TEXT NOT NULL,
+      thumbnail_url TEXT DEFAULT '',
+      duration INTEGER DEFAULT 0,
+      view_count INTEGER DEFAULT 0,
+      like_count INTEGER DEFAULT 0,
+      comment_count INTEGER DEFAULT 0,
+      share_count INTEGER DEFAULT 0,
+      slug TEXT UNIQUE NOT NULL,
+      status TEXT DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS video_likes (
+      id BIGSERIAL PRIMARY KEY,
+      video_id BIGINT NOT NULL,
+      user_id BIGINT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(video_id, user_id),
+      FOREIGN KEY(video_id) REFERENCES videos(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS video_comments (
+      id BIGSERIAL PRIMARY KEY,
+      video_id BIGINT NOT NULL,
+      user_id BIGINT NOT NULL,
+      content TEXT NOT NULL,
+      like_count INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(video_id) REFERENCES videos(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS video_comment_likes (
+      id BIGSERIAL PRIMARY KEY,
+      comment_id BIGINT NOT NULL,
+      user_id BIGINT NOT NULL,
+      UNIQUE(comment_id, user_id),
+      FOREIGN KEY(comment_id) REFERENCES video_comments(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_videos_created_at ON videos(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_videos_user_id ON videos(user_id);
+    CREATE INDEX IF NOT EXISTS idx_video_likes_video_id ON video_likes(video_id);
+    CREATE INDEX IF NOT EXISTS idx_video_comments_video_id ON video_comments(video_id);
+
+    ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS shared_video_id BIGINT;
   `);
 
   // Seed default levels
@@ -469,6 +524,9 @@ KVKK'nın 11. maddesi kapsamında; kişisel verilerinize erişim, düzeltme, sil
 6. İLETİŞİM
 Talepleriniz için platform üzerinden iletişime geçebilirsiniz.`]);
   }
+
+  // Tema kolonu ekle (varsa hata vermez)
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'dark'`).catch(() => {});
 
   console.log('PostgreSQL bağlantısı ve tablolar hazır.');
 }
