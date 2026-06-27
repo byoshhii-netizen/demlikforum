@@ -1,0 +1,182 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="index, follow" />
+  <meta name="google-site-verification" content="RhEBvgyP9rmgEGTcseTTc3JFSp4Yc5IbS7b7lsil-y4" />
+  <title>TeaTube – Video İzle, Müzik Dinle, Sohbet Et</title>
+  <meta name="description" content="TeaTube – Video izle, müzik dinle, fotoğraf paylaş, arkadaşlarınla sohbet et! Türkiye'nin sosyal medya platformu." />
+  <link rel="canonical" href="https://demlikforum.up.railway.app" />
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="TeaTube" />
+  <meta property="og:title" content="TeaTube – Video İzle, Müzik Dinle, Sohbet Et" />
+  <meta property="og:description" content="TeaTube – Video izle, müzik dinle, fotoğraf paylaş, arkadaşlarınla sohbet et!" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://demlikforum.up.railway.app" />
+  <meta property="og:image" content="https://demlikforum.up.railway.app/ttlogo.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="tr_TR" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TeaTube" />
+  <meta name="twitter:description" content="TeaTube – Video izle, müzik dinle, fotoğraf paylaş, arkadaşlarınla sohbet et!" />
+  <meta name="twitter:image" content="https://demlikforum.up.railway.app/ttlogo.png" />
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "TeaTube",
+    "url": "https://demlikforum.up.railway.app",
+    "description": "TeaTube – Video izle, müzik dinle, fotoğraf paylaş, sohbet et.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://demlikforum.up.railway.app/forum?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <link rel="icon" href="/ttlogo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2328160993003590" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <button class="nav-hamburger" id="sidebar-toggle-btn" title="Menü" style="background:none;border:none;color:var(--text-primary);font-size:20px;cursor:pointer;padding:6px 10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background 0.15s">
+        <i class="fas fa-bars"></i>
+      </button>
+      <a href="/" data-link class="nav-brand">
+        <img src="/logoteatube.png" alt="TeaTube" style="height:32px;width:auto;object-fit:contain;flex-shrink:0;" />
+      </a>
+      <div class="nav-links"></div>
+      <div class="nav-auth" id="nav-auth">
+        <a href="/kayit" data-link class="btn btn-primary btn-sm">Kayıt Ol</a>
+        <a href="/giris" data-link class="btn btn-outline btn-sm">Giriş Yap</a>
+      </div>
+      <div class="nav-user hidden" id="nav-user" style="display:flex;align-items:center;gap:8px">
+        <div style="position:relative" id="new-btn-wrap">
+          <button class="btn btn-primary btn-sm" id="nav-new-btn"><i class="fas fa-plus"></i> Yeni</button>
+          <div id="new-dropdown" class="dropdown-menu hidden" style="right:0;top:calc(100% + 8px);min-width:160px">
+            <button class="dropdown-item" id="nav-new-forum"><i class="fas fa-comments"></i> Konu</button>
+            <button class="dropdown-item" id="nav-new-book"><i class="fas fa-book"></i> Kitap</button>
+            <button class="dropdown-item" id="nav-new-group"><i class="fas fa-users"></i> Grup</button>
+          </div>
+        </div>
+        <div style="position:relative" id="notif-btn-wrap">
+          <button class="btn btn-ghost btn-sm" id="nav-notif-btn" title="Bildirimler" style="position:relative;padding:6px 10px">
+            <i class="fas fa-bell"></i>
+            <span id="nav-notif-badge" style="display:none;position:absolute;top:2px;right:2px;background:var(--accent-red);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;font-weight:700;min-width:16px;text-align:center"></span>
+          </button>
+          <div id="notif-dropdown" class="dropdown-menu hidden" style="right:0;top:calc(100% + 8px);min-width:320px;max-height:400px;overflow-y:auto;padding:0"></div>
+        </div>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <button class="nav-user-btn" id="nav-user-btn">
+            <img id="nav-avatar" src="" alt="" class="nav-avatar" />
+            <span id="nav-username"></span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="dropdown-menu" id="dropdown-menu">
+            <a href="#" id="dropdown-profile" data-link class="dropdown-item"><i class="fas fa-user"></i> Profilim</a>
+            <a href="/mesajlar" data-link class="dropdown-item" id="dropdown-messages"><i class="fas fa-envelope"></i> Mesajlar <span id="nav-msg-badge" style="display:none;background:var(--accent-red);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px"></span></a>
+            <a href="/arkadaslar" data-link class="dropdown-item"><i class="fas fa-user-friends"></i> Arkadaşlar</a>
+            <a href="/ayarlar" data-link class="dropdown-item"><i class="fas fa-cog"></i> Ayarlar</a>
+            <button class="dropdown-item" onclick="showThemeSelector()"><i class="fas fa-palette"></i> Tema Değiştir</button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item text-danger" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm nav-theme-toggle" id="theme-toggle-btn" title="Tema değiştir" onclick="toggleDarkLight()" style="padding:6px 10px;font-size:16px;flex-shrink:0">
+        <i class="fas fa-sun" id="theme-toggle-icon"></i>
+      </button>
+      <button class="nav-mobile-toggle" id="mobile-toggle">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+    <div class="mobile-menu hidden" id="mobile-menu">
+      <!-- Giriş yapmamışsa auth butonları -->
+      <div class="mobile-menu-auth" id="mobile-menu-auth">
+        <a href="/kayit" data-link class="btn btn-primary btn-sm"><i class="fas fa-user-plus"></i> Kayıt Ol</a>
+        <a href="/giris" data-link class="btn btn-outline btn-sm"><i class="fas fa-sign-in-alt"></i> Giriş Yap</a>
+      </div>
+      <!-- Giriş yapmışsa yeni butonları -->
+      <div class="mobile-menu-new hidden" id="mobile-menu-new">
+        <button class="btn btn-primary btn-sm" id="mob-new-forum"><i class="fas fa-comments"></i> Konu</button>
+        <button class="btn btn-outline btn-sm" id="mob-new-book"><i class="fas fa-book"></i> Kitap</button>
+        <button class="btn btn-outline btn-sm" id="mob-new-group"><i class="fas fa-users"></i> Grup</button>
+      </div>
+      <a href="/" data-link class="mobile-nav-link"><i class="fas fa-home" style="width:18px"></i> Ana Sayfa</a>
+      <a href="/forum" data-link class="mobile-nav-link"><i class="fas fa-comments" style="width:18px"></i> Konular</a>
+      <a href="/kitaplar" data-link class="mobile-nav-link"><i class="fas fa-book" style="width:18px"></i> Kitaplar</a>
+      <a href="/gruplar" data-link class="mobile-nav-link"><i class="fas fa-users" style="width:18px"></i> Gruplar</a>
+      <div id="mobile-menu-user-links"></div>
+    </div>
+  </nav>
+
+  <!-- DUYURULAR -->
+  <div id="announcements-container"></div>
+
+  <!-- APP WRAPPER with left sidebar -->
+  <div class="app-shell" id="app-shell">
+    <!-- SOL MENÜ -->
+    <aside class="left-sidebar" id="left-sidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-logo-mini">
+          <img src="/ttlogo.png" alt="TeaTube" />
+        </div>
+        <nav class="sidebar-nav" id="sidebar-nav">
+          <!-- Dinamik olarak app.js tarafından doldurulur -->
+        </nav>
+      </div>
+    </aside>
+    <!-- ANA İÇERİK -->
+    <main class="app-main" id="app"></main>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="modal-close" id="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast-container"></div>
+
+  <!-- FOOTER -->
+  <footer id="site-footer" style="text-align:center;padding:20px;font-size:12px;color:#525252;border-top:1px solid rgba(220,38,38,0.1);margin-top:40px">
+    TeaTube &nbsp;&#169;&nbsp;Copyright 2026 — Created By İsmail DEMİRCAN
+  </footer>
+
+  <!-- MOBİL BOTTOM BAR -->
+  <nav class="mobile-bottom-bar" id="mobile-bottom-bar">
+    <a href="/" data-link id="mbb-home"><i class="fas fa-home"></i>Ana Sayfa</a>
+    <a href="/mesajlar" data-link id="mbb-forum"><i class="fas fa-envelope"></i>Mesajlar</a>
+    <a href="/videolar" data-link id="mbb-videos"><i class="fas fa-play-circle"></i>Reals</a>
+    <a href="/kitaplar" data-link id="mbb-books"><i class="fas fa-book"></i>Kitaplar</a>
+    <a href="/giris" data-link id="mbb-auth"><i class="fas fa-user"></i><span id="mbb-auth-label">Giriş</span></a>
+  </nav>
+
+  <script src="/app.js"></script>
+
+  <!-- FLOATING DM WIDGET -->
+  <div id="floating-dm" style="display:none"></div>
+</body>
+</html>
