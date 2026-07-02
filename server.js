@@ -1173,8 +1173,12 @@ app.get('/api/profile/:username', async (req, res) => {
 });
 
 app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
-  const { bio, links, name_color, show_level_badge, show_level_color, title, location, allow_mentions, badge_name, badge_icon, badge_color } = req.body;
+  const { bio, links, name_color, show_level_badge, show_level_color, title, location, allow_mentions, badge_name, badge_icon, badge_color, badge_display } = req.body;
   const canSetBadge = req.user.is_vip || req.user.is_plus;
+  function parseBool(value) {
+    if (typeof value === 'string') return value === 'true' || value === '1';
+    return !!value;
+  }
   let newAvatar = req.user.avatar;
   if (req.file) {
     try {
@@ -1184,15 +1188,20 @@ app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res
     }
   }
   const newLinks = links ? (typeof links === 'string' ? links : JSON.stringify(links)) : req.user.links;
-  await query('UPDATE users SET bio=$1,links=$2,name_color=$3,show_level_badge=$4,show_level_color=$5,avatar=$6,title=$7,location=$8,allow_mentions=$9,badge_name=$10,badge_icon=$11,badge_color=$12 WHERE id=$13',
+  const selectedBadgeDisplay = badge_display || req.user.badge_display || 'level';
+  const allowedBadgeDisplay = ['level','none'].includes(selectedBadgeDisplay)
+    ? selectedBadgeDisplay
+    : (canSetBadge && ['vip','plus','custom'].includes(selectedBadgeDisplay) ? selectedBadgeDisplay : req.user.badge_display || 'level');
+  await query('UPDATE users SET bio=$1,links=$2,name_color=$3,show_level_badge=$4,show_level_color=$5,avatar=$6,title=$7,location=$8,allow_mentions=$9,badge_name=$10,badge_icon=$11,badge_color=$12,badge_display=$13 WHERE id=$14',
     [bio??req.user.bio, newLinks, name_color??req.user.name_color,
-     show_level_badge!==undefined?(show_level_badge?1:0):req.user.show_level_badge,
-     show_level_color!==undefined?(show_level_color?1:0):req.user.show_level_color,
+     show_level_badge!==undefined?(parseBool(show_level_badge)?1:0):req.user.show_level_badge,
+     show_level_color!==undefined?(parseBool(show_level_color)?1:0):req.user.show_level_color,
      newAvatar, title??req.user.title??'', location??req.user.location??'',
-     allow_mentions!==undefined?(allow_mentions?1:0):(req.user.allow_mentions??1),
+     allow_mentions!==undefined?(parseBool(allow_mentions)?1:0):(req.user.allow_mentions??1),
      canSetBadge ? (badge_name??req.user.badge_name) : req.user.badge_name,
      canSetBadge ? (badge_icon??req.user.badge_icon) : req.user.badge_icon,
      canSetBadge ? (badge_color??req.user.badge_color) : req.user.badge_color,
+     allowedBadgeDisplay,
      req.user.id]);
   const { rows } = await query('SELECT * FROM users WHERE id=$1', [req.user.id]);
   res.json(sanitizeUser(rows[0]));
@@ -1218,9 +1227,11 @@ app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) 
 });
 
 app.get('/api/photos', async (req, res) => {
-  const { rows } = await query(
-    'SELECT p.id, p.url, p.caption, p.created_at, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 100'
-  );
+  const { username } = req.query;
+  const queryText = username
+    ? `SELECT p.id, p.url, p.caption, p.created_at, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id WHERE u.username = $1 ORDER BY p.created_at DESC LIMIT 100`
+    : `SELECT p.id, p.url, p.caption, p.created_at, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 100`;
+  const { rows } = username ? await query(queryText, [username]) : await query(queryText);
   res.json(rows);
 });
 
@@ -2229,6 +2240,19 @@ app.post('/api/friends/respond/:id', authMiddleware, async (req, res) => {
 app.delete('/api/friends/:id', authMiddleware, async (req, res) => {
   await query('DELETE FROM friendships WHERE id=$1 AND (requester_id=$2 OR addressee_id=$2)', [req.params.id, req.user.id]);
   res.json({ ok: true });
+});
+
+app.get('/api/profile/:username/friends', async (req, res) => {
+  const { rows: users } = await query('SELECT id FROM users WHERE username=$1', [req.params.username]);
+  if (!users.length) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+  const uid = users[0].id;
+  const { rows } = await query(`
+    SELECT u.id, u.username, u.avatar, u.title
+    FROM friendships f
+    JOIN users u ON (u.id = CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END)
+    WHERE (f.requester_id = $1 OR f.addressee_id = $1) AND f.status = 'accepted'
+  `, [uid]);
+  res.json(rows);
 });
 
 // ===== ENGELLEME =====

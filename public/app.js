@@ -60,6 +60,68 @@ function hideModal() {
 $('#modal-close').addEventListener('click', hideModal);
 $('#modal-overlay').addEventListener('click', e => { if (e.target === $('#modal-overlay')) hideModal(); });
 
+function showMobilePostMenu() {
+  showModal('Hızlı Paylaşım', `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button class="btn btn-primary btn-block" id="mobile-post-photo"><i class="fas fa-camera-retro"></i> Fotoğraf Paylaş</button>
+      <button class="btn btn-primary btn-block" id="mobile-post-forum"><i class="fas fa-comments"></i> Konu Aç</button>
+      <button class="btn btn-primary btn-block" id="mobile-post-book"><i class="fas fa-book"></i> Kitap Paylaş</button>
+      <button class="btn btn-primary btn-block" id="mobile-post-group"><i class="fas fa-users"></i> Grup Oluştur</button>
+      <button class="btn btn-primary btn-block" id="mobile-post-music"><i class="fas fa-music"></i> Müzik Paylaş</button>
+    </div>
+  `);
+
+  $('#mobile-post-photo')?.addEventListener('click', () => { hideModal(); showNewPhotoModal(); });
+  $('#mobile-post-forum')?.addEventListener('click', () => { hideModal(); navigate('/forum'); setTimeout(() => showNewForumModal(), 100); });
+  $('#mobile-post-book')?.addEventListener('click', () => { hideModal(); navigate('/kitaplar'); setTimeout(() => showNewBookModal(), 100); });
+  $('#mobile-post-group')?.addEventListener('click', () => { hideModal(); navigate('/gruplar'); setTimeout(() => showNewGroupModal(), 100); });
+  $('#mobile-post-music')?.addEventListener('click', () => { hideModal(); navigate('/sarki-yukle'); });
+}
+
+async function showNewPhotoModal() {
+  showModal('Fotoğraf Yükle', `
+    <div class="form-group"><label>Fotoğraf</label><input type="file" id="photo-file-input" accept="image/*" /></div>
+    <div class="form-group"><label>Başlık / Açıklama (opsiyonel)</label><input type="text" id="photo-caption" /></div>
+    <button class="btn btn-primary" id="photo-submit-btn" style="width:100%">Yükle</button>
+    <div id="photo-upload-error" class="form-error mt-4"></div>
+  `);
+
+  $('#photo-submit-btn')?.addEventListener('click', async () => {
+    const fileInput = $('#photo-file-input');
+    const caption = $('#photo-caption')?.value.trim();
+    if (!fileInput || !fileInput.files.length) { $('#photo-upload-error').textContent = 'Fotoğraf seçmelisiniz'; return; }
+    const file = fileInput.files[0];
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const uploadRes = await apiForm('/upload', form);
+      await api('/photos', { method: 'POST', body: JSON.stringify({ url: uploadRes.url, caption }) });
+      hideModal();
+      toast('Fotoğraf yüklendi');
+      if (location.pathname === '/fotograflar') renderRoute(location.pathname);
+    } catch (err) { $('#photo-upload-error').textContent = err.message; }
+  });
+}
+
+function showEntryAuthPopup() {
+  if (currentUser) return;
+  if (sessionStorage.getItem('ttAuthPromptShown')) return;
+  if (location.pathname === '/giris' || location.pathname === '/kayit') return;
+
+  sessionStorage.setItem('ttAuthPromptShown', '1');
+  showModal('TeaTube’a Katıl', `
+    <div style="display:flex;flex-direction:column;gap:12px;text-align:center">
+      <p>En iyi paylaşımlar için hemen giriş yap veya kaydol.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <a href="/giris" data-link class="btn btn-primary btn-sm" style="flex:1;min-width:120px">Giriş Yap</a>
+        <a href="/kayit" data-link class="btn btn-ghost btn-sm" style="flex:1;min-width:120px">Kayıt Ol</a>
+      </div>
+      <button class="btn btn-outline btn-sm" id="auth-popup-close" style="width:100%">Sonra</button>
+    </div>
+  `);
+  $('#auth-popup-close')?.addEventListener('click', hideModal);
+}
+
 async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (currentToken) headers['Authorization'] = 'Bearer ' + currentToken;
@@ -72,7 +134,8 @@ async function api(path, options = {}) {
 async function apiForm(path, formData, method = 'POST') {
   const headers = {};
   if (currentToken) headers['Authorization'] = 'Bearer ' + currentToken;
-  const res = await fetch('/api' + path, { method, body: formData, headers });
+  const url = path.startsWith('/api') ? path : '/api' + path;
+  const res = await fetch(url, { method, body: formData, headers });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Hata');
   return data;
@@ -101,8 +164,15 @@ function escHtml(s) {
 function userDisplayName(u) {
   if (!u) return 'Silindi';
   const color = (u.show_level_color !== 0 && u.name_color) ? `style="color:${escHtml(u.name_color)}"` : '';
-  const adminBadge = u.is_admin ? ` <i class="fas fa-shield user-admin" title="Demlik Yetkilisi" data-admin-since="${escHtml(u.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:13px"></i>` : '';
-  return `<span class="user-badge" ${color}>${escHtml(u.username)}${u.is_vip ? ' <i class="fas fa-gem user-vip" title="VIP"></i>' : ''}${u.is_plus ? ' <i class="fas fa-plus user-plus" title="Plus"></i>' : ''}${adminBadge}</span>`;
+  const selectedBadge = (() => {
+    if (u.badge_display === 'vip' && u.is_vip) return ' <i class="fas fa-gem user-vip" title="VIP"></i>';
+    if (u.badge_display === 'plus' && u.is_plus) return ' <i class="fas fa-plus user-plus" title="Plus"></i>';
+    if (u.badge_display === 'custom' && u.badge_icon) return ` <i class="${escHtml(u.badge_icon)}" title="${escHtml(u.badge_name || 'Rozet')}"></i>`;
+    if (u.badge_display === 'level') return ' <i class="fas fa-star user-level" title="Seviye"></i>';
+    return '';
+  })();
+  const adminBadge = u.is_admin ? ` <i class="fas fa-shield user-admin" title="TeaTube Yetkilisi" data-admin-since="${escHtml(u.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:13px"></i>` : '';
+  return `<span class="user-badge" ${color}>${escHtml(u.username)}${selectedBadge}${adminBadge}</span>`;
 }
 
 function avatarImg(u, cls = 'avatar-sm') {
@@ -256,9 +326,15 @@ function updateNavUI() {
 function updateMobileBottomBar(path) {
   $$('#mobile-bottom-bar a').forEach(a => {
     const href = a.getAttribute('href');
-    a.classList.toggle('active', href === path || (href !== '/' && path.startsWith(href)));
+    a.classList.toggle('active', href === path || (href !== '/' && href !== '#' && path.startsWith(href)));
   });
 }
+
+$('#mbb-new')?.addEventListener('click', e => {
+  e.preventDefault();
+  if (!currentUser) return navigate('/giris');
+  showMobilePostMenu();
+});
 
 $('#nav-user-btn').addEventListener('click', () => {
   $('#dropdown-menu').classList.toggle('hidden');
@@ -368,19 +444,30 @@ document.addEventListener('click', e => {
 });
 
 async function renderHome(app) {
-  document.title = 'Demlik – Topluluk Platformu';
-  updatePageMeta('Demlik – Topluluk Platformu', 'Çay kadar sıcak topluluk platformu.', '');
+  document.title = 'TeaTube – Topluluk Platformu';
+  updatePageMeta('TeaTube – Topluluk Platformu', 'TeaTube her tür içeriğin paylaşıldığı fotoğraf, yazı ve müzik platformu.', '');
   app.innerHTML = `
     <div class="container page">
       <div class="section">
         <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div><div class="page-title">Öne Çıkan Fotoğraflar</div><div class="page-subtitle">Topluluğun en yeni paylaşımları</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            ${currentUser ? `<button class="btn btn-primary btn-sm" id="home-new-photo-btn"><i class="fas fa-upload"></i> Fotoğraf Yükle</button>` : `<a href="/giris" data-link class="btn btn-primary btn-sm">Giriş Yap</a>`}
+            <a href="/fotograflar" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>
+          </div>
+        </div>
+        <div id="home-photos" class="photos-grid"></div>
+      </div>
+      <div class="section">
+        <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
           <div><div class="page-title">Son Konular</div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <div class="search-bar" style="margin:0;flex:1;min-width:180px"><i class="fas fa-search"></i><input type="text" id="home-forum-search" placeholder="Konu ara..." /></div>
             ${currentUser ? `<button class="btn btn-primary btn-sm" id="home-new-forum-btn"><i class="fas fa-plus"></i> Yeni Konu</button>` : ''}
             <a href="/forum" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
+        <div id="home-categories" class="home-categories"></div>
+        <div class="search-bar" style="margin:0 0 16px;flex:1;min-width:180px"><i class="fas fa-search"></i><input type="text" id="home-forum-search" placeholder="Konu ara..." /></div>
         <div id="home-forums"><div class="loading-center"><div class="spinner"></div></div></div>
       </div>
       <div class="section">
@@ -392,14 +479,53 @@ async function renderHome(app) {
       </div>
     </div>`;
 
-  if (currentUser) $('#home-new-forum-btn')?.addEventListener('click', () => showNewForumModal());
+  if (currentUser) {
+    $('#home-new-photo-btn')?.addEventListener('click', showNewPhotoModal);
+    $('#home-new-forum-btn')?.addEventListener('click', () => showNewForumModal());
+  }
+
+  async function loadHomePhotos() {
+    const photosEl = $('#home-photos');
+    if (!photosEl) return;
+    try {
+      const photos = await api('/photos');
+      if (!photos.length) {
+        photosEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>'; 
+        return;
+      }
+      photosEl.innerHTML = photos.slice(0, 8).map(p => `
+        <div class="photo-card">
+          <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" /></a>
+          <div class="photo-card-body">
+            <div class="photo-card-caption">${escHtml(p.caption || '')}</div>
+            <div class="photo-card-meta">
+              ${p.avatar ? `<img src="${escHtml(p.avatar)}" class="avatar-sm" alt="" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+              <div class="photo-uploader">${escHtml(p.username)}</div>
+            </div>
+          </div>
+        </div>`).join('');
+    } catch (e) {
+      photosEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
+    }
+  }
 
   let allForums = [];
   try {
     allForums = await api('/forums');
     const el = $('#home-forums');
+    if (!el) return;
     if (!allForums.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Henüz konu yok.</p></div>'; }
     else el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${allForums.slice(0, 10).map(f => forumCardHTML(f)).join('')}</div>`;
+  } catch {}
+
+  try {
+    const tags = await api('/tags');
+    const categories = $('#home-categories');
+    if (categories) {
+      categories.innerHTML = tags.length
+        ? tags.slice(0, 8).map(t => `<button type="button" class="home-category-btn" onclick="navigate('/forum?tag=${encodeURIComponent(t.name)}')">#${escHtml(t.name)}</button>`).join('')
+        : '';
+    }
   } catch {}
 
   $('#home-forum-search')?.addEventListener('input', e => {
@@ -417,11 +543,13 @@ async function renderHome(app) {
     if (!books.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-book"></i><p>Henüz kitap yok.</p></div>'; }
     else el.innerHTML = books.slice(0, 6).map(b => bookCardHTML(b)).join('');
   } catch {}
+
+  loadHomePhotos();
 }
 
 async function renderForumList(app, queryString) {
-  document.title = 'Konular – Demlik';
-  updatePageMeta('Konular – Demlik', 'Toplulukla fikir paylaş, tartış, keşfet.', '');
+  document.title = 'Konular – TeaTube';
+  updatePageMeta('Konular – TeaTube', 'Toplulukla fikir paylaş, tartış, keşfet.', '');
 
   // URL'den ?tag= parametresini oku — önce argüman, yoksa location.search
   const qs = queryString !== undefined ? queryString : location.search;
@@ -762,9 +890,9 @@ async function renderForumDetail(app, slug) {
   let forum, liked = false, comments = [];
   try {
     forum = await api('/forum/' + slug);
-    document.title = forum.title + ' – Demlik';
+    document.title = forum.title + ' – TeaTube';
     updatePageMeta(
-      forum.title + ' – Demlik',
+      forum.title + ' – TeaTube',
       forum.content.substring(0, 155).replace(/\n/g, ' '),
       forum.banner_image || ''
     );
@@ -780,7 +908,7 @@ async function renderForumDetail(app, slug) {
       'datePublished': forum.created_at,
       'dateModified': forum.updated_at || forum.created_at,
       'author': { '@type': 'Person', 'name': forum.username || 'Anonim' },
-      'publisher': { '@type': 'Organization', 'name': 'Demlik', 'url': SITE_URL },
+      'publisher': { '@type': 'Organization', 'name': 'TeaTube', 'url': SITE_URL },
       'interactionStatistic': [
         { '@type': 'InteractionCounter', 'interactionType': 'https://schema.org/LikeAction', 'userInteractionCount': forum.like_count || 0 },
         { '@type': 'InteractionCounter', 'interactionType': 'https://schema.org/CommentAction', 'userInteractionCount': forum.comment_count || 0 }
@@ -944,8 +1072,8 @@ function commentHTML(c) {
 }
 
 async function renderBookList(app) {
-  document.title = 'Kitaplar – Demlik';
-  updatePageMeta('Kitaplar – Demlik', 'Topluluğun yazdığı eserleri keşfet.', '');
+  document.title = 'Kitaplar – TeaTube';
+  updatePageMeta('Kitaplar – TeaTube', 'Topluluğun yazdığı eserleri keşfet.', '');
   app.innerHTML = `
     <div class="container page">
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
@@ -1040,8 +1168,8 @@ async function renderBookDetail(app, slug) {
   try { data = await api('/book/' + slug); } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Kitap bulunamadı.</p></div></div>'; return; }
 
   const { book, chapters, pages } = data;
-  document.title = book.title + ' – Demlik';
-  updatePageMeta(book.title + ' – Demlik', book.preface ? book.preface.substring(0,155) : book.title + ' – Demlik\'te yayınlanan kitap.', book.cover_image || '');
+  document.title = book.title + ' – TeaTube';
+  updatePageMeta(book.title + ' – TeaTube', book.preface ? book.preface.substring(0,155) : book.title + ' – TeaTube\'da yayınlanan kitap.', book.cover_image || '');
   const isOwner = currentUser && currentUser.id === book.user_id;
 
   const unassigned = pages.filter(p => !p.chapter_id);
@@ -1389,7 +1517,7 @@ async function renderPageReader(app, bookSlug, pageSlug) {
 }
 
 async function renderGroupList(app) {
-  document.title = 'Gruplar - Demlik';
+  document.title = 'Gruplar - TeaTube';
   app.innerHTML = `
     <div class="container page">
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
@@ -1434,7 +1562,7 @@ async function renderGroupList(app) {
 }
 
 async function renderPhotos(app) {
-  document.title = 'Fotoğraflar - Demlik';
+  document.title = 'Fotoğraflar - TeaTube';
   app.innerHTML = `<div class="container page">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
       <div><div class="page-title">Fotoğraflar</div><div class="page-subtitle">Topluluk tarafından paylaşılan fotoğraflar</div></div>
@@ -1572,7 +1700,7 @@ async function renderGroupDetail(app, slug) {
   } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Grup bulunamadı.</p></div></div>'; return; }
 
   const { group, isMember, role } = groupData;
-  document.title = group.name + ' - Demlik';
+  document.title = group.name + ' - TeaTube';
   const isOwner = currentUser && currentUser.id === group.owner_id;
   const isMod = role === 'moderator';
   const canSend = currentUser && isMember && group.allow_chat;
@@ -1819,7 +1947,29 @@ async function renderProfile(app, username) {
   try { data = await api('/profile/' + username); } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-user-slash"></i><p>Kullanıcı bulunamadı.</p></div></div>'; return; }
 
   const { user, forums, books, groups, level, levels, book_page_count } = data;
-  document.title = user.username + ' - Demlik';
+  document.title = user.username + ' - TeaTube';
+
+  let profileFriends = [];
+  let profilePhotos = [];
+  try { profileFriends = await api('/profile/' + username + '/friends'); } catch {}
+  try { profilePhotos = await api('/photos?username=' + encodeURIComponent(username)); } catch {}
+
+  const profilePhotosHTML = profilePhotos.length
+    ? `<div class="profile-photos-grid">${profilePhotos.slice(0, 6).map(p => `
+        <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer" class="profile-photo-card">
+          <img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" />
+          ${p.caption ? `<div class="photo-caption">${escHtml(p.caption)}</div>` : ''}
+        </a>`).join('')}</div>`
+    : '<div class="empty-state"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>';
+
+  const profileFriendsHTML = profileFriends.length
+    ? `<div class="friends-grid">${profileFriends.map(f => `
+        <a href="/profil/${escHtml(f.username)}" data-link class="friend-card">
+          ${f.avatar ? `<img src="${escHtml(f.avatar)}" alt="${escHtml(f.username)}" />` : `<div class="friend-avatar-placeholder"><i class="fas fa-user"></i></div>`}
+          <div class="friend-card-name">${escHtml(f.username)}</div>
+          ${f.title ? `<div class="friend-card-title">${escHtml(f.title)}</div>` : ''}
+        </a>`).join('')}</div>`
+    : '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Arkadaş yok.</p></div>';
 
   const nextLevel = levels.find(l => l.order_num > (level?.order_num || 0));
   let progressHTML = '';
@@ -1888,6 +2038,13 @@ async function renderProfile(app, username) {
     }
     return `<i class="${escHtml(trimmed)}"></i>`;
   };
+  const selectedNameBadge = (() => {
+    if (user.badge_display === 'vip' && user.is_vip) return ` <span class="profile-name-badge">${renderBadgeIcon('fas fa-gem')}</span>`;
+    if (user.badge_display === 'plus' && user.is_plus) return ` <span class="profile-name-badge">${renderBadgeIcon('fas fa-plus-circle')}</span>`;
+    if (user.badge_display === 'custom' && user.badge_icon) return ` <span class="profile-name-badge" style="color:${escHtml(user.badge_color || '#6b7280')};">${renderBadgeIcon(user.badge_icon)}</span>`;
+    if (user.badge_display === 'level' && level && user.show_level_badge) return ` <span class="profile-name-badge" style="color:${levelColor};">${renderBadgeIcon(level.icon)}</span>`;
+    return '';
+  })();
 
   // Rozet satırı
   const badgeItems = [];
@@ -1917,7 +2074,7 @@ async function renderProfile(app, username) {
       </div>
       <div class="profile-info">
         <div class="profile-username" style="${user.show_level_color && user.name_color ? 'color:' + escHtml(user.name_color) : ''}">
-          ${escHtml(user.username)}${user.is_admin ? ` <i class="fas fa-shield user-admin" title="Demlik Yetkilisi" data-admin-since="${escHtml(user.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:18px"></i>` : ''}
+          ${escHtml(user.username)}${selectedNameBadge}${user.is_admin ? ` <i class="fas fa-shield user-admin" title="TeaTube Yetkilisi" data-admin-since="${escHtml(user.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:18px"></i>` : ''}
         </div>
         ${user.title ? `<div class="profile-title"><i class="fas fa-briefcase" style="font-size:11px;margin-right:4px"></i>${escHtml(user.title)}</div>` : ''}
         ${user.location ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px"><i class="fas fa-map-marker-alt" style="font-size:11px;margin-right:4px"></i>${escHtml(user.location)}</div>` : ''}
@@ -1939,17 +2096,24 @@ async function renderProfile(app, username) {
       </div>
     </div>
 
+    <div class="section profile-section">
+      <div class="section-header">
+        <div class="section-title"><div class="section-title-bar"></div>Fotoğraflar</div>
+      </div>
+      ${profilePhotosHTML}
+    </div>
+
     <div class="tabs">
       <button class="tab active" data-tab="forums">Forumlar</button>
-      <button class="tab" data-tab="books">Kitaplar</button>
+      <button class="tab" data-tab="friends">Arkadaşlar</button>
       <button class="tab" data-tab="groups">Gruplar</button>
     </div>
 
     <div id="tab-forums">
       ${forums.length ? `<div style="display:flex;flex-direction:column;gap:12px">${forums.map(f => forumCardHTML(f)).join('')}</div>` : '<div class="empty-state"><i class="fas fa-comments"></i><p>Forum yok.</p></div>'}
     </div>
-    <div id="tab-books" class="hidden">
-      ${books.length ? `<div class="grid-3">${books.map(b => bookCardHTML(b)).join('')}</div>` : '<div class="empty-state"><i class="fas fa-book"></i><p>Kitap yok.</p></div>'}
+    <div id="tab-friends" class="hidden">
+      ${profileFriendsHTML}
     </div>
     <div id="tab-groups" class="hidden">
       ${groups.length ? `<div class="grid-3">${groups.map(g => groupCardHTML(g)).join('')}</div>` : '<div class="empty-state"><i class="fas fa-users"></i><p>Grup yok.</p></div>'}
@@ -1960,7 +2124,7 @@ async function renderProfile(app, username) {
     btn.addEventListener('click', () => {
       $$('.tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
-      ['forums', 'books', 'groups'].forEach(name => $('#tab-' + name).classList.toggle('hidden', name !== btn.dataset.tab));
+      ['forums', 'friends', 'groups'].forEach(name => $('#tab-' + name).classList.toggle('hidden', name !== btn.dataset.tab));
     });
   });
 
@@ -1970,7 +2134,7 @@ async function renderProfile(app, username) {
 
 async function renderSettings(app) {
   if (!currentUser) { navigate('/giris'); return; }
-  document.title = 'Ayarlar - Demlik';
+  document.title = 'Ayarlar - TeaTube';
 
   app.innerHTML = `<div class="container page">
     <div class="page-header"><div class="page-title">Ayarlar</div></div>
@@ -2119,21 +2283,52 @@ function renderSettingsSection(section) {
         <div class="card-body">
           <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="s-show-badge" ${currentUser.show_level_badge ? 'checked' : ''} /> Seviye rozetini göster</label></div>
           <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="s-show-color" ${currentUser.show_level_color ? 'checked' : ''} /> İsim rengini göster</label></div>
-          ${(currentUser.is_vip || currentUser.is_plus) ? `<div class="form-group"><label>İsim Rengi (VIP/Plus)</label><input type="color" id="s-name-color" value="${currentUser.name_color || '#f5f5f5'}" style="width:60px;height:36px;padding:2px;cursor:pointer" /></div>` : ''}
+          <div class="form-group"><label>İsim Rengi</label><input type="color" id="s-name-color" value="${currentUser.name_color || '#f5f5f5'}" style="width:60px;height:36px;padding:2px;cursor:pointer" /></div>
+          <div class="form-group"><label>Gösterilecek rozet</label>
+            <select id="s-badge-display" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text)">
+              <option value="level"${!currentUser.badge_display || currentUser.badge_display==='level' ? ' selected' : ''}>Seviye rozeti</option>
+              ${currentUser.is_vip ? `<option value="vip"${currentUser.badge_display==='vip' ? ' selected' : ''}>VIP rozeti</option>` : ''}
+              ${currentUser.is_plus ? `<option value="plus"${currentUser.badge_display==='plus' ? ' selected' : ''}>Plus rozeti</option>` : ''}
+              ${currentUser.is_vip || currentUser.is_plus ? `<option value="custom"${currentUser.badge_display==='custom' ? ' selected' : ''}>Özel rozet</option>` : ''}
+              <option value="none"${currentUser.badge_display==='none' ? ' selected' : ''}>Rozet göstermeyi kapat</option>
+            </select>
+          </div>
+          ${(currentUser.is_vip || currentUser.is_plus) ? `<div id="custom-badge-controls" style="display:${currentUser.badge_display==='custom' ? 'block' : 'none'}">
+            <div class="form-group"><label>Rozet Adı</label><input type="text" id="s-badge-name" value="${escHtml(currentUser.badge_name || '')}" placeholder="Örn: VIP, Plus, Sanatçı..." /></div>
+            <div class="form-group"><label>Rozet İkonu</label><input type="text" id="s-badge-icon" value="${escHtml(currentUser.badge_icon || 'fas fa-award')}" placeholder="fas fa-award veya ⭐" /></div>
+            <div class="form-group"><label>Rozet Rengi</label><input type="color" id="s-badge-color" value="${currentUser.badge_color || '#6b7280'}" style="width:60px;height:36px;padding:2px;cursor:pointer" /></div>
+          </div>` : ''}
           <button class="btn btn-primary" id="save-appearance-btn">Kaydet</button>
           <div id="appear-msg" class="form-error mt-4"></div>
         </div>
       </div>`;
+    const badgeDisplaySelect = $('#s-badge-display');
+    if (badgeDisplaySelect) {
+      badgeDisplaySelect.addEventListener('change', () => {
+        const customControls = $('#custom-badge-controls');
+        if (customControls) customControls.style.display = badgeDisplaySelect.value === 'custom' ? 'block' : 'none';
+      });
+    }
+
+    const badgeDisplaySelect = $('#s-badge-display');
+    if (badgeDisplaySelect) {
+      badgeDisplaySelect.addEventListener('change', () => {
+        const customControls = $('#custom-badge-controls');
+        if (customControls) customControls.style.display = badgeDisplaySelect.value === 'custom' ? 'block' : 'none';
+      });
+    }
+
     $('#save-appearance-btn').addEventListener('click', async () => {
       const body = {
         show_level_badge: $('#s-show-badge').checked,
         show_level_color: $('#s-show-color').checked,
       };
+      body.name_color = $('#s-name-color')?.value || '';
+      body.badge_display = $('#s-badge-display')?.value || 'level';
       if (currentUser.is_vip || currentUser.is_plus) {
-        body.name_color = $('#s-name-color')?.value || '';
-        body.badge_name = $('#s-badge-name').value.trim();
-        body.badge_icon = $('#s-badge-icon').value.trim();
-        body.badge_color = $('#s-badge-color').value;
+        body.badge_name = $('#s-badge-name')?.value.trim() || '';
+        body.badge_icon = $('#s-badge-icon')?.value.trim() || '';
+        body.badge_color = $('#s-badge-color')?.value || '#6b7280';
       }
       try {
         const fd = new FormData();
@@ -2323,7 +2518,7 @@ function renderSettingsSection(section) {
 
 function renderLogin(app) {
   if (currentUser) { navigate('/'); return; }
-  document.title = 'Giriş Yap - Demlik';
+  document.title = 'Giriş Yap - TeaTube';
   app.innerHTML = `<div class="auth-page">
     <div class="auth-card card card-body">
       <div class="auth-title">Giriş Yap</div>
@@ -2414,7 +2609,7 @@ function renderLogin(app) {
 
 function renderRegister(app) {
   if (currentUser) { navigate('/'); return; }
-  document.title = 'Kayıt Ol - Demlik';
+  document.title = 'Kayıt Ol - TeaTube';
   app.innerHTML = `<div class="auth-page">
     <div class="auth-card card card-body">
       <div class="auth-title">Kayıt Ol</div>
@@ -2483,7 +2678,7 @@ function renderRegister(app) {
 }
 
 function renderNotFound(app) {
-  document.title = 'Sayfa Bulunamadı - Demlik';
+  document.title = 'Sayfa Bulunamadı - TeaTube';
   app.innerHTML = `<div class="container page" style="text-align:center;padding:80px 20px">
     <div style="font-size:72px;font-weight:900;color:var(--accent-red);opacity:0.3">404</div>
     <div style="font-size:24px;font-weight:700;margin-bottom:12px">Sayfa Bulunamadı</div>
@@ -2516,6 +2711,7 @@ async function init() {
   } catch {}
   loadAnnouncements();
   renderRoute(location.pathname + location.search);
+  showEntryAuthPopup();
   if (currentUser) {
     checkUnreadMessages();
     setInterval(() => { if (currentUser) checkUnreadMessages(); }, 15000);
@@ -2588,7 +2784,7 @@ async function showForwardForumModal(forum) {
 // ===== MESAJLAR SAYFASI =====
 async function renderMessages(app, targetUsername) {
   if (!currentUser) { navigate('/giris'); return; }
-  document.title = 'Mesajlar - Demlik';
+  document.title = 'Mesajlar - TeaTube';
   let convs = [];
   try { convs = await api('/conversations'); } catch {}
 
@@ -3004,7 +3200,7 @@ function showDmOptionsMenu(username, convId) {
 // ===== ARKADAŞLAR SAYFASI =====
 async function renderFriends(app) {
   if (!currentUser) { navigate('/giris'); return; }
-  document.title = 'Arkadaşlar - Demlik';
+  document.title = 'Arkadaşlar - TeaTube';
   let friends = [];
   try { friends = await api('/friends'); } catch {}
   let blocks = [];
@@ -3360,7 +3556,7 @@ document.addEventListener('click', e => {
   const popup = document.createElement('div');
   popup.id = 'admin-shield-popup';
   popup.style.cssText = `position:fixed;z-index:99999;background:#1a1a2e;border:1px solid #5865F2;border-radius:10px;padding:12px 16px;max-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.6);animation:fadeIn 0.15s ease`;
-  popup.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><i class="fas fa-shield" style="color:#5865F2;font-size:16px"></i><span style="font-weight:700;color:#e0e0ff;font-size:14px">Demlik Yetkilisi</span></div><div style="font-size:13px;font-weight:600;color:#c0c8ff;margin-bottom:4px">Demlik yetkili hesabı.</div><div style="font-size:12px;color:#8888aa">Bu kullanıcı ${sinceText} tarihinde yetkili oldu.</div>`;
+  popup.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><i class="fas fa-shield" style="color:#5865F2;font-size:16px"></i><span style="font-weight:700;color:#e0e0ff;font-size:14px">TeaTube Yetkilisi</span></div><div style="font-size:13px;font-weight:600;color:#c0c8ff;margin-bottom:4px">TeaTube yetkili hesabı.</div><div style="font-size:12px;color:#8888aa">Bu kullanıcı ${sinceText} tarihinde yetkili oldu.</div>`;
   const rect = shield.getBoundingClientRect();
   document.body.appendChild(popup);
   const pw = popup.offsetWidth, ph = popup.offsetHeight;
@@ -3415,7 +3611,7 @@ async function renderSpotifyWidget(username, containerId) {
 
 // ===== MÜZİK LİSTESİ =====
 async function renderMusicList(app) {
-  document.title = 'Müzikler – Demlik';
+  document.title = 'Müzikler – TeaTube';
   app.innerHTML = `<div class="container page">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
       <div class="page-title" style="display:flex;align-items:center;gap:10px">
@@ -3612,7 +3808,7 @@ async function renderMusicDetail(app, slug) {
   try { song = await api('/songs/' + slug); } catch {
     app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-music"></i><p>Şarkı bulunamadı.</p></div></div>'; return;
   }
-  document.title = `${song.title} – ${song.artist_name} | Demlik`;
+  document.title = `${song.title} – ${song.artist_name} | TeaTube`;
   const isOwn = song.song_type === 'own';
   const hasLyrics = !!song.lyrics?.trim();
   const isUploader = currentUser && currentUser.id === song.uploader_id;
@@ -3790,7 +3986,7 @@ async function renderMusicDetail(app, slug) {
 }
 async function renderArtistApply(app) {
   if (!currentUser) { navigate('/giris'); return; }
-  document.title = 'Artist Başvurusu – Demlik';
+  document.title = 'Artist Başvurusu – TeaTube';
   let existing = null;
   try { existing = await api('/artist/my-application'); } catch {}
 
@@ -3831,7 +4027,7 @@ async function renderArtistApply(app) {
     <div class="card">
       <div class="card-body">
         <p style="font-size:14px;color:var(--text-secondary);margin-bottom:20px">
-          Artist rozeti alarak kendi şarkılarınızı Demlik'te yayınlayabilirsiniz.
+          Artist rozeti alarak kendi şarkılarınızı TeaTube'da yayınlayabilirsiniz.
         </p>
         <div class="form-group"><label>Müzik Türünüz *</label>
           <input id="apply-genre" placeholder="Pop, Rock, Hip-Hop, Elektronik..." />
@@ -3885,7 +4081,7 @@ async function renderArtistApply(app) {
 async function renderArtistPanel(app) {
   if (!currentUser) { navigate('/giris'); return; }
   if (!currentUser.is_artist) { navigate('/artist-basvuru'); return; }
-  document.title = 'Artist Panel – Demlik';
+  document.title = 'Artist Panel – TeaTube';
 
   let rules = { own_rules: '', other_rules: '' };
   try { rules = await api('/music-rules'); } catch {}
@@ -3983,7 +4179,7 @@ async function renderShareSong(app) {
   if (!currentUser) { navigate('/giris'); return; }
   // Artist olanlar kendi panelini kullansın
   if (currentUser.is_artist) { navigate('/artist-panel'); return; }
-  document.title = 'Şarkı Paylaş – Demlik';
+  document.title = 'Şarkı Paylaş – TeaTube';
 
   let rules = { other_rules: '' };
   try { rules = await api('/music-rules'); } catch {}
