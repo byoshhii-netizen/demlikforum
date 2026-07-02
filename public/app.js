@@ -170,6 +170,7 @@ function renderRoute(fullPath) {
   if (path === '/mesajlar') return renderMessages(app, null);
   if (path.startsWith('/mesajlar/')) return renderMessages(app, segs[1]);
   if (path === '/arkadaslar') return renderFriends(app);
+  if (path === '/fotograflar') return renderPhotos(app);
   if (path === '/muzikler') return renderMusicList(app);
   if (path.startsWith('/muzik/')) return renderMusicDetail(app, segs[1]);
   if (path === '/artist-basvuru') return renderArtistApply(app);
@@ -357,6 +358,10 @@ document.addEventListener('click', e => {
   const mobNewForum = e.target.closest('#mob-new-forum');
   const mobNewBook = e.target.closest('#mob-new-book');
   const mobNewGroup = e.target.closest('#mob-new-group');
+  const mobLink = e.target.closest('.mobile-nav-link');
+  if (mobLink) {
+    $('#mobile-menu')?.classList.add('hidden');
+  }
   if (mobNewForum) { $('#mobile-menu').classList.add('hidden'); navigate('/forum'); setTimeout(() => showNewForumModal(), 100); }
   if (mobNewBook) { $('#mobile-menu').classList.add('hidden'); navigate('/kitaplar'); setTimeout(() => showNewBookModal(), 100); }
   if (mobNewGroup) { $('#mobile-menu').classList.add('hidden'); navigate('/gruplar'); setTimeout(() => showNewGroupModal(), 100); }
@@ -1428,6 +1433,68 @@ async function renderGroupList(app) {
   });
 }
 
+async function renderPhotos(app) {
+  document.title = 'Fotoğraflar - Demlik';
+  app.innerHTML = `<div class="container page">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div><div class="page-title">Fotoğraflar</div><div class="page-subtitle">Topluluk tarafından paylaşılan fotoğraflar</div></div>
+      ${currentUser ? `<button class="btn btn-primary" id="photo-upload-btn"><i class="fas fa-upload"></i> Fotoğraf Yükle</button>` : `<a href="/giris" data-link class="btn btn-primary btn-sm">Giriş Yap</a>`}
+    </div>
+    <div id="photos-grid" class="photos-grid"><div class="loading-center"><div class="spinner"></div></div></div>
+  </div>`;
+
+  async function loadPhotos() {
+    const grid = $('#photos-grid');
+    if (!grid) return;
+    try {
+      const photos = await api('/photos');
+      if (!photos.length) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>';
+        return;
+      }
+      grid.innerHTML = photos.map(p => `
+        <div class="photo-card">
+          <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" /></a>
+          <div class="photo-card-body">
+            <div class="photo-card-caption">${escHtml(p.caption || '')}</div>
+            <div class="photo-card-meta">
+              ${p.avatar ? `<img src="${escHtml(p.avatar)}" class="avatar-sm" alt="" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+              <div class="photo-uploader">${escHtml(p.username)}</div>
+            </div>
+          </div>
+        </div>`).join('');
+    } catch (e) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
+    }
+  }
+
+  loadPhotos();
+
+  $('#photo-upload-btn')?.addEventListener('click', () => {
+    showModal('Fotoğraf Yükle', `
+      <div class="form-group"><label>Fotoğraf</label><input type="file" id="photo-file-input" accept="image/*" /></div>
+      <div class="form-group"><label>Başlık / Açıklama (opsiyonel)</label><input type="text" id="photo-caption" /></div>
+      <button class="btn btn-primary" id="photo-submit-btn" style="width:100%">Yükle</button>
+      <div id="photo-upload-error" class="form-error mt-4"></div>
+    `);
+    $('#photo-submit-btn')?.addEventListener('click', async () => {
+      const fileInput = $('#photo-file-input');
+      const caption = $('#photo-caption')?.value.trim();
+      if (!fileInput || !fileInput.files.length) { $('#photo-upload-error').textContent = 'Fotoğraf seçmelisiniz'; return; }
+      const file = fileInput.files[0];
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const uploadRes = await apiForm('/api/upload', form);
+        await api('/photos', { method: 'POST', body: JSON.stringify({ url: uploadRes.url, caption }) });
+        hideModal();
+        toast('Fotoğraf yüklendi');
+        loadPhotos();
+      } catch (err) { $('#photo-upload-error').textContent = err.message; }
+    });
+  });
+}
+
 function groupCardHTML(g) {
   const typeBadge = g.type === 'private' ? `<span class="badge badge-red"><i class="fas fa-lock"></i> Özel</span>` : `<span class="badge badge-green"><i class="fas fa-globe"></i> Açık</span>`;
   return `<div class="group-card" onclick="navigate('/grup/${escHtml(g.slug)}')">
@@ -1813,11 +1880,24 @@ async function renderProfile(app, username) {
 
   const links = (() => { try { return JSON.parse(user.links || '[]'); } catch { return []; } })();
   const isOwn = currentUser && currentUser.id === user.id;
+  const renderBadgeIcon = icon => {
+    if (!icon) return '';
+    const trimmed = icon.trim();
+    if (/^https?:\/\//i.test(trimmed) || /\.(png|jpe?g|gif|svg)(\?.*)?$/i.test(trimmed)) {
+      return `<img src="${escHtml(trimmed)}" class="profile-badge-icon" alt="" />`;
+    }
+    return `<i class="${escHtml(trimmed)}"></i>`;
+  };
 
   // Rozet satırı
   const badgeItems = [];
   if (level && user.show_level_badge) {
-    badgeItems.push(`<span class="profile-badge" style="color:${escHtml(levelColor)};border-color:${escHtml(levelColor)};background:${escHtml(levelColor)}20" title="Seviye: ${escHtml(level.name)}"><i class="${escHtml(level.icon)}"></i> ${escHtml(level.name)} <span style="font-size:10px;opacity:0.7">seviye</span></span>`);
+    badgeItems.push(`<span class="profile-badge" style="color:${escHtml(levelColor)};border-color:${escHtml(levelColor)};background:${escHtml(levelColor)}20" title="Seviye: ${escHtml(level.name)}">${renderBadgeIcon(level.icon)} ${escHtml(level.name)} <span style="font-size:10px;opacity:0.7">seviye</span></span>`);
+  }
+  if (user.badge_name) {
+    const badgeColor = user.badge_color || '#6b7280';
+    const badgeIcon = user.badge_icon || 'fas fa-award';
+    badgeItems.push(`<span class="profile-badge" style="color:${escHtml(badgeColor)};border-color:${escHtml(badgeColor)};background:${escHtml(badgeColor)}20" title="${escHtml(user.badge_name)}">${renderBadgeIcon(badgeIcon)} ${escHtml(user.badge_name)}</span>`);
   }
   if (user.is_artist) {
     badgeItems.push(`<span class="profile-badge" style="color:#a855f7;border-color:#a855f733;background:#a855f715" title="Artist"><i class="fas fa-microphone-alt"></i> Artist</span>`);
@@ -2049,7 +2129,12 @@ function renderSettingsSection(section) {
         show_level_badge: $('#s-show-badge').checked,
         show_level_color: $('#s-show-color').checked,
       };
-      if (currentUser.is_vip || currentUser.is_plus) body.name_color = $('#s-name-color')?.value || '';
+      if (currentUser.is_vip || currentUser.is_plus) {
+        body.name_color = $('#s-name-color')?.value || '';
+        body.badge_name = $('#s-badge-name').value.trim();
+        body.badge_icon = $('#s-badge-icon').value.trim();
+        body.badge_color = $('#s-badge-color').value;
+      }
       try {
         const fd = new FormData();
         Object.entries(body).forEach(([k, v]) => fd.append(k, v));
@@ -2931,7 +3016,7 @@ async function renderFriends(app) {
 
   app.innerHTML = `<div class="container page">
     <div class="page-header"><div class="page-title"><i class="fas fa-user-friends" style="color:var(--accent-red)"></i> Arkadaşlar</div></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="friends-layout">
       <div>
         <div class="tabs" style="margin-bottom:16px">
           <button class="tab active" id="tab-friends" onclick="showFriendsTab('friends')">Arkadaşlar (${accepted.length})</button>

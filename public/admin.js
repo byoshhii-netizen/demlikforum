@@ -290,6 +290,16 @@ function showEditUserModal(user) {
       <div class="form-group"><label>Ünvan</label><input id="eu-title" value="${escHtml(user.title||'')}" placeholder="Örn: Yazılımcı" /></div>
       <div class="form-group"><label>İsim Rengi</label><input id="eu-color" type="color" value="${user.name_color||'#f5f5f5'}" style="height:38px;cursor:pointer" /></div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label>Rozet Adı</label><input id="eu-badge-name" value="${escHtml(user.badge_name||'')}" placeholder="Örn: Katılımcı" /></div>
+      <div class="form-group"><label>Rozet İkonu</label><input id="eu-badge-icon" value="${escHtml(user.badge_icon||'fas fa-award')}" placeholder="fas fa-award veya ⭐" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Rozet Rengi</label><input id="eu-badge-color" type="color" value="${user.badge_color||'#6b7280'}" style="height:38px;cursor:pointer" /></div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <div style="font-size:11px;color:var(--text3);line-height:1.4">Bu rozet admin tarafından kullanıcıya atanmış olarak gösterilir.</div>
+      </div>
+    </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
       <label class="checkbox-label"><input type="checkbox" id="eu-vip" ${user.is_vip?'checked':''} /> VIP</label>
       <label class="checkbox-label"><input type="checkbox" id="eu-plus" ${user.is_plus?'checked':''} /> Plus</label>
@@ -303,7 +313,7 @@ function showEditUserModal(user) {
     const body = { username: $('#eu-username').value.trim(), email: $('#eu-email').value.trim(),
       is_vip: $('#eu-vip').checked, is_plus: $('#eu-plus').checked,
       name_color: $('#eu-color').value, level_id: parseInt($('#eu-level').value)||1,
-      title: $('#eu-title').value.trim() };
+      title: $('#eu-title').value.trim(), badge_name: $('#eu-badge-name').value.trim(), badge_icon: $('#eu-badge-icon').value.trim(), badge_color: $('#eu-badge-color').value };
     const pw = $('#eu-pw').value; if (pw) body.password = pw;
     try {
       await adminApi('/user/'+user.id, {method:'PUT', body:JSON.stringify(body)});

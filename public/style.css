@@ -148,7 +148,7 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
   transition: border-color 0.2s;
 }
 .nav-user-btn:hover { border-color: var(--border-hover); }
-.nav-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: var(--bg-card2); }
+.nav-avatar { width: 26px; height: 26px; min-width: 26px; min-height: 26px; aspect-ratio: 1/1; border-radius: 50%; object-fit: cover; background: var(--bg-card2); }
 .dropdown-menu {
   position: absolute;
   right: 0; top: calc(100% + 8px);
@@ -173,7 +173,7 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .dropdown-item.text-danger { color: var(--accent-red2); }
 .dropdown-divider { border-top: 1px solid var(--border); margin: 4px 0; }
 .mobile-menu { display: none; flex-direction: column; padding: 8px 20px 12px; gap: 2px; }
-.mobile-nav-link { padding: 10px 12px; border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 15px; }
+.mobile-nav-link { padding: 10px 12px; border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 15px; min-height: 44px; min-width: 0; }
 .mobile-nav-link:hover { color: var(--text-primary); background: rgba(220,38,38,0.08); }
 .nav-mobile-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 20px; }
 @media (max-width: 768px) {
@@ -309,6 +309,8 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
   transition: all 0.2s;
   cursor: pointer;
   display: flex; flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
 }
 .book-card:hover { border-color: var(--border-hover); box-shadow: var(--glow); transform: translateY(-2px); }
 .book-cover {
@@ -317,9 +319,9 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; flex-shrink: 0;
 }
-.book-cover img { width: 100%; height: 100%; object-fit: cover; }
+.book-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .book-cover-placeholder { font-size: 48px; color: var(--text-muted); }
-.book-info { padding: 14px; flex: 1; }
+.book-info { padding: 14px; flex: 1; min-width: 0; }
 .book-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; overflow-wrap: anywhere; max-width: 100%; }
 .book-author { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
 .book-pages { font-size: 12px; color: var(--text-muted); }
@@ -393,6 +395,9 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
   padding: 4px 12px; border-radius: 20px;
   font-size: 12px; font-weight: 600; border: 1px solid;
   white-space: nowrap;
+}
+.profile-badge-icon, .level-badge img {
+  width: 16px; height: 16px; border-radius: 50%; object-fit: cover;
 }
 .profile-links { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .profile-link { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: var(--bg-card2); border: 1px solid var(--border); border-radius: 20px; font-size: 12px; color: var(--text-secondary); transition: all 0.2s; }
@@ -551,6 +556,10 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--text-secondary); border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.2s; cursor: pointer; }
 .tab:hover { color: var(--text-primary); }
 .tab.active { color: var(--accent-red2); border-bottom-color: var(--accent-red); }
+.friends-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 768px) {
+  .friends-layout { grid-template-columns: 1fr; gap: 16px; }
+}
 
 /* ===== EMPTY STATE ===== */
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
@@ -761,6 +770,16 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
 
   /* Kitap grid */
   .grid-3 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+  .photos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .photo-card { background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); transition: transform 0.2s, border-color 0.2s; }
+  .photo-card:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+  .photo-card img { width: 100%; height: 240px; object-fit: cover; display: block; }
+  .photo-card-body { padding: 14px; }
+  .photo-card-caption { font-size: 13px; color: var(--text-secondary); line-height: 1.5; min-height: 40px; }
+  .photo-card-meta { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .photo-card-meta .avatar-sm { width: 32px; height: 32px; }
+  .photo-card-meta .photo-uploader { font-size: 13px; color: var(--text-primary); font-weight: 600; }
 
   /* Bölüm başlıkları */
   .section { margin-bottom: 36px; }
@@ -1196,9 +1215,8 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
 
 /* ===== MOBİL GÖRSEL BOZULMA DÜZELTMELERİ ===== */
 @media (max-width: 768px) {
-  /* Tüm container'lar taşmasın */
-  * { max-width: 100%; }
   img { max-width: 100%; height: auto; display: block; }
+  .container, .page, .nav-container, .mobile-menu, .card, .book-card, .book-info, .book-cover, .profile-avatar, .nav-avatar, .book-cover img, .group-cover img, .profile-badges-row { max-width: 100%; }
 
   /* Profil fotoğrafı cover kalacak */
   .profile-avatar, .nav-avatar, .book-cover img,
@@ -1217,6 +1235,11 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
   /* Grup kapak taşmasın */
   .group-cover { max-height: 140px; overflow: hidden; }
   .group-cover img { width: 100%; height: 140px; object-fit: cover; }
+  .mobile-menu { box-sizing: border-box; }
+  .mobile-nav-link { box-sizing: border-box; }
+  .book-card { min-width: 0; }
+  .book-info { min-width: 0; }
+  .nav-avatar, .profile-avatar { aspect-ratio: 1/1; }
 
   /* Kitap ızgara */
   .grid-3 { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }

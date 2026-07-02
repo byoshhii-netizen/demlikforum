@@ -234,6 +234,15 @@ async function initDb() {
       created_at TIMESTAMP DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS photos (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      url TEXT NOT NULL,
+      caption TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS system_logs (
       id BIGSERIAL PRIMARY KEY,
       actor TEXT,
@@ -354,6 +363,9 @@ async function initDb() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_bio TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_genre TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_website TEXT DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS badge_name TEXT DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS badge_icon TEXT DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS badge_color TEXT DEFAULT '#6b7280';
     ALTER TABLE songs ADD COLUMN IF NOT EXISTS ban_reason TEXT DEFAULT '';
     ALTER TABLE songs ADD COLUMN IF NOT EXISTS ban_until TIMESTAMP;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS delete_requested_at TIMESTAMP;

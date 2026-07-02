@@ -1173,7 +1173,8 @@ app.get('/api/profile/:username', async (req, res) => {
 });
 
 app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
-  const { bio, links, name_color, show_level_badge, show_level_color, title, location, allow_mentions } = req.body;
+  const { bio, links, name_color, show_level_badge, show_level_color, title, location, allow_mentions, badge_name, badge_icon, badge_color } = req.body;
+  const canSetBadge = req.user.is_vip || req.user.is_plus;
   let newAvatar = req.user.avatar;
   if (req.file) {
     try {
@@ -1183,12 +1184,15 @@ app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res
     }
   }
   const newLinks = links ? (typeof links === 'string' ? links : JSON.stringify(links)) : req.user.links;
-  await query('UPDATE users SET bio=$1,links=$2,name_color=$3,show_level_badge=$4,show_level_color=$5,avatar=$6,title=$7,location=$8,allow_mentions=$9 WHERE id=$10',
+  await query('UPDATE users SET bio=$1,links=$2,name_color=$3,show_level_badge=$4,show_level_color=$5,avatar=$6,title=$7,location=$8,allow_mentions=$9,badge_name=$10,badge_icon=$11,badge_color=$12 WHERE id=$13',
     [bio??req.user.bio, newLinks, name_color??req.user.name_color,
      show_level_badge!==undefined?(show_level_badge?1:0):req.user.show_level_badge,
      show_level_color!==undefined?(show_level_color?1:0):req.user.show_level_color,
      newAvatar, title??req.user.title??'', location??req.user.location??'',
      allow_mentions!==undefined?(allow_mentions?1:0):(req.user.allow_mentions??1),
+     canSetBadge ? (badge_name??req.user.badge_name) : req.user.badge_name,
+     canSetBadge ? (badge_icon??req.user.badge_icon) : req.user.badge_icon,
+     canSetBadge ? (badge_color??req.user.badge_color) : req.user.badge_color,
      req.user.id]);
   const { rows } = await query('SELECT * FROM users WHERE id=$1', [req.user.id]);
   res.json(sanitizeUser(rows[0]));
@@ -1213,6 +1217,28 @@ app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) 
   }
 });
 
+app.get('/api/photos', async (req, res) => {
+  const { rows } = await query(
+    'SELECT p.id, p.url, p.caption, p.created_at, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 100'
+  );
+  res.json(rows);
+});
+
+app.post('/api/photos', authMiddleware, async (req, res) => {
+  const { url, caption } = req.body;
+  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Fotoğraf URL gerekli' });
+  const result = await query(
+    'INSERT INTO photos (user_id, url, caption) VALUES ($1,$2,$3) RETURNING id',
+    [req.user.id, url, caption || '']
+  );
+  const photoId = result.rows[0].id;
+  const { rows } = await query(
+    'SELECT p.id, p.url, p.caption, p.created_at, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1',
+    [photoId]
+  );
+  res.json(rows[0]);
+});
+
 // ===== ADMIN =====
 app.get('/api/admin/users', adminMiddleware, async (req, res) => {
   const { rows } = await query('SELECT * FROM users ORDER BY created_at DESC');
@@ -1229,12 +1255,13 @@ app.put('/api/admin/user/:id', adminMiddleware, async (req, res) => {
   const { rows } = await query('SELECT * FROM users WHERE id=$1', [req.params.id]);
   if (!rows.length) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
   const user = rows[0];
-  const { username, email, password, is_vip, is_plus, name_color, level_id } = req.body;
+  const { username, email, password, is_vip, is_plus, name_color, level_id, title, badge_name, badge_icon, badge_color } = req.body;
   const newPwHash = password ? hashPassword(password) : user.password_hash;
-  await query('UPDATE users SET username=$1,email=$2,password_hash=$3,is_vip=$4,is_plus=$5,name_color=$6,level_id=$7 WHERE id=$8',
+  await query('UPDATE users SET username=$1,email=$2,password_hash=$3,is_vip=$4,is_plus=$5,name_color=$6,level_id=$7,title=$8,badge_name=$9,badge_icon=$10,badge_color=$11 WHERE id=$12',
     [username||user.username, email||user.email, newPwHash,
      is_vip!==undefined?(is_vip?1:0):user.is_vip, is_plus!==undefined?(is_plus?1:0):user.is_plus,
-     name_color??user.name_color, level_id||user.level_id, user.id]);
+     name_color??user.name_color, level_id||user.level_id, title??user.title,
+     badge_name??user.badge_name, badge_icon??user.badge_icon, badge_color??user.badge_color, user.id]);
   await logAction('admin', 'edit_user', user.username);
   const { rows: updated } = await query('SELECT * FROM users WHERE id=$1', [user.id]);
   res.json(sanitizeUser(updated[0]));
