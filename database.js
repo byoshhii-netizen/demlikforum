@@ -242,6 +242,25 @@ async function initDb() {
       created_at TIMESTAMP DEFAULT NOW(),
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+      CREATE TABLE IF NOT EXISTS photo_likes (
+        id BIGSERIAL PRIMARY KEY,
+        photo_id BIGINT NOT NULL,
+        user_id BIGINT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(photo_id, user_id),
+        FOREIGN KEY(photo_id) REFERENCES photos(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS photo_comments (
+        id BIGSERIAL PRIMARY KEY,
+        photo_id BIGINT NOT NULL,
+        user_id BIGINT,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY(photo_id) REFERENCES photos(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+      );
 
     CREATE TABLE IF NOT EXISTS system_logs (
       id BIGSERIAL PRIMARY KEY,
@@ -311,6 +330,9 @@ async function initDb() {
     ALTER TABLE forums ADD COLUMN IF NOT EXISTS allow_sharing INTEGER DEFAULT 1;
     ALTER TABLE forums ADD COLUMN IF NOT EXISTS share_count INTEGER DEFAULT 0;
     ALTER TABLE dm_conversations ADD COLUMN IF NOT EXISTS read_until_user1 BIGINT DEFAULT 0;
+      ALTER TABLE photos ADD COLUMN IF NOT EXISTS show_likes INTEGER DEFAULT 1;
+      ALTER TABLE photos ADD COLUMN IF NOT EXISTS allow_comments INTEGER DEFAULT 1;
+      ALTER TABLE photos ADD COLUMN IF NOT EXISTS allow_shares INTEGER DEFAULT 1;
     ALTER TABLE dm_conversations ADD COLUMN IF NOT EXISTS read_until_user2 BIGINT DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INTEGER DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_since TIMESTAMP;

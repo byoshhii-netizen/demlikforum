@@ -453,7 +453,7 @@ async function renderHome(app) {
   app.innerHTML = `
     <div class="container page">
       <div class="home-tabs-row">
-        <a href="/" data-link class="home-tab active">Ana Sayfa</a>
+        <a href="/fotograflar" data-link class="home-tab active">Fotoğraflar</a>
         <a href="/forum" data-link class="home-tab">Konular</a>
         <a href="/muzikler" data-link class="home-tab">Müzikler</a>
         <a href="/gruplar" data-link class="home-tab">Gruplar</a>
@@ -503,17 +503,8 @@ async function renderHome(app) {
         photosEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>'; 
         return;
       }
-      photosEl.innerHTML = photos.slice(0, 8).map(p => `
-        <div class="photo-card">
-          <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" /></a>
-          <div class="photo-card-body">
-            <div class="photo-card-caption">${escHtml(p.caption || '')}</div>
-            <div class="photo-card-meta">
-              ${p.avatar ? `<img src="${escHtml(p.avatar)}" class="avatar-sm" alt="" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
-              <div class="photo-uploader">${escHtml(p.username)}</div>
-            </div>
-          </div>
-        </div>`).join('');
+      photosEl.innerHTML = photos.slice(0, 8).map(photoCardHTML).join('');
+      attachPhotoCardActions(photosEl);
     } catch (e) {
       photosEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
     }
@@ -655,6 +646,179 @@ function forumCardHTML(f) {
 window.navigateTag = function(tag) {
   navigate('/forum?tag=' + encodeURIComponent(tag));
 };
+
+function photoCardHTML(p) {
+  const isOwn = currentUser && currentUser.username === p.username;
+  return `
+    <div class="photo-card">
+      <div class="photo-card-media">
+        <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer">
+          <img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" />
+        </a>
+        ${isOwn ? `<div class="photo-card-actions">
+          <button class="btn btn-ghost btn-sm photo-edit-btn" data-id="${escHtml(p.id)}" title="Düzenle"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-sm photo-delete-btn" data-id="${escHtml(p.id)}" title="Sil"><i class="fas fa-trash"></i></button>
+        </div>` : ''}
+      </div>
+      <div class="photo-card-body">
+        <div class="photo-card-caption">${escHtml(p.caption || '')}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            ${p.avatar ? `<img src="${escHtml(p.avatar)}" class="avatar-sm" alt="" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+            <div class="photo-uploader">${escHtml(p.username)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn btn-ghost btn-sm photo-like-btn" data-id="${escHtml(p.id)}" title="Beğen">${p.liked ? '<i class="fas fa-heart" style="color:var(--accent-red2)"></i>' : '<i class="far fa-heart"></i>'} <span class="photo-like-count">${p.like_count||0}</span></button>
+            <button class="btn btn-ghost btn-sm photo-comment-btn" data-id="${escHtml(p.id)}" title="Yorumlar"><i class="fas fa-comment"></i> <span class="photo-comment-count">${p.comment_count||0}</span></button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function attachPhotoCardActions(container) {
+  container.querySelectorAll('.photo-edit-btn').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      await editPhoto(btn.dataset.id);
+    });
+  });
+  container.querySelectorAll('.photo-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      await deletePhoto(btn.dataset.id);
+    });
+  });
+  container.querySelectorAll('.photo-like-btn').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      await togglePhotoLike(btn.dataset.id, btn);
+    });
+  });
+  container.querySelectorAll('.photo-comment-btn').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      await showPhotoComments(btn.dataset.id);
+    });
+  });
+}
+
+async function editPhoto(photoId) {
+  try {
+    const photo = await api('/photos/' + encodeURIComponent(photoId));
+    if (!currentUser || photo.username !== currentUser.username) return toast('Bu fotoğrafı düzenleyemezsiniz', 'error');
+    showModal('Fotoğraf Düzenle', `
+      <div class="form-group"><label>Fotoğraf URL</label><input id="edit-photo-url" type="text" value="${escHtml(photo.url)}" /></div>
+      <div class="form-group"><label>Başlık / Açıklama</label><textarea id="edit-photo-caption" rows="4">${escHtml(photo.caption || '')}</textarea></div>
+      <div class="form-group"><label>Yeni Fotoğraf (opsiyonel)</label><input type="file" id="edit-photo-file" accept="image/*" /></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-show-likes" ${photo.show_likes==1? 'checked' : ''} /> Beğeni sayısını göster</label></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-allow-comments" ${photo.allow_comments==1? 'checked' : ''} /> Yorumlara izin ver</label></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-allow-shares" ${photo.allow_shares==1? 'checked' : ''} /> İletilere izin ver</label></div>
+      <button class="btn btn-primary" id="edit-photo-save" style="width:100%">Kaydet</button>
+      <div id="edit-photo-error" class="form-error mt-4"></div>
+    `);
+
+    $('#edit-photo-save')?.addEventListener('click', async () => {
+      const url = $('#edit-photo-url')?.value.trim();
+      const caption = $('#edit-photo-caption')?.value.trim();
+      if (!url) { $('#edit-photo-error').textContent = 'Fotoğraf URL gerekli'; return; }
+      let finalUrl = url;
+      const fileInput = $('#edit-photo-file');
+      if (fileInput && fileInput.files.length) {
+        try {
+          const fd = new FormData();
+          fd.append('file', fileInput.files[0]);
+          const uploadRes = await apiForm('/api/upload', fd);
+          finalUrl = uploadRes.url;
+        } catch (e) { $('#edit-photo-error').textContent = e.message; return; }
+      }
+      try {
+        const show_likes = $('#edit-show-likes')?.checked ? 1 : 0;
+        const allow_comments = $('#edit-allow-comments')?.checked ? 1 : 0;
+        const allow_shares = $('#edit-allow-shares')?.checked ? 1 : 0;
+        await api('/photos/' + encodeURIComponent(photoId), { method: 'PUT', body: JSON.stringify({ url: finalUrl, caption, show_likes, allow_comments, allow_shares }) });
+        hideModal();
+        toast('Fotoğraf güncellendi');
+        renderRoute(location.pathname);
+      } catch (e) { $('#edit-photo-error').textContent = e.message; }
+    });
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function togglePhotoLike(photoId, btn) {
+  if (!currentUser) { navigate('/giris'); return; }
+  try {
+    const res = await api(`/photos/${encodeURIComponent(photoId)}/like`, { method: 'POST' });
+    const countEl = btn.querySelector('.photo-like-count');
+    if (res.liked) {
+      btn.innerHTML = '<i class="fas fa-heart" style="color:var(--accent-red2)"></i> <span class="photo-like-count">' + ((countEl?parseInt(countEl.textContent||'0'):0)+1) + '</span>';
+    } else {
+      btn.innerHTML = '<i class="far fa-heart"></i> <span class="photo-like-count">' + (Math.max((countEl?parseInt(countEl.textContent||'0'):0)-1,0)) + '</span>';
+    }
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function showPhotoComments(photoId) {
+  try {
+    const comments = await api(`/photos/${encodeURIComponent(photoId)}/comments`);
+    const photo = await api(`/photos/${encodeURIComponent(photoId)}`);
+    showModal('Yorumlar', `
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div id="photo-comments-list" style="max-height:320px;overflow:auto;padding:6px"></div>
+        ${currentUser ? `<textarea id="photo-comment-input" rows="3" style="width:100%;background:var(--bg-card2);border:1px solid var(--border);color:var(--text-primary);padding:8px;border-radius:8px" placeholder="Yorum yaz..."></textarea>
+        <button class="btn btn-primary" id="photo-comment-send">Gönder</button>` : `<a href="/giris" data-link class="btn btn-primary">Giriş Yap</a>`}
+      </div>
+    `);
+    const listEl = $('#photo-comments-list');
+    function renderList() {
+      listEl.innerHTML = comments.length ? comments.map(c => `
+        <div style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start">
+          ${c.avatar ? `<img src="${escHtml(c.avatar)}" class="avatar-sm" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center"><strong>${escHtml(c.username||'Silindi')}</strong><span style="font-size:12px;color:var(--text-muted)">${timeAgo(c.created_at)}</span></div>
+            <div style="margin-top:6px;color:var(--text-primary)">${escHtml(c.content)}</div>
+          </div>
+          ${currentUser && (currentUser.username===c.username || currentUser.is_admin || photo.user_id===currentUser.id) ? `<button class="btn btn-ghost btn-sm comment-delete" data-id="${escHtml(c.id)}">Sil</button>` : ''}
+        </div>
+      `).join('') : '<div style="color:var(--text-muted);padding:8px;text-align:center">Yorum yok</div>';
+    }
+    renderList();
+    $('#photo-comment-send')?.addEventListener('click', async () => {
+      const txt = $('#photo-comment-input').value.trim();
+      if (!txt) return;
+      try {
+        const added = await api(`/photos/${encodeURIComponent(photoId)}/comments`, { method: 'POST', body: JSON.stringify({ content: txt }) });
+        comments.push(added);
+        renderList();
+        $('#photo-comment-input').value = '';
+      } catch (e) { $('#photo-comment-input').value = ''; toast(e.message, 'error'); }
+    });
+    $('#modal-body')?.addEventListener('click', async (e) => {
+      const del = e.target.closest('.comment-delete');
+      if (del) {
+        if (!confirm('Bu yorumu silmek istiyor musunuz?')) return;
+        try { await api(`/photos/comments/${encodeURIComponent(del.dataset.id)}`, { method: 'DELETE' });
+          const idx = comments.findIndex(c => c.id == del.dataset.id);
+          if (idx >= 0) comments.splice(idx,1);
+          renderList();
+        } catch (err) { toast(err.message, 'error'); }
+      }
+    });
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function deletePhoto(photoId) {
+  if (!confirm('Bu fotoğrafı silmek istediğine emin misin?')) return;
+  try {
+    await api('/photos/' + encodeURIComponent(photoId), { method: 'DELETE' });
+    toast('Fotoğraf silindi');
+    renderRoute(location.pathname);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
 
 function showNewForumModal(existing = null) {
   showModal(existing ? 'Konuyu Düzenle' : 'Yeni Konu Aç', `
@@ -1590,17 +1754,8 @@ async function renderPhotos(app) {
         grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>';
         return;
       }
-      grid.innerHTML = photos.map(p => `
-        <div class="photo-card">
-          <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" /></a>
-          <div class="photo-card-body">
-            <div class="photo-card-caption">${escHtml(p.caption || '')}</div>
-            <div class="photo-card-meta">
-              ${p.avatar ? `<img src="${escHtml(p.avatar)}" class="avatar-sm" alt="" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
-              <div class="photo-uploader">${escHtml(p.username)}</div>
-            </div>
-          </div>
-        </div>`).join('');
+      grid.innerHTML = photos.map(photoCardHTML).join('');
+      attachPhotoCardActions(grid);
     } catch (e) {
       grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
     }
@@ -2818,6 +2973,15 @@ async function renderMessages(app, targetUsername) {
       <div id="dm-conv-list" class="dm-conv-list">
         ${convs.map(c => dmConvItemHTML(c)).join('') || `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Henüz mesaj yok</div>`}
       </div>
+      <div style="padding:10px;border-top:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="font-size:13px">Arkadaşlar</strong>
+          <button class="btn btn-ghost btn-sm" id="dm-friends-toggle">Aç/Kapa</button>
+        </div>
+        <div id="dm-friends-widget">
+          <div style="font-size:13px;color:var(--text-muted)">Yükleniyor...</div>
+        </div>
+      </div>
     </div>
     <div class="dm-main" id="dm-main">
       ${targetUsername ? '' : `<div class="dm-empty"><i class="fas fa-comments" style="font-size:48px;color:var(--text-muted);margin-bottom:16px"></i><p style="color:var(--text-muted)">Bir konuşma seçin</p></div>`}
@@ -2860,6 +3024,85 @@ async function renderMessages(app, targetUsername) {
   }
   dmTabs.forEach(btn => btn.addEventListener('click', () => setDmTab(btn.dataset.tab)));
   bindConvItems();
+
+  // Load compact friends widget for DM sidebar
+  async function loadDmFriends() {
+    const widget = $('#dm-friends-widget');
+    if (!widget) return;
+    try {
+      const friends = await api('/friends');
+      const blocks = await api('/blocks');
+      const pending_in = friends.filter(f => f.status === 'pending' && f.addressee_id == currentUser.id);
+      const pending_out = friends.filter(f => f.status === 'pending' && f.requester_id == currentUser.id);
+      const accepted = friends.filter(f => f.status === 'accepted');
+      widget.innerHTML = `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <button class="btn btn-ghost btn-sm" id="dm-friends-tab-friends">Arkadaşlar (${accepted.length})</button>
+          <button class="btn btn-ghost btn-sm" id="dm-friends-tab-req">İstekler (${pending_in.length})</button>
+          <button class="btn btn-ghost btn-sm" id="dm-friends-tab-sent">Gönderilen (${pending_out.length})</button>
+        </div>
+        <div id="dm-friends-list" style="max-height:220px;overflow:auto"></div>
+        <div style="margin-top:8px"><input id="dm-friend-search" type="text" placeholder="Kullanıcı ara..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card2);color:var(--text-primary)" /></div>
+      `;
+      const list = $('#dm-friends-list');
+      function renderTab(tab) {
+        if (tab === 'friends') {
+          list.innerHTML = accepted.length ? accepted.slice(0,8).map(f => `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">
+              ${f.other_avatar?`<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>`:`<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+              <div style="flex:1"><div style="font-weight:600">${escHtml(f.other_username)}</div></div>
+              <button class="btn btn-ghost btn-sm dm-friend-msg" data-username="${escHtml(f.other_username)}">Mesaj</button>
+            </div>
+          `).join('') : '<div style="color:var(--text-muted);padding:8px;text-align:center">Arkadaş yok</div>';
+        } else if (tab === 'req') {
+          list.innerHTML = pending_in.length ? pending_in.map(f => `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">
+              ${f.other_avatar?`<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>`:`<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+              <div style="flex:1"><div style="font-weight:600">${escHtml(f.other_username)}</div></div>
+              <button class="btn btn-primary btn-sm friend-accept" data-id="${escHtml(f.id)}">✓</button>
+              <button class="btn btn-danger btn-sm friend-reject" data-id="${escHtml(f.id)}">✕</button>
+            </div>
+          `).join('') : '<div style="color:var(--text-muted);padding:8px;text-align:center">İstek yok</div>';
+        } else {
+          list.innerHTML = pending_out.length ? pending_out.map(f => `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">
+              ${f.other_avatar?`<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>`:`<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+              <div style="flex:1"><div style="font-weight:600">${escHtml(f.other_username)}</div></div>
+              <button class="btn btn-ghost btn-sm" disabled>Beklemede</button>
+            </div>
+          `).join('') : '<div style="color:var(--text-muted);padding:8px;text-align:center">Gönderilen isteği yok</div>';
+        }
+      }
+      renderTab('friends');
+      $('#dm-friends-tab-friends')?.addEventListener('click', () => renderTab('friends'));
+      $('#dm-friends-tab-req')?.addEventListener('click', () => renderTab('req'));
+      $('#dm-friends-tab-sent')?.addEventListener('click', () => renderTab('sent'));
+      $('#dm-friend-search')?.addEventListener('keydown', e => { if (e.key==='Enter') doDmFriendSearch(); });
+      $('#dm-friend-search')?.addEventListener('input', e => { const q=e.target.value.toLowerCase(); list.querySelectorAll('div').forEach(el=>{ el.style.display = el.textContent.toLowerCase().includes(q)?'':'none'; }); });
+      // actions
+      list.addEventListener('click', async e => {
+        const accept = e.target.closest('.friend-accept');
+        const reject = e.target.closest('.friend-reject');
+        const msgBtn = e.target.closest('.dm-friend-msg');
+        if (accept) { try { await api(`/friends/respond/${accept.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'accept' }) }); loadDmFriends(); } catch (err){ toast(err.message,'error'); } }
+        if (reject) { try { await api(`/friends/respond/${reject.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'reject' }) }); loadDmFriends(); } catch (err){ toast(err.message,'error'); } }
+        if (msgBtn) { navigate('/mesajlar/' + msgBtn.dataset.username); }
+      });
+
+      async function doDmFriendSearch() {
+        const q = $('#dm-friend-search').value.trim();
+        if (!q) return;
+        try {
+          const users = await api(`/search/users?q=${encodeURIComponent(q)}`);
+          list.innerHTML = users.map(u=>`<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">${u.avatar?`<img src="${escHtml(u.avatar)}" class="avatar-sm"/>`:`<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}<div style="flex:1"><a href="/profil/${escHtml(u.username)}" data-link>${escHtml(u.username)}</a></div><button class="btn btn-primary btn-sm dm-friend-msg" data-username="${escHtml(u.username)}">Mesaj</button><button class="btn btn-primary btn-sm send-req-btn" data-username="${escHtml(u.username)}">+ Arkadaş</button></div>`).join('');
+          list.querySelectorAll('.send-req-btn').forEach(btn=>btn.addEventListener('click', async ()=>{ try{ await api(`/friends/request/${encodeURIComponent(btn.dataset.username)}`, { method: 'POST' }); btn.textContent='✓ Gönderildi'; btn.disabled=true;}catch(e){toast(e.message,'error')} }));
+        } catch(e){ toast(e.message,'error'); }
+      }
+
+    } catch (e) { widget.innerHTML = `<div style="color:var(--accent-red2)">${escHtml(e.message)}</div>`; }
+  }
+  if (currentUser) loadDmFriends();
+  $('#dm-friends-toggle')?.addEventListener('click', () => { $('#dm-friends-widget').classList.toggle('hidden'); });
 
   $('#dm-search')?.addEventListener('input', e => {
     const q = e.target.value.toLowerCase();

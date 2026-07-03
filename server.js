@@ -1226,28 +1226,124 @@ app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) 
   }
 });
 
-app.get('/api/photos', async (req, res) => {
+app.get('/api/photos', optionalAuth, async (req, res) => {
   const { username } = req.query;
+  const userId = req.user ? req.user.id : 0;
+  const base = `SELECT p.id, p.url, p.caption, p.created_at, p.user_id, u.username, u.avatar, p.show_likes, p.allow_comments, p.allow_shares,
+    (SELECT COUNT(*) FROM photo_likes pl WHERE pl.photo_id = p.id) AS like_count,
+    (SELECT COUNT(*) FROM photo_comments pc WHERE pc.photo_id = p.id) AS comment_count,
+    (CASE WHEN $1::bigint = 0 THEN 0 ELSE (SELECT COUNT(*) FROM photo_likes pl2 WHERE pl2.photo_id=p.id AND pl2.user_id=$1) END) > 0 AS liked
+    FROM photos p LEFT JOIN users u ON u.id=p.user_id`;
   const queryText = username
-    ? `SELECT p.id, p.url, p.caption, p.created_at, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id WHERE u.username = $1 ORDER BY p.created_at DESC LIMIT 100`
-    : `SELECT p.id, p.url, p.caption, p.created_at, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 100`;
-  const { rows } = username ? await query(queryText, [username]) : await query(queryText);
+    ? `${base} WHERE u.username = $2 ORDER BY p.created_at DESC LIMIT 100`
+    : `${base} ORDER BY p.created_at DESC LIMIT 100`;
+  const { rows } = username ? await query(queryText, [userId, username]) : await query(queryText, [userId]);
   res.json(rows);
 });
 
-app.post('/api/photos', authMiddleware, async (req, res) => {
-  const { url, caption } = req.body;
-  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Fotoğraf URL gerekli' });
-  const result = await query(
-    'INSERT INTO photos (user_id, url, caption) VALUES ($1,$2,$3) RETURNING id',
-    [req.user.id, url, caption || '']
-  );
-  const photoId = result.rows[0].id;
+app.get('/api/photos/:id', optionalAuth, async (req, res) => {
+  const userId = req.user ? req.user.id : 0;
   const { rows } = await query(
-    'SELECT p.id, p.url, p.caption, p.created_at, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1',
-    [photoId]
+    `SELECT p.id, p.url, p.caption, p.created_at, p.user_id, u.username, u.avatar, p.show_likes, p.allow_comments, p.allow_shares,
+      (SELECT COUNT(*) FROM photo_likes pl WHERE pl.photo_id = p.id) AS like_count,
+      (SELECT COUNT(*) FROM photo_comments pc WHERE pc.photo_id = p.id) AS comment_count,
+      (CASE WHEN $2::bigint = 0 THEN 0 ELSE (SELECT COUNT(*) FROM photo_likes pl2 WHERE pl2.photo_id=p.id AND pl2.user_id=$2) END) > 0 AS liked
+     FROM photos p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1`,
+    [req.params.id, userId]
   );
+  if (!rows.length) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
   res.json(rows[0]);
+});
+
+app.put('/api/photos/:id', authMiddleware, async (req, res) => {
+  const { url, caption, show_likes, allow_comments, allow_shares } = req.body;
+  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Fotoğraf URL gerekli' });
+  const { rows } = await query('SELECT user_id FROM photos WHERE id=$1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+  if (rows[0].user_id !== req.user.id) return res.status(403).json({ error: 'Bu fotoğrafı düzenleme yetkiniz yok' });
+  await query('UPDATE photos SET url=$1, caption=$2, show_likes=COALESCE($3, show_likes), allow_comments=COALESCE($4, allow_comments), allow_shares=COALESCE($5, allow_shares) WHERE id=$6',
+    [url, caption||'', show_likes !== undefined ? (show_likes?1:0) : null, allow_comments !== undefined ? (allow_comments?1:0) : null, allow_shares !== undefined ? (allow_shares?1:0) : null, req.params.id]);
+  const { rows: updated } = await query(
+    'SELECT p.id, p.url, p.caption, p.created_at, p.show_likes, p.allow_comments, p.allow_shares, u.username, u.avatar FROM photos p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1',
+    [req.params.id]
+  );
+  res.json(updated[0]);
+});
+
+app.delete('/api/photos/:id', authMiddleware, async (req, res) => {
+  const { rows } = await query('SELECT user_id FROM photos WHERE id=$1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+  if (rows[0].user_id !== req.user.id) return res.status(403).json({ error: 'Bu fotoğrafı silme yetkiniz yok' });
+  await query('DELETE FROM photos WHERE id=$1', [req.params.id]);
+  res.json({ ok: true });
+});
+
+// Like toggle
+app.post('/api/photos/:id/like', authMiddleware, async (req, res) => {
+  const photoId = req.params.id;
+  const userId = req.user.id;
+  const { rows } = await query('SELECT id FROM photos WHERE id=$1', [photoId]);
+  if (!rows.length) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+  const { rows: exists } = await query('SELECT id FROM photo_likes WHERE photo_id=$1 AND user_id=$2', [photoId, userId]);
+  if (exists.length) {
+    await query('DELETE FROM photo_likes WHERE id=$1', [exists[0].id]);
+    return res.json({ liked: false });
+  } else {
+    await query('INSERT INTO photo_likes (photo_id,user_id) VALUES ($1,$2)', [photoId, userId]);
+    return res.json({ liked: true });
+  }
+});
+
+// Photo comments
+app.get('/api/photos/:id/comments', async (req, res) => {
+  const photoId = req.params.id;
+  const { rows } = await query('SELECT pc.id, pc.content, pc.created_at, pc.user_id, u.username, u.avatar FROM photo_comments pc LEFT JOIN users u ON u.id=pc.user_id WHERE pc.photo_id=$1 ORDER BY pc.created_at ASC', [photoId]);
+  res.json(rows);
+});
+
+app.post('/api/photos/:id/comments', authMiddleware, async (req, res) => {
+  const photoId = req.params.id;
+  const { content } = req.body;
+  if (!content || !content.trim()) return res.status(400).json({ error: 'Yorum boş olamaz' });
+  const { rows } = await query('SELECT allow_comments FROM photos WHERE id=$1', [photoId]);
+  if (!rows.length) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+  if (rows[0].allow_comments !== 1) return res.status(403).json({ error: 'Yorumlara izin verilmemiş' });
+  await query('INSERT INTO photo_comments (photo_id,user_id,content) VALUES ($1,$2,$3)', [photoId, req.user.id, content.trim()]);
+  const c = await query('SELECT pc.id, pc.content, pc.created_at, pc.user_id, u.username, u.avatar FROM photo_comments pc LEFT JOIN users u ON u.id=pc.user_id WHERE pc.photo_id=$1 ORDER BY pc.created_at ASC', [photoId]);
+  res.json(c.rows[c.rows.length-1]);
+});
+
+app.delete('/api/photos/comments/:id', authMiddleware, async (req, res) => {
+  const commentId = req.params.id;
+  const { rows } = await query('SELECT photo_id, user_id FROM photo_comments WHERE id=$1', [commentId]);
+  if (!rows.length) return res.status(404).json({ error: 'Yorum bulunamadı' });
+  const comment = rows[0];
+  const { rows: photoRows } = await query('SELECT user_id FROM photos WHERE id=$1', [comment.photo_id]);
+  const photoOwner = photoRows.length ? photoRows[0].user_id : null;
+  if (comment.user_id !== req.user.id && photoOwner !== req.user.id && !req.user.is_admin) return res.status(403).json({ error: 'Yorum silme yetkiniz yok' });
+  await query('DELETE FROM photo_comments WHERE id=$1', [commentId]);
+  res.json({ ok: true });
+});
+
+// Admin: manage photos
+app.get('/api/admin/photos', adminMiddleware, async (req, res) => {
+  const { rows } = await query('SELECT p.id, p.url, p.caption, p.user_id, u.username, p.created_at, p.show_likes, p.allow_comments, p.allow_shares FROM photos p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC');
+  res.json(rows);
+});
+
+app.put('/api/admin/photos/:id', adminMiddleware, async (req, res) => {
+  const { url, caption, show_likes, allow_comments, allow_shares } = req.body;
+  const { rows } = await query('SELECT * FROM photos WHERE id=$1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+  await query('UPDATE photos SET url=COALESCE($1, url), caption=COALESCE($2, caption), show_likes=COALESCE($3, show_likes), allow_comments=COALESCE($4, allow_comments), allow_shares=COALESCE($5, allow_shares) WHERE id=$6',
+    [url, caption, show_likes !== undefined ? (show_likes?1:0) : null, allow_comments !== undefined ? (allow_comments?1:0) : null, allow_shares !== undefined ? (allow_shares?1:0) : null, req.params.id]);
+  const { rows: updated } = await query('SELECT * FROM photos WHERE id=$1', [req.params.id]);
+  res.json(updated[0]);
+});
+
+app.delete('/api/admin/photos/:id', adminMiddleware, async (req, res) => {
+  await query('DELETE FROM photos WHERE id=$1', [req.params.id]);
+  res.json({ ok: true });
 });
 
 // ===== ADMIN =====
