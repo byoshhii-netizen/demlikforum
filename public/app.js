@@ -585,25 +585,34 @@ document.addEventListener('click', e => {
 async function renderHome(app) {
   document.title = 'TeaTube – Topluluk Platformu';
   updatePageMeta('TeaTube – Topluluk Platformu', 'TeaTube her tür içeriğin paylaşıldığı fotoğraf, yazı ve müzik platformu.', '');
+  const isMobile = window.innerWidth <= 900;
+  const homeTitle = isMobile ? 'Öne Çıkan Fotoğraflar' : 'Popüler Konular';
+  const homeSubtitle = isMobile ? 'Topluluğun en yeni paylaşımları' : 'Topluluğun en çok konuşulan başlıkları';
+  const homeAction = isMobile
+    ? currentUser ? `<button class="btn btn-primary btn-sm" id="home-new-photo-btn"><i class="fas fa-upload"></i> Fotoğraf Yükle</button>` : `<a href="/giris" data-link class="btn btn-primary btn-sm">Giriş Yap</a>`
+    : currentUser ? `<button class="btn btn-primary btn-sm" id="home-new-forum-btn"><i class="fas fa-plus"></i> Yeni Konu Aç</button>` : `<a href="/giris" data-link class="btn btn-primary btn-sm">Giriş Yap</a>`;
+  const homeMoreLink = isMobile ? `<a href="/fotograflar" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>` : `<a href="/forum" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>`;
+  const photosTabActive = isMobile ? ' active' : '';
+  const forumsTabActive = !isMobile ? ' active' : '';
+
   app.innerHTML = `
     <div class="container page">
       <div class="home-tabs-row">
-        <a href="/fotograflar" data-link class="home-tab active">Fotoğraflar</a>
-        <a href="/forum" data-link class="home-tab">Konular</a>
+        <a href="/fotograflar" data-link class="home-tab${photosTabActive}" id="photos-tab">Fotoğraflar</a>
+        <a href="/forum" data-link class="home-tab${forumsTabActive}" id="forums-tab">Konular</a>
         <a href="/muzikler" data-link class="home-tab">Müzikler</a>
         <a href="/gruplar" data-link class="home-tab">Gruplar</a>
       </div>
       <div class="section">
         <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-          <div><div class="page-title">Öne Çıkan Fotoğraflar</div><div class="page-subtitle">Topluluğun en yeni paylaşımları</div></div>
+          <div><div class="page-title">${homeTitle}</div><div class="page-subtitle">${homeSubtitle}</div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            ${currentUser ? `<button class="btn btn-primary btn-sm" id="home-new-photo-btn"><i class="fas fa-upload"></i> Fotoğraf Yükle</button>` : `<a href="/giris" data-link class="btn btn-primary btn-sm">Giriş Yap</a>`}
-            <a href="/fotograflar" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>
+            ${homeAction}
+            ${homeMoreLink}
           </div>
         </div>
-        <div id="home-photos" class="photos-grid"></div>
+        <div id="home-content" class="home-content"></div>
       </div>
-      <!-- Removed Son Konular and Arkadaşlar sections per homepage design -->
     </div>`;
 
   if (currentUser) {
@@ -611,20 +620,37 @@ async function renderHome(app) {
     $('#home-new-forum-btn')?.addEventListener('click', () => showNewForumModal());
   }
 
+  if (window.innerWidth <= 900) {
+    loadHomePhotos();
+  } else {
+    loadHomeForums();
+  }
+
   async function loadHomePhotos() {
-    const photosEl = $('#home-photos');
-    if (!photosEl) return;
-    try {
-      const photos = await api('/photos');
-      if (!photos.length) {
-        photosEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>'; 
-        return;
-      }
-      photosEl.innerHTML = photos.slice(0, 8).map(photoCardHTML).join('');
-      attachPhotoCardActions(photosEl);
-    } catch (e) {
-      photosEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
-    }
+     const contentEl = $('#home-content');
+     if (!contentEl) return;
+     try {
+       const photos = await api('/photos');
+       if (!photos.length) {
+         contentEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>'; 
+         return;
+       }
+       contentEl.innerHTML = `<div class="photos-grid">${photos.slice(0, 8).map(photoCardHTML).join('')}</div>`;
+       attachPhotoCardActions(contentEl);
+     } catch (e) {
+       contentEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
+     }
+   }
+
+   async function loadHomeForums() {
+     const contentEl = $('#home-content');
+     if (!contentEl) return;
+     try {
+       const forums = await api('/forums');
+       if (!forums.length) { contentEl.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Henüz konu yok.</p></div>'; return; }
+       contentEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${forums.slice(0,8).map(f => forumCardHTML(f)).join('')}</div>`;
+     } catch (e) {
+       contentEl.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
   }
 
   let allForums = [];
@@ -662,7 +688,12 @@ async function renderHome(app) {
     else el.innerHTML = friends.filter(f => f.status === 'accepted').slice(0, 6).map(f => friendItemHTML(f, 'accepted', currentUser ? currentUser.id : 0)).join('');
   } catch {}
 
-  loadHomePhotos();
+  // Decide default home content based on viewport: mobile -> photos, desktop -> topics
+  const isMobile = window.innerWidth <= 900;
+  // Toggle active state on tabs (only photos/forums have explicit ids)
+  $('#photos-tab')?.classList.toggle('active', isMobile);
+  $('#forums-tab')?.classList.toggle('active', !isMobile);
+  if (isMobile) loadHomePhotos(); else loadHomeForums();
 }
 
 async function renderForumList(app, queryString) {
