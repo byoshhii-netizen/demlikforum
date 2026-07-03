@@ -2836,6 +2836,15 @@ app.get('/api/admin/conversations/:id/messages', adminMiddleware, async (req, re
   res.json(rows);
 });
 
+app.use((err, req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    const status = err.status || 500;
+    const message = err.message || 'Sunucu hatası';
+    return res.status(status).json({ error: message });
+  }
+  next(err);
+});
+
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return res.status(404).json({ error: 'Not found' });
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

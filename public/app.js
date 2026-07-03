@@ -94,7 +94,7 @@ async function showNewPhotoModal() {
     const form = new FormData();
     form.append('file', file);
     try {
-      const uploadRes = await apiForm('/upload', form);
+      const uploadRes = await apiForm('/api/upload', form);
       await api('/photos', { method: 'POST', body: JSON.stringify({ url: uploadRes.url, caption }) });
       hideModal();
       toast('Fotoğraf yüklendi');
@@ -126,8 +126,10 @@ async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (currentToken) headers['Authorization'] = 'Bearer ' + currentToken;
   const res = await fetch('/api' + path, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Hata');
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : {}; } catch (err) { data = null; }
+  if (!res.ok) throw new Error((data && data.error) || text || 'Hata');
   return data;
 }
 
@@ -136,8 +138,10 @@ async function apiForm(path, formData, method = 'POST') {
   if (currentToken) headers['Authorization'] = 'Bearer ' + currentToken;
   const url = path.startsWith('/api') ? path : '/api' + path;
   const res = await fetch(url, { method, body: formData, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Hata');
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : {}; } catch (err) { data = null; }
+  if (!res.ok) throw new Error((data && data.error) || text || 'Hata');
   return data;
 }
 
@@ -290,7 +294,18 @@ async function renderVip(app) {
         </div>
       </div>
       <div style="margin-top:18px;color:var(--text-muted)">Not: Bu sayfa demo amaçlıdır — gerçek ödeme entegrasyonu yok, satın alma anında hesabınıza paket atanır.</div>
-    </div>`;
+      <div class="card" style="margin-top:18px">
+        <div class="card-header"><strong>Hediye Kodunu Kullan</strong></div>
+        <div class="card-body" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start">
+          <input id="redeem-code" placeholder="Hediye kodu girin" style="flex:1;min-width:220px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card2);color:var(--text-primary)" />
+          <button class="btn btn-primary" id="redeem-btn">Kullan</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="card-header"><strong>Gönderilen Hediyeler</strong></div>
+        <div class="card-body" id="gift-history"><div style="color:var(--text-muted);font-size:13px">Yükleniyor...</div></div>
+      </div>
+    </div>`
 
   $('#buy-vip')?.addEventListener('click', async () => {
     // Open checkout modal and start payment session
@@ -314,10 +329,6 @@ async function renderVip(app) {
     } catch (e) { hideModal(); showModal('Ödeme Hatası', `<div style="padding:12px">Ödeme gerçekleştirilemedi: ${escHtml(e.message)}</div>`); }
   });
 
-  // gift buttons redirect to a placeholder flow
-  $('#gift-vip')?.addEventListener('click', () => { showModal('Hediye Et', '<div style="padding:12px">Hediye etme özelliği yakında kullanılabilir.</div>'); });
-  $('#gift-plus')?.addEventListener('click', () => { showModal('Hediye Et', '<div style="padding:12px">Hediye etme özelliği yakında kullanılabilir.</div>'); });
-  // Open gift modal
   $('#gift-vip')?.addEventListener('click', () => openGiftModal('vip'));
   $('#gift-plus')?.addEventListener('click', () => openGiftModal('plus'));
 
@@ -346,18 +357,37 @@ async function renderVip(app) {
     });
   }
 
-  // Redeem flow: allow user to enter code on VIP page
-  const redeemEl = document.getElementById('redeem-gift-inline');
-  if (redeemEl) {
-    $('#redeem-btn')?.addEventListener('click', async () => {
-      const code = ($('#redeem-code')?.value || '').trim();
-      if (!code) return toast('Kod girin','error');
-      try {
-        const updated = await api('/redeem-gift', { method: 'POST', body: JSON.stringify({ code }) });
-        currentUser = updated; updateNavUI(); toast('Hediye başarıyla kullanıldı'); renderRoute(location.pathname);
-      } catch (e) { toast(e.message,'error'); }
-    });
+  $('#redeem-btn')?.addEventListener('click', async () => {
+    const code = ($('#redeem-code')?.value || '').trim();
+    if (!code) return toast('Kod girin','error');
+    try {
+      const updated = await api('/redeem-gift', { method: 'POST', body: JSON.stringify({ code }) });
+      currentUser = updated; updateNavUI(); toast('Hediye başarıyla kullanıldı'); renderRoute(location.pathname);
+    } catch (e) { toast(e.message,'error'); }
+  });
+
+  async function loadGiftHistory() {
+    const historyEl = $('#gift-history');
+    if (!historyEl) return;
+    try {
+      const gifts = await api('/gifts');
+      if (!gifts.length) {
+        historyEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Henüz gönderdiğiniz hediye yok.</div>';
+        return;
+      }
+      historyEl.innerHTML = gifts.map(g => `
+        <div style="padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--bg-card2)">
+          <div><strong>${escHtml(g.type === 'vip' ? 'VIP' : 'Plus+')}</strong> paketini gönderdiniz</div>
+          <div style="font-size:13px;color:var(--text-muted);margin:6px 0">Alıcı: ${escHtml(g.recipient_username || 'Belirsiz')} · Kod: ${escHtml(g.code)}</div>
+          <div style="font-size:13px;color:var(--text-muted)">${escHtml(new Date(g.created_at).toLocaleString('tr-TR'))} · ${g.redeemed ? 'Kullanıldı' : 'Beklemede'}</div>
+        </div>
+      `).join('');
+    } catch (e) {
+      historyEl.innerHTML = `<div style="color:var(--accent-red2)">${escHtml(e.message)}</div>`;
+    }
   }
+
+  loadGiftHistory();
 }
 
 async function initAuth() {
@@ -1143,8 +1173,10 @@ function showNewForumModal(existing = null) {
       if (thumbFile) {
         const thumbFd = new FormData(); thumbFd.append('file', thumbFile);
         const thumbRes = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }, body: thumbFd });
-        const thumbData = await thumbRes.json();
-        if (thumbRes.ok && thumbData.url) thumbnailUrl = thumbData.url;
+        const thumbText = await thumbRes.text();
+        const thumbData = thumbText ? JSON.parse(thumbText) : {};
+        if (!thumbRes.ok) throw new Error(thumbData.error || thumbText || 'Kapak resmi yüklenemedi');
+        if (thumbData.url) thumbnailUrl = thumbData.url;
       }
 
       // Ek resimleri yükle
@@ -1153,8 +1185,10 @@ function showNewForumModal(existing = null) {
         const imgFile = extraImageFiles[i];
         const imgFd = new FormData(); imgFd.append('file', imgFile);
         const imgRes = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }, body: imgFd });
-        const imgData = await imgRes.json();
-        if (imgRes.ok && imgData.url) uploadedExtraImages.push(imgData.url);
+        const imgText = await imgRes.text();
+        const imgData = imgText ? JSON.parse(imgText) : {};
+        if (!imgRes.ok) throw new Error(imgData.error || imgText || 'Resim yüklenemedi');
+        if (imgData.url) uploadedExtraImages.push(imgData.url);
       }
 
       if (existing) {
@@ -1443,7 +1477,7 @@ function showNewBookModal(existing = null) {
       const coverFile = $('#bk-cover-file').files[0];
       if (coverFile) {
         const fd = new FormData(); fd.append('file', coverFile);
-        const r = await apiForm('/upload', fd);
+        const r = await apiForm('/api/upload', fd);
         cover_image = r.url;
       }
       if (existing) {
@@ -1663,7 +1697,7 @@ async function showAddPageModal(bookSlug, chapters) {
       const imgFile = $('#pg-image-file').files[0];
       if (imgFile) {
         const fd = new FormData(); fd.append('file', imgFile);
-        const r = await apiForm('/upload', fd);
+        const r = await apiForm('/api/upload', fd);
         image_url = r.url;
       }
       await api('/book/' + bookSlug + '/pages', { method: 'POST', body: JSON.stringify({ title, content, chapter_id, image_url }) });
@@ -1982,7 +2016,7 @@ function showNewGroupModal() {
       const coverFile = $('#gr-cover-file').files[0];
       if (coverFile) {
         const fd = new FormData(); fd.append('file', coverFile);
-        const r = await apiForm('/upload', fd);
+        const r = await apiForm('/api/upload', fd);
         cover_image = r.url;
       }
       const g = await api('/groups', { method: 'POST', body: JSON.stringify({ name, description: $('#gr-desc').value.trim(), cover_image, type: $('#gr-type').value, allow_chat: $('#gr-chat').checked, allow_photos: $('#gr-photos').checked, invite_only: $('#gr-invite').checked }) });
@@ -2185,7 +2219,7 @@ async function renderGroupDetail(app, slug) {
         const coverFile = $('#gs-cover-file').files[0];
         if (coverFile) {
           const fd = new FormData(); fd.append('file', coverFile);
-          const r = await apiForm('/upload', fd);
+          const r = await apiForm('/api/upload', fd);
           cover_image = r.url;
         }
         await api('/group/' + slug, { method: 'PUT', body: JSON.stringify({ name: $('#gs-name').value.trim(), description: $('#gs-desc').value.trim(), cover_image, type: $('#gs-type').value, allow_chat: $('#gs-chat').checked, allow_photos: $('#gs-photos').checked }) });
@@ -3262,14 +3296,6 @@ async function renderMessages(app, targetUsername) {
   if (currentUser) loadDmFriends();
   $('#dm-friends-toggle')?.addEventListener('click', () => { $('#dm-friends-widget').classList.toggle('hidden'); });
 
-  $('#dm-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    $$('.dm-conv-item, .dm-group-item').forEach(el => {
-      const text = (el.dataset.username || el.textContent || '').toLowerCase();
-      el.style.display = text.includes(q) ? '' : 'none';
-    });
-  });
-
   $('#new-dm-btn')?.addEventListener('click', () => {
     showModal('Yeni Mesaj', `
       <div class="form-group"><label>Kullanıcı adı</label><input id="new-dm-username" type="text" placeholder="kullanici_adi" /></div>
@@ -4315,17 +4341,15 @@ async function renderMusicDetail(app, slug) {
           <span><i class="fas fa-headphones"></i> ${song.play_count} dinlenme</span>
           <span><i class="fas fa-calendar"></i> ${formatDate(song.published_at)}</span>
         </div>
+        ${isUploader ? `<div class="music-detail-controls"><button class="music-edit-top-btn btn btn-outline btn-sm" id="song-edit-btn"><i class="fas fa-edit"></i> Düzenle</button></div>` : ''}
         <div class="music-player-box" id="music-player-box">
           <audio id="detail-audio" src="${escHtml(song.audio_url)}" preload="metadata"></audio>
           <div class="music-player-controls" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <button class="music-play-btn" id="detail-play-btn"><i class="fas fa-play"></i> Oynat</button>
-            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)">
-              <button id="detail-vol-btn" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:14px;padding:2px" title="Ses"><i class="fas fa-volume-up"></i></button>
-              <input type="range" id="detail-vol" min="0" max="100" value="80" step="1"
-                style="-webkit-appearance:none;appearance:none;width:80px;height:4px;border-radius:4px;background:var(--border);outline:none;cursor:pointer"
-                title="Ses seviyesi" />
+            <div class="music-volume-inline">
+              <button id="detail-vol-btn" type="button" title="Ses" class="music-vol-icon"><i class="fas fa-volume-up"></i></button>
+              <input type="range" id="detail-vol" min="0" max="100" value="80" step="1" class="music-vol-slider" title="Ses seviyesi" />
             </div>
-            ${isUploader ? `<button class="btn btn-outline btn-sm" id="song-edit-btn" style="margin-left:auto"><i class="fas fa-edit"></i> Düzenle</button>` : ''}
           </div>
           <div class="music-progress-wrap">
             <span class="music-time" id="dp-cur">0:00</span>

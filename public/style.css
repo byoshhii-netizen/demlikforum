@@ -427,6 +427,13 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 }
 
 /* Photo gallery grid used on home / fotograflar */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .photos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -1478,6 +1485,12 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
 
 /* PLAYER */
 .music-player-box { background: var(--bg-card2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+.music-detail-controls { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.music-edit-top-btn { margin-left: auto; }
+.music-volume-inline { display: flex; align-items: center; gap: 8px; }
+.music-vol-icon { background: none; border: none; color: var(--text-secondary); font-size: 14px; cursor: pointer; padding: 4px; }
+.music-vol-slider { -webkit-appearance: none; appearance: none; width: 90px; height: 4px; border-radius: 4px; background: var(--border); outline: none; cursor: pointer; }
+.music-vol-slider::-webkit-slider-thumb, .music-vol-slider::-moz-range-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-red); cursor: pointer; border: none; }
 .music-play-btn { background: var(--grad-red); color: #fff; border: none; padding: 10px 24px; border-radius: 24px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; transition: box-shadow 0.2s; }
 .music-play-btn:hover { box-shadow: 0 4px 20px rgba(220,38,38,0.4); }
 .music-progress-wrap { display: flex; align-items: center; gap: 10px; }
