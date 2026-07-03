@@ -120,6 +120,8 @@ function loadSection(section) {
     announcements: renderAnnouncements,
     songs: renderAdminSongs, photos: renderAdminPhotos, 'artist-apps': renderArtistApps
   };
+  // add badges handler
+  map['badges'] = renderBadges;
   if (map[section]) map[section](main);
 }
 
@@ -288,7 +290,7 @@ async function renderAdminPhotos(main) {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Mini</th><th>Açıklama</th><th>Kullanıcı</th><th>Tarih</th><th>Ayarlar</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>ID</th><th>Mini</th><th>Açıklama</th><th>Kullanıcı</th><th>Beğeni</th><th>Yorum</th><th>Paylaşım</th><th>Tarih</th><th>Ayarlar</th><th>İşlem</th></tr></thead>
           <tbody id="adm-photos-tbody"></tbody>
         </table>
       </div>
@@ -299,6 +301,9 @@ async function renderAdminPhotos(main) {
     <td><img src="${escHtml(p.url)}" style="width:64px;height:48px;object-fit:cover;border-radius:6px" /></td>
     <td>${escHtml(p.caption||'')}</td>
     <td>${escHtml(p.username||'')}</td>
+    <td>${p.like_count||0}</td>
+    <td>${p.comment_count||0}</td>
+    <td>${p.share_count||0}</td>
     <td>${formatDate(p.created_at)}</td>
     <td>Beğeni:${p.show_likes?'<span style="color:var(--green)">E</span>':'<span style="color:var(--text3)">H</span>'} Yorum:${p.allow_comments?'<span style="color:var(--green)">E</span>':'<span style="color:var(--text3)">H</span>'} Paylaş:${p.allow_shares?'<span style="color:var(--green)">E</span>':'<span style="color:var(--text3)">H</span>'}</td>
     <td>
@@ -323,9 +328,18 @@ async function renderAdminPhotos(main) {
     showModal('Fotoğraf Düzenle', `
       <div class="form-group"><label>Fotoğraf URL</label><input id="adm-photo-url" value="${escHtml(p.url)}" /></div>
       <div class="form-group"><label>Açıklama</label><textarea id="adm-photo-caption">${escHtml(p.caption||'')}</textarea></div>
-      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-showlikes" ${p.show_likes? 'checked': ''} /> Beğeni sayısını göster</label></div>
-      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-allowcomments" ${p.allow_comments? 'checked': ''} /> Yorumlara izin ver</label></div>
-      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-allowshares" ${p.allow_shares? 'checked': ''} /> Paylaşılabilir</label></div>
+      <div class="form-row">
+        <div class="form-group"><label>Beğeni Sayısı</label><input id="adm-photo-likes" type="number" value="${p.like_count||0}" /></div>
+        <div class="form-group"><label>Yorum Sayısı</label><input id="adm-photo-comments" type="number" value="${p.comment_count||0}" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Paylaşım Sayısı</label><input id="adm-photo-shares" type="number" value="${p.share_count||0}" /></div>
+        <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-showlikes" ${p.show_likes? 'checked': ''} /> Beğeni göster</label></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-allowcomments" ${p.allow_comments? 'checked': ''} /> Yorumlara izin ver</label></div>
+        <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-allowshares" ${p.allow_shares? 'checked': ''} /> Paylaşılabilir</label></div>
+      </div>
       <div style="display:flex;gap:8px"><button class="btn btn-primary" id="adm-photo-save">Kaydet</button><button class="btn btn-outline" id="adm-photo-cancel">İptal</button></div>
     `);
     $('#adm-photo-cancel').addEventListener('click', hideModal);
@@ -336,7 +350,7 @@ async function renderAdminPhotos(main) {
       const allow_comments = !!$('#adm-photo-allowcomments').checked;
       const allow_shares = !!$('#adm-photo-allowshares').checked;
       try {
-        const updated = await adminApi(`/photos/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ url, caption, show_likes, allow_comments, allow_shares }) });
+        const updated = await adminApi(`/photos/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ url, caption, show_likes, allow_comments, allow_shares, like_count: parseInt($('#adm-photo-likes').value)||0, comment_count: parseInt($('#adm-photo-comments').value)||0, share_count: parseInt($('#adm-photo-shares').value)||0 }) });
         hideModal(); toast('Güncellendi'); loadSection('photos');
       } catch (e) { $('#modal-body #edit-photo-error')?.textContent = e.message || 'Hata'; }
     });
@@ -482,7 +496,7 @@ async function renderForums(main) {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Başlık</th><th>Yazar</th><th>Görüntülenme</th><th>Beğeni</th><th>Tarih</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>ID</th><th>Başlık</th><th>Yazar</th><th>Görüntülenme</th><th>Beğeni</th><th>Yorum</th><th>Paylaşım</th><th>Tarih</th><th>İşlem</th></tr></thead>
           <tbody id="forums-tbody"></tbody>
         </table>
       </div>
@@ -496,6 +510,8 @@ async function renderForums(main) {
       <td><span style="color:var(--blue2)">${escHtml(f.username||'—')}</span></td>
       <td style="font-size:12px;color:var(--text2)">${f.views||0} <i class="fas fa-eye" style="font-size:10px"></i></td>
       <td style="font-size:12px;color:var(--text2)">${f.like_count||0} <i class="fas fa-heart" style="font-size:10px;color:#ef4444"></i></td>
+      <td style="font-size:12px;color:var(--text2)">${f.comment_count||0} <i class="fas fa-comment" style="font-size:10px;color:#7c87f5"></i></td>
+      <td style="font-size:12px;color:var(--text2)">${f.share_count||0} <i class="fas fa-share-alt" style="font-size:10px;color:#22c55e"></i></td>
       <td style="color:var(--text3);font-size:12px">${timeAgo(f.created_at)}</td>
       <td>
         <div style="display:flex;gap:4px">
@@ -512,6 +528,11 @@ async function renderForums(main) {
           <div class="form-group"><label>Başlık</label><input id="ef-title" value="${escHtml(f.title)}" /></div>
           <div class="form-row">
             <div class="form-group"><label>Görüntülenme</label><input id="ef-views" type="number" value="${f.views||0}" /></div>
+            <div class="form-group"><label>Beğeni Sayısı</label><input id="ef-likes" type="number" value="${f.like_count||0}" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Yorum Sayısı</label><input id="ef-comments" type="number" value="${f.comment_count||0}" /></div>
+            <div class="form-group"><label>Paylaşım Sayısı</label><input id="ef-shares" type="number" value="${f.share_count||0}" /></div>
           </div>
           <div id="ef-err" class="form-error"></div>
           <button class="btn btn-primary" id="ef-save" style="width:100%;justify-content:center;margin-top:12px"><i class="fas fa-save"></i> Kaydet</button>
@@ -522,7 +543,10 @@ async function renderForums(main) {
           try {
             const body = {
               title: $('#ef-title').value.trim() || f.title,
-              views: parseInt($('#ef-views').value) || 0
+              views: parseInt($('#ef-views').value) || 0,
+              like_count: parseInt($('#ef-likes').value) || 0,
+              comment_count: parseInt($('#ef-comments').value) || 0,
+              share_count: parseInt($('#ef-shares').value) || 0
             };
             await adminApi('/forum/'+f.id, { method:'PUT', body:JSON.stringify(body) });
             toast('Konu güncellendi');
@@ -728,6 +752,70 @@ async function renderArtists(main) {
       (a.artist_display_name||'').toLowerCase().includes(q) ||
       (a.artist_genre||'').toLowerCase().includes(q)
     ));
+  });
+}
+
+// ===== BADGES (ROZETLER) =====
+async function renderBadges(main) {
+  let badges = [];
+  try { badges = await adminApi('/badges'); } catch (e) { /* ignore */ }
+  let users = [];
+  try { users = await adminApi('/users'); } catch (e) { users = []; }
+
+  main.innerHTML = `
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-award"></i></div> Rozetler <span style="font-size:13px;font-weight:400;color:var(--text2)">(${badges.length})</span></div>
+      <div><button class="btn btn-primary" id="adm-badges-refresh">Yenile</button></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;padding:16px">
+      <div style="display:flex;gap:12px;align-items:center">
+        <input id="new-badge-name" placeholder="Rozet adı (ör: Katılımcı)" />
+        <input id="new-badge-icon" placeholder="ikon (fas fa-award) veya URL" />
+        <input id="new-badge-color" type="color" value="#6b7280" style="height:38px" />
+        <button class="btn btn-primary" id="create-badge">Oluştur</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span>Mevcut Rozetler</span></div>
+      <div class="card-body" id="badges-list">
+        ${badges.length ? badges.map(b => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border-bottom:1px solid var(--border)"><div><strong style="margin-right:8px;color:${escHtml(b.color||'#6b7280')}">${escHtml(b.name)}</strong> ${b.icon ? `<span style="margin-left:6px">${escHtml(b.icon)}</span>` : ''}</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm assign-badge" data-id="${escHtml(b.id)}">Kullanıcıya Ver</button><button class="btn btn-danger btn-sm delete-badge" data-id="${escHtml(b.id)}">Sil</button></div></div>`).join('') : '<div style="padding:12px;color:var(--text-muted)">Rozet yok</div>'}
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><span>Kullanıcılara Rozet Ver</span></div>
+      <div class="card-body">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <select id="badge-select">${badges.map(b=>`<option value="${escHtml(b.id)}">${escHtml(b.name)}</option>`).join('')}</select>
+          <select id="user-select">${users.map(u=>`<option value="${u.id}">${escHtml(u.username)}</option>`).join('')}</select>
+          <button class="btn btn-primary" id="assign-badge-btn">Ver</button>
+        </div>
+        <div id="badge-assign-msg" style="color:var(--text-muted)"></div>
+      </div>
+    </div>
+  `;
+
+  $('#adm-badges-refresh')?.addEventListener('click', () => loadSection('badges'));
+  $('#create-badge')?.addEventListener('click', async () => {
+    const name = $('#new-badge-name').value.trim(); const icon = $('#new-badge-icon').value.trim(); const color = $('#new-badge-color').value;
+    if (!name) return toast('Rozet adı gerekli','error');
+    try { await adminApi('/badges', { method: 'POST', body: JSON.stringify({ name, icon, color }) }); toast('Rozet oluşturuldu'); loadSection('badges'); } catch (e) { toast(e.message,'error'); }
+  });
+  $('#badges-list')?.addEventListener('click', async e => {
+    const del = e.target.closest('.delete-badge');
+    const assign = e.target.closest('.assign-badge');
+    if (del) { if (!confirm('Rozeti silmek istediğinize emin misiniz?')) return; try { await adminApi('/badges/' + del.dataset.id, { method: 'DELETE' }); toast('Silindi'); loadSection('badges'); } catch (e) { toast(e.message,'error'); } }
+    if (assign) {
+      const bId = assign.dataset.id; const sel = $('#user-select'); if (!sel) return; const uid = sel.value; try {
+        const b = badges.find(x=>String(x.id)===String(bId)); if (!b) return toast('Rozet bulunamadı','error');
+        await adminApi('/user/' + uid, { method: 'PUT', body: JSON.stringify({ badge_name: b.name, badge_icon: b.icon, badge_color: b.color }) });
+        toast('Rozet verildi');
+      } catch (e) { toast(e.message,'error'); }
+    }
+  });
+
+  $('#assign-badge-btn')?.addEventListener('click', async () => {
+    const bid = $('#badge-select').value; const uid = $('#user-select').value; if (!bid || !uid) return;
+    try { const b = badges.find(x=>String(x.id)===String(bid)); await adminApi('/user/' + uid, { method: 'PUT', body: JSON.stringify({ badge_name: b.name, badge_icon: b.icon, badge_color: b.color }) }); $('#badge-assign-msg').textContent = 'Rozet verildi'; } catch (e) { $('#badge-assign-msg').textContent = e.message; }
   });
 }
 

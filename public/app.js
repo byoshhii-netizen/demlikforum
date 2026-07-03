@@ -233,6 +233,7 @@ function renderRoute(fullPath) {
   if (path.startsWith('/kitap/') && segs.length === 4 && segs[2] === 'sayfa') return renderPageReader(app, segs[1], segs[3]);
   if (path === '/gruplar') return renderGroupList(app);
   if (path.startsWith('/grup/')) return renderGroupDetail(app, segs[1]);
+  if (path.startsWith('/profil/') && segs.length === 4 && segs[2] === 'foto') return renderPhotoDetail(app, segs[3], segs[1]);
   if (path.startsWith('/profil/')) return renderProfile(app, segs[1]);
   if (path === '/ayarlar') return renderSettings(app);
   if (path === '/giris') return renderLogin(app);
@@ -241,6 +242,7 @@ function renderRoute(fullPath) {
   if (path.startsWith('/mesajlar/')) return renderMessages(app, segs[1]);
   if (path === '/arkadaslar') return renderFriends(app);
   if (path === '/fotograflar') return renderPhotos(app);
+  if (path === '/vip') return renderVip(app);
   if (path.startsWith('/foto/')) return renderPhotoDetail(app, segs[1]);
   if (path === '/muzikler') return renderMusicList(app);
   if (path.startsWith('/muzik/')) return renderMusicDetail(app, segs[1]);
@@ -255,6 +257,57 @@ function updateNavActive(path) {
     l.classList.toggle('active', l.getAttribute('href') === path || (l.getAttribute('href') !== '/' && path.startsWith(l.getAttribute('href'))));
   });
   updateMobileBottomBar(path);
+}
+
+async function renderVip(app) {
+  if (!currentUser) { navigate('/giris'); return; }
+  document.title = 'Üyelik - TeaTube';
+  app.innerHTML = `
+    <div class="container page">
+      <div class="page-header"><div class="page-title">Üyelik Paketleri</div></div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div class="card" style="flex:1;min-width:260px">
+          <div class="card-header"><strong>VIP</strong></div>
+          <div class="card-body">
+            <p style="color:var(--text-secondary)">Profil renginizi özelleştirin, özel rozet ve öncelikli destek.</p>
+            <p style="font-size:18px;font-weight:700">₺29 / aylık</p>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn btn-primary" id="buy-vip">Satın Al</button>
+              <button class="btn btn-outline" id="gift-vip">Hediye Et</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="flex:1;min-width:260px">
+          <div class="card-header"><strong>Plus+</strong></div>
+          <div class="card-body">
+            <p style="color:var(--text-secondary)">VIP özellikleri + ekstra görünürlük ve içerik artıları.</p>
+            <p style="font-size:18px;font-weight:700">₺49 / aylık</p>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn btn-primary" id="buy-plus">Satın Al</button>
+              <button class="btn btn-outline" id="gift-plus">Hediye Et</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:18px;color:var(--text-muted)">Not: Bu sayfa demo amaçlıdır — gerçek ödeme entegrasyonu yok, satın alma anında hesabınıza paket atanır.</div>
+    </div>`;
+
+  $('#buy-vip')?.addEventListener('click', async () => {
+    try {
+      const res = await api('/purchase', { method: 'POST', body: JSON.stringify({ type: 'vip' }) });
+      currentUser = res; updateNavUI(); toast('VIP üyeliğiniz aktif edildi'); renderRoute(location.pathname);
+    } catch (e) { toast(e.message, 'error'); }
+  });
+  $('#buy-plus')?.addEventListener('click', async () => {
+    try {
+      const res = await api('/purchase', { method: 'POST', body: JSON.stringify({ type: 'plus' }) });
+      currentUser = res; updateNavUI(); toast('Plus+ üyeliğiniz aktif edildi'); renderRoute(location.pathname);
+    } catch (e) { toast(e.message, 'error'); }
+  });
+
+  // gift buttons redirect to a placeholder flow
+  $('#gift-vip')?.addEventListener('click', () => { showModal('Hediye Et', '<div style="padding:12px">Hediye etme özelliği yakında kullanılabilir.</div>'); });
+  $('#gift-plus')?.addEventListener('click', () => { showModal('Hediye Et', '<div style="padding:12px">Hediye etme özelliği yakında kullanılabilir.</div>'); });
 }
 
 async function initAuth() {
@@ -415,6 +468,7 @@ $('#nav-notif-btn')?.addEventListener('click', e => {
 });
 $('#nav-new-forum')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/forum'); setTimeout(() => { if (currentUser) showNewForumModal(); else navigate('/giris'); }, 100); });
 $('#nav-new-book')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/kitaplar'); setTimeout(() => { if (currentUser) showNewBookModal(); else navigate('/giris'); }, 100); });
+$('#nav-new-photo')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); if (!currentUser) { navigate('/giris'); return; } showNewPhotoModal(); });
 $('#nav-new-group')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/gruplar'); });
 $('#logout-btn').addEventListener('click', async () => {
   try { await api('/auth/logout', { method: 'POST' }); } catch {}
@@ -577,7 +631,7 @@ async function renderForumList(app, queryString) {
   });
 }
 
-async function renderPhotoDetail(app, id) {
+async function renderPhotoDetail(app, id, ownerUsername) {
   try {
     const photo = await api('/photos/' + encodeURIComponent(id));
     if (!photo) return navigate('/fotograflar');
@@ -590,7 +644,7 @@ async function renderPhotoDetail(app, id) {
             <div class="photo-detail-media"><img src="${escHtml(photo.url)}" alt="${escHtml(photo.caption||'')}"></div>
             <div class="photo-detail-body">
               <h2>${escHtml(photo.caption||'')}</h2>
-              <div class="meta-row">Paylaşan: <a href="/profil/${escHtml(photo.username)}" data-link>${escHtml(photo.username)}</a></div>
+              <div class="meta-row">Paylaşan: <a href="/profil/${escHtml(photo.username||ownerUsername||'')}" data-link>${escHtml(photo.username||ownerUsername||'')}</a></div>
               <div style="margin-top:12px">
                 <button class="btn btn-ghost photo-like-btn" data-id="${escHtml(photo.id)}">${photo.liked?'<i class="fas fa-heart" style="color:var(--accent-red2)"></i>':'<i class="far fa-heart"></i>'} <span class="photo-like-count">${photo.like_count||0}</span></button>
                 <button class="btn btn-ghost photo-comment-btn" data-id="${escHtml(photo.id)}"><i class="fas fa-comment"></i> Yorumlar (${photo.comment_count||0})</button>
@@ -670,7 +724,7 @@ function photoCardHTML(p) {
   const isOwn = currentUser && currentUser.username === p.username;
   return `
     <div class="photo-card">
-      <div class="photo-card-media" onclick="navigate('/foto/${escHtml(p.id)}')" style="cursor:pointer">
+      <div class="photo-card-media" onclick="navigate('/profil/${escHtml(p.username)}/foto/${escHtml(p.id)}')" style="cursor:pointer">
         <img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" />
         ${isOwn ? `<div class="photo-card-actions">
           <button class="btn btn-ghost btn-sm photo-edit-btn" data-id="${escHtml(p.id)}" title="Düzenle"><i class="fas fa-edit"></i></button>
@@ -1397,11 +1451,16 @@ async function renderBookDetail(app, slug) {
         </div>
       </div>
     </div>
-    <div class="chapters-list">
-      <div class="section-title" style="margin-bottom:16px"><div class="section-title-bar"></div>İçindekiler</div>
-      ${!chapters.length && !pages.length ? '<div class="empty-state"><i class="fas fa-file-alt"></i><p>Henüz sayfa yok.</p></div>' : ''}
-      ${unassignedHTML}
-      ${chapListHTML}
+    <div class="book-pages-list">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px">
+        <div style="font-weight:700;font-size:15px">${book.page_count || 0} sayfa</div>
+        <div>
+          <button class="btn btn-primary" id="book-read-btn"><i class="fas fa-book-open"></i> Oku</button>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;overflow:auto;padding-bottom:8px" id="book-pages-strip">
+        ${pages.map(p => `<a href="/kitap/${escHtml(book.slug)}/sayfa/${escHtml(p.slug)}" data-link class="book-page-item" style="white-space:nowrap;padding:8px 12px;border-radius:8px;background:var(--bg-card2);border:1px solid var(--border);font-size:13px;color:var(--text-primary)">${p.page_num}. ${escHtml(p.title)}</a>`).join('')}
+      </div>
     </div>
   </div>`;
 
@@ -1421,6 +1480,17 @@ async function renderBookDetail(app, slug) {
       });
     });
   }
+
+  // Oku butonu: en son okunan sayfaya devam etme
+  $('#book-read-btn')?.addEventListener('click', () => {
+    try {
+      const last = localStorage.getItem('book_last_' + book.slug);
+      if (last) return navigate('/kitap/' + encodeURIComponent(book.slug) + '/sayfa/' + encodeURIComponent(last));
+      // yoksa ilk sayfaya git
+      if (pages && pages.length) return navigate('/kitap/' + encodeURIComponent(book.slug) + '/sayfa/' + encodeURIComponent(pages[0].slug));
+      navigate('/kitap/' + encodeURIComponent(book.slug));
+    } catch (e) { navigate('/kitap/' + encodeURIComponent(book.slug)); }
+  });
 
   $('#download-pdf-btn')?.addEventListener('click', async () => {
     toast('PDF hazırlanıyor...', 'success');
@@ -1705,6 +1775,9 @@ async function renderPageReader(app, bookSlug, pageSlug) {
       try { await api(`/book/${bookSlug}/page/${pageSlug}`, { method: 'DELETE' }); toast('Sayfa silindi'); navigate('/kitap/' + bookSlug); } catch (e) { toast(e.message, 'error'); }
     });
   }
+
+  // Sayfa görüntülendi: son okunan konumu kaydet
+  try { localStorage.setItem('book_last_' + bookSlug, page.slug); } catch (e) {}
 }
 
 async function renderGroupList(app) {
@@ -2465,7 +2538,9 @@ function renderSettingsSection(section) {
         <div class="card-body">
           <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="s-show-badge" ${currentUser.show_level_badge ? 'checked' : ''} /> Seviye rozetini göster</label></div>
           <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="s-show-color" ${currentUser.show_level_color ? 'checked' : ''} /> İsim rengini göster</label></div>
-          <div class="form-group"><label>İsim Rengi</label><input type="color" id="s-name-color" value="${currentUser.name_color || '#f5f5f5'}" style="width:60px;height:36px;padding:2px;cursor:pointer" /></div>
+          <div class="form-group"><label>İsim Rengi</label>
+            ${currentUser.is_vip ? `<input type="color" id="s-name-color" value="${currentUser.name_color || '#f5f5f5'}" style="width:60px;height:36px;padding:2px;cursor:pointer" />` : `<div style="display:flex;align-items:center;gap:8px"><input type="color" id="s-name-color" value="${currentUser.name_color || '#f5f5f5'}" style="width:60px;height:36px;padding:2px;cursor:pointer" disabled /><button class="btn btn-ghost btn-sm" id="buy-vip-btn">VIP Ol</button></div>`}
+          </div>
           <div class="form-group"><label>Gösterilecek rozet</label>
             <select id="s-badge-display" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text)">
               <option value="level"${!currentUser.badge_display || currentUser.badge_display==='level' ? ' selected' : ''}>Seviye rozeti</option>
@@ -2497,7 +2572,9 @@ function renderSettingsSection(section) {
         show_level_badge: $('#s-show-badge').checked,
         show_level_color: $('#s-show-color').checked,
       };
-      body.name_color = $('#s-name-color')?.value || '';
+      if (currentUser.is_vip) {
+        body.name_color = $('#s-name-color')?.value || '';
+      }
       body.badge_display = $('#s-badge-display')?.value || 'level';
       if (currentUser.is_vip || currentUser.is_plus) {
         body.badge_name = $('#s-badge-name')?.value.trim() || '';
@@ -2511,6 +2588,20 @@ function renderSettingsSection(section) {
         currentUser = updated; updateNavUI();
         toast('Görünüm güncellendi');
       } catch (e) { $('#appear-msg').textContent = e.message; }
+    });
+    // VIP satın alma butonu: non-VIP kullanıcıları VIP sayfasına yönlendir
+    $('#buy-vip-btn')?.addEventListener('click', () => {
+      showModal('VIP Ol', `
+        <div style="padding:12px">
+          <p style="margin-bottom:12px">İsim rengini değiştirmek için VIP olmanız gerekiyor. VIP ile profil renkleri, özel rozet ve daha fazlasına erişim sağlarsınız.</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" id="vip-go">VIP Sayfasına Git</button>
+            <button class="btn btn-ghost" id="vip-close">Kapat</button>
+          </div>
+        </div>
+      `);
+      $('#vip-close')?.addEventListener('click', hideModal);
+      $('#vip-go')?.addEventListener('click', () => { hideModal(); navigate('/vip'); });
     });
   } else if (section === 'notifications') {
     el.innerHTML = `
@@ -3221,7 +3312,7 @@ async function renderDMChat(username) {
 
   const { conv, other, messages, isHidden, hasPassword } = data;
   if (isHidden) {
-    mainEl.innerHTML = `<div class="dm-chat">
+    mainEl.innerHTML = `<div class="dm-chat" style="display:flex;flex-direction:column;height:100%">
       <div class="dm-chat-header">
         <div style="display:flex;align-items:center;gap:10px">
           <i class="fas fa-lock" style="color:var(--accent-red2)"></i>
@@ -3267,7 +3358,7 @@ async function renderDMChat(username) {
         <button class="btn btn-ghost btn-sm" id="dm-options-btn"><i class="fas fa-ellipsis-v"></i></button>
       </div>
     </div>
-    <div class="dm-messages" id="dm-messages">
+    <div class="dm-messages" id="dm-messages" style="flex:1;overflow:auto;min-height:0;padding:12px">
       ${messages.map(m => dmMessageHTML(m, currentUser.id, false)).join('')}
     </div>
     <div id="dm-reply-bar" style="display:none;padding:6px 14px;background:var(--bg-card2);border-top:1px solid var(--border);font-size:12px;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between">

@@ -384,6 +384,41 @@ app.get('/sitemap.xml', async (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ===== ADMIN BADGES API =====
+app.get('/api/admin/badges', adminMiddleware, async (req, res) => {
+  try {
+    const { rows } = await query('SELECT * FROM badges ORDER BY id DESC');
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/badges', adminMiddleware, async (req, res) => {
+  try {
+    const { name, icon, color } = req.body;
+    if (!name) return res.status(400).json({ error: 'İsim gerekli' });
+    const { rows } = await query('INSERT INTO badges(name,icon,color,created_at) VALUES($1,$2,$3,NOW()) RETURNING *', [name, icon||'', color||'#6b7280']);
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/admin/badges/:id', adminMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    await query('DELETE FROM badges WHERE id=$1', [id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Assign badge to user
+app.put('/api/admin/user/:id/badge', adminMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { badge_name, badge_icon, badge_color } = req.body;
+    await query('UPDATE users SET badge_name=$1, badge_icon=$2, badge_color=$3 WHERE id=$4', [badge_name||null, badge_icon||null, badge_color||null, id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== AUTH =====
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -450,6 +485,22 @@ app.post('/api/auth/logout', authMiddleware, async (req, res) => {
   const token = req.headers['authorization']?.replace('Bearer ', '');
   await query('DELETE FROM sessions WHERE token=$1', [token]);
   res.json({ ok: true });
+});
+
+// ===== PURCHASE (demo) =====
+app.post('/api/purchase', authMiddleware, async (req, res) => {
+  try {
+    const { type } = req.body;
+    if (!type || (type !== 'vip' && type !== 'plus')) return res.status(400).json({ error: 'Geçersiz paket' });
+    const userId = req.user.id;
+    if (type === 'vip') {
+      await query('UPDATE users SET is_vip=1 WHERE id=$1', [userId]);
+    } else if (type === 'plus') {
+      await query('UPDATE users SET is_plus=1 WHERE id=$1', [userId]);
+    }
+    const { rows } = await query('SELECT * FROM users WHERE id=$1', [userId]);
+    res.json(sanitizeUser(rows[0]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== HESAP SİLME =====
@@ -1327,16 +1378,17 @@ app.delete('/api/photos/comments/:id', authMiddleware, async (req, res) => {
 
 // Admin: manage photos
 app.get('/api/admin/photos', adminMiddleware, async (req, res) => {
-  const { rows } = await query('SELECT p.id, p.url, p.caption, p.user_id, u.username, p.created_at, p.show_likes, p.allow_comments, p.allow_shares FROM photos p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC');
+  const { rows } = await query('SELECT p.id, p.url, p.caption, p.user_id, u.username, p.created_at, p.show_likes, p.allow_comments, p.allow_shares, p.like_count, p.comment_count, p.share_count FROM photos p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC');
   res.json(rows);
 });
 
 app.put('/api/admin/photos/:id', adminMiddleware, async (req, res) => {
-  const { url, caption, show_likes, allow_comments, allow_shares } = req.body;
+  const { url, caption, show_likes, allow_comments, allow_shares, like_count, comment_count, share_count } = req.body;
   const { rows } = await query('SELECT * FROM photos WHERE id=$1', [req.params.id]);
   if (!rows.length) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
-  await query('UPDATE photos SET url=COALESCE($1, url), caption=COALESCE($2, caption), show_likes=COALESCE($3, show_likes), allow_comments=COALESCE($4, allow_comments), allow_shares=COALESCE($5, allow_shares) WHERE id=$6',
-    [url, caption, show_likes !== undefined ? (show_likes?1:0) : null, allow_comments !== undefined ? (allow_comments?1:0) : null, allow_shares !== undefined ? (allow_shares?1:0) : null, req.params.id]);
+  await query('UPDATE photos SET url=COALESCE($1, url), caption=COALESCE($2, caption), show_likes=COALESCE($3, show_likes), allow_comments=COALESCE($4, allow_comments), allow_shares=COALESCE($5, allow_shares), like_count=COALESCE($6, like_count), comment_count=COALESCE($7, comment_count), share_count=COALESCE($8, share_count) WHERE id=$9',
+    [url, caption, show_likes !== undefined ? (show_likes?1:0) : null, allow_comments !== undefined ? (allow_comments?1:0) : null, allow_shares !== undefined ? (allow_shares?1:0) : null,
+     like_count !== undefined ? parseInt(like_count) : null, comment_count !== undefined ? parseInt(comment_count) : null, share_count !== undefined ? parseInt(share_count) : null, req.params.id]);
   const { rows: updated } = await query('SELECT * FROM photos WHERE id=$1', [req.params.id]);
   res.json(updated[0]);
 });
