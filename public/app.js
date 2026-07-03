@@ -472,10 +472,10 @@ async function renderHome(app) {
       </div>
       <div class="section">
         <div class="section-header">
-          <div class="section-title"><div class="section-title-bar"></div>Öne Çıkan Kitaplar</div>
-          <a href="/kitaplar" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>
+          <div class="section-title"><div class="section-title-bar"></div>Arkadaşlar</div>
+          <a href="/arkadaslar" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>
         </div>
-        <div id="home-books" class="grid-3"></div>
+        <div id="home-friends" class="grid-3"></div>
       </div>
     </div>`;
 
@@ -538,10 +538,10 @@ async function renderHome(app) {
   });
 
   try {
-    const books = await api('/books');
-    const el = $('#home-books');
-    if (!books.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-book"></i><p>Henüz kitap yok.</p></div>'; }
-    else el.innerHTML = books.slice(0, 6).map(b => bookCardHTML(b)).join('');
+    const friends = await api('/friends');
+    const el = $('#home-friends');
+    if (!friends.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Henüz arkadaş yok.</p></div>'; }
+    else el.innerHTML = friends.filter(f => f.status === 'accepted').slice(0, 6).map(f => friendItemHTML(f, 'accepted', currentUser ? currentUser.id : 0)).join('');
   } catch {}
 
   loadHomePhotos();
@@ -2302,14 +2302,6 @@ function renderSettingsSection(section) {
           <div id="appear-msg" class="form-error mt-4"></div>
         </div>
       </div>`;
-    const badgeDisplaySelect = $('#s-badge-display');
-    if (badgeDisplaySelect) {
-      badgeDisplaySelect.addEventListener('change', () => {
-        const customControls = $('#custom-badge-controls');
-        if (customControls) customControls.style.display = badgeDisplaySelect.value === 'custom' ? 'block' : 'none';
-      });
-    }
-
     const badgeDisplaySelect = $('#s-badge-display');
     if (badgeDisplaySelect) {
       badgeDisplaySelect.addEventListener('change', () => {
