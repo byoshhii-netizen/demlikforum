@@ -2295,7 +2295,7 @@ app.get('/api/search', async (req, res) => {
     let q = (req.query.q || '').trim();
     if (!q || q.length < 1) return res.json([]);
     // normalize legacy brand mentions
-    q = q.replace(/teatube/ig, 'teatube');
+    q = q.replace(/demlik/ig, 'teatube');
     const limit = Math.min(50, parseInt(req.query.limit) || 20);
     const term = `%${q}%`;
 
@@ -2708,7 +2708,7 @@ app.get('*', (req, res) => {
 
 // ===== BAŞLAT =====
 initDb().then(() => {
-  app.listen(PORT, () => console.log(`TeaTube calisiyor: http://localhost:${PORT}`));
+  app.listen(PORT, () => console.log(`Demlik calisiyor: http://localhost:${PORT}`));
 }).catch(err => {
   console.error('DB başlatma hatası:', err);
   process.exit(1);

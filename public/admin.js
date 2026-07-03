@@ -1,4 +1,4 @@
-﻿// ===== DEMLIK ADMIN PANEL =====
+﻿// ===== TeaTube ADMIN PANEL =====
 let adminToken = sessionStorage.getItem('admin_token') || '';
 let currentSection = 'dashboard';
 
@@ -118,7 +118,7 @@ function loadSection(section) {
     levels: renderLevels, tags: renderTags, logs: renderLogs,
     settings: renderSettings, messages: renderAdminMessages,
     announcements: renderAnnouncements,
-    songs: renderAdminSongs, 'artist-apps': renderArtistApps
+    songs: renderAdminSongs, photos: renderAdminPhotos, 'artist-apps': renderArtistApps
   };
   if (map[section]) map[section](main);
 }
@@ -274,6 +274,78 @@ function renderUsersTable(users) {
     if (del) { if (!confirm('Kullanıcı kalıcı silinsin mi?')) return; try { await adminApi('/user/'+del.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('users'); } catch(e){toast(e.message,'error');} }
     if (perm) { const u = users.find(x => x.id == perm.dataset.id); if (u) showPermModal(u); }
   });
+}
+
+// ===== PHOTOS =====
+async function renderAdminPhotos(main) {
+  let photos = [];
+  try { photos = await adminApi('/photos'); } catch (e) { main.innerHTML = `<div class="card"><div class="card-body" style="color:var(--red2);padding:20px"><i class="fas fa-exclamation-circle"></i> ${escHtml(e.message)}</div></div>`; return; }
+  main.innerHTML = `
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-camera-retro"></i></div> Fotoğraflar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${photos.length})</span></div>
+      <div><button class="btn btn-primary" id="adm-photos-refresh">Yenile</button></div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Mini</th><th>Açıklama</th><th>Kullanıcı</th><th>Tarih</th><th>Ayarlar</th><th>İşlem</th></tr></thead>
+          <tbody id="adm-photos-tbody"></tbody>
+        </table>
+      </div>
+    </div>`;
+  const tbody = $('#adm-photos-tbody');
+  tbody.innerHTML = photos.map(p => `<tr>
+    <td>#${p.id}</td>
+    <td><img src="${escHtml(p.url)}" style="width:64px;height:48px;object-fit:cover;border-radius:6px" /></td>
+    <td>${escHtml(p.caption||'')}</td>
+    <td>${escHtml(p.username||'')}</td>
+    <td>${formatDate(p.created_at)}</td>
+    <td>Beğeni:${p.show_likes?'<span style="color:var(--green)">E</span>':'<span style="color:var(--text3)">H</span>'} Yorum:${p.allow_comments?'<span style="color:var(--green)">E</span>':'<span style="color:var(--text3)">H</span>'} Paylaş:${p.allow_shares?'<span style="color:var(--green)">E</span>':'<span style="color:var(--text3)">H</span>'}</td>
+    <td>
+      <button class="btn btn-outline btn-xs adm-photo-view" data-id="${p.id}">Görüntüle</button>
+      <button class="btn btn-blue btn-xs adm-photo-edit" data-id="${p.id}">Düzenle</button>
+      <button class="btn btn-danger btn-xs adm-photo-delete" data-id="${p.id}">Sil</button>
+    </td>
+  </tr>`).join('');
+
+  $('#adm-photos-refresh')?.addEventListener('click', () => loadSection('photos'));
+
+  tbody.querySelectorAll('.adm-photo-view').forEach(b => b.addEventListener('click', async () => {
+    const id = b.dataset.id;
+    const p = photos.find(x => String(x.id) === String(id));
+    if (!p) return toast('Fotoğraf bulunamadı','error');
+    showModal('Fotoğraf İncele', `<div style="display:flex;gap:12px"><div style="flex:1"><img src="${escHtml(p.url)}" style="max-width:100%;border-radius:8px" /></div><div style="width:320px"><h3>${escHtml(p.caption||'')}</h3><p>Kullanıcı: ${escHtml(p.username||'')}</p><p>ID: ${p.id}</p><p>Tarih: ${formatDate(p.created_at)}</p></div></div>`);
+  }));
+
+  tbody.querySelectorAll('.adm-photo-edit').forEach(b => b.addEventListener('click', async () => {
+    const id = b.dataset.id; const p = photos.find(x => String(x.id) === String(id));
+    if (!p) return toast('Fotoğraf bulunamadı','error');
+    showModal('Fotoğraf Düzenle', `
+      <div class="form-group"><label>Fotoğraf URL</label><input id="adm-photo-url" value="${escHtml(p.url)}" /></div>
+      <div class="form-group"><label>Açıklama</label><textarea id="adm-photo-caption">${escHtml(p.caption||'')}</textarea></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-showlikes" ${p.show_likes? 'checked': ''} /> Beğeni sayısını göster</label></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-allowcomments" ${p.allow_comments? 'checked': ''} /> Yorumlara izin ver</label></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="adm-photo-allowshares" ${p.allow_shares? 'checked': ''} /> Paylaşılabilir</label></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary" id="adm-photo-save">Kaydet</button><button class="btn btn-outline" id="adm-photo-cancel">İptal</button></div>
+    `);
+    $('#adm-photo-cancel').addEventListener('click', hideModal);
+    $('#adm-photo-save').addEventListener('click', async () => {
+      const url = $('#adm-photo-url').value.trim();
+      const caption = $('#adm-photo-caption').value.trim();
+      const show_likes = !!$('#adm-photo-showlikes').checked;
+      const allow_comments = !!$('#adm-photo-allowcomments').checked;
+      const allow_shares = !!$('#adm-photo-allowshares').checked;
+      try {
+        const updated = await adminApi(`/photos/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ url, caption, show_likes, allow_comments, allow_shares }) });
+        hideModal(); toast('Güncellendi'); loadSection('photos');
+      } catch (e) { $('#modal-body #edit-photo-error')?.textContent = e.message || 'Hata'; }
+    });
+  }));
+
+  tbody.querySelectorAll('.adm-photo-delete').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('Bu fotoğrafı kalıcı olarak silmek istediğinize emin misiniz?')) return;
+    try { await adminApi(`/photos/${encodeURIComponent(b.dataset.id)}`, { method: 'DELETE' }); toast('Silindi'); loadSection('photos'); } catch (e) { toast(e.message || 'Hata', 'error'); }
+  }));
 }
 
 function showEditUserModal(user) {
@@ -1580,7 +1652,7 @@ async function renderSettings(main) {
       <div class="card">
         <div class="card-header"><span><i class="fas fa-palette" style="color:var(--red2);margin-right:8px"></i>Genel</span></div>
         <div class="card-body">
-          <div class="form-group"><label>Site Adı</label><input id="s-sitename" value="${escHtml(settings['site_name']||'Demlik')}" /></div>
+          <div class="form-group"><label>Site Adı</label><input id="s-sitename" value="${escHtml(settings['site_name']||'TeaTube')}" /></div>
           <div class="form-group">
             <label>Site Logosu</label>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">

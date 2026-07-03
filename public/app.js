@@ -1,7 +1,7 @@
 ﻿let currentUser = null;
 let currentToken = localStorage.getItem('token');
 
-const SITE_URL = 'https://demlik.up.railway.app';
+const SITE_URL = 'https://demlikforum.up.railway.app';
 
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return document.querySelectorAll(sel); }
@@ -12,14 +12,14 @@ function updatePageMeta(title, description, imageUrl) {
   if (!desc) { desc = document.createElement('meta'); desc.setAttribute('name','description'); document.head.appendChild(desc); }
   desc.setAttribute('content', description);
 
-  const ogFields = { 'og:title': title, 'og:description': description, 'og:image': imageUrl || (SITE_URL + '/demlik.png'), 'og:url': location.href };
+  const ogFields = { 'og:title': title, 'og:description': description, 'og:image': imageUrl || (SITE_URL + '/teatube.png'), 'og:url': location.href };
   Object.entries(ogFields).forEach(([prop, content]) => {
     let el = document.querySelector(`meta[property="${prop}"]`);
     if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el); }
     el.setAttribute('content', content);
   });
 
-  const twFields = { 'twitter:title': title, 'twitter:description': description, 'twitter:image': imageUrl || (SITE_URL + '/demlik.png') };
+  const twFields = { 'twitter:title': title, 'twitter:description': description, 'twitter:image': imageUrl || (SITE_URL + '/teatube.png') };
   Object.entries(twFields).forEach(([name, content]) => {
     let el = document.querySelector(`meta[name="${name}"]`);
     if (!el) { el = document.createElement('meta'); el.setAttribute('name', name); document.head.appendChild(el); }
@@ -241,6 +241,7 @@ function renderRoute(fullPath) {
   if (path.startsWith('/mesajlar/')) return renderMessages(app, segs[1]);
   if (path === '/arkadaslar') return renderFriends(app);
   if (path === '/fotograflar') return renderPhotos(app);
+  if (path.startsWith('/foto/')) return renderPhotoDetail(app, segs[1]);
   if (path === '/muzikler') return renderMusicList(app);
   if (path.startsWith('/muzik/')) return renderMusicDetail(app, segs[1]);
   if (path === '/artist-basvuru') return renderArtistApply(app);
@@ -468,25 +469,7 @@ async function renderHome(app) {
         </div>
         <div id="home-photos" class="photos-grid"></div>
       </div>
-      <div class="section">
-        <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-          <div><div class="page-title">Son Konular</div></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            ${currentUser ? `<button class="btn btn-primary btn-sm" id="home-new-forum-btn"><i class="fas fa-plus"></i> Yeni Konu</button>` : ''}
-            <a href="/forum" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>
-          </div>
-        </div>
-        <div id="home-categories" class="home-categories"></div>
-        <div class="search-bar" style="margin:0 0 16px;flex:1;min-width:180px"><i class="fas fa-search"></i><input type="text" id="home-forum-search" placeholder="Konu ara..." /></div>
-        <div id="home-forums"><div class="loading-center"><div class="spinner"></div></div></div>
-      </div>
-      <div class="section">
-        <div class="section-header">
-          <div class="section-title"><div class="section-title-bar"></div>Arkadaşlar</div>
-          <a href="/arkadaslar" data-link class="btn btn-ghost btn-sm">Tümü <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div id="home-friends" class="grid-3"></div>
-      </div>
+      <!-- Removed Son Konular and Arkadaşlar sections per homepage design -->
     </div>`;
 
   if (currentUser) {
@@ -594,6 +577,42 @@ async function renderForumList(app, queryString) {
   });
 }
 
+async function renderPhotoDetail(app, id) {
+  try {
+    const photo = await api('/photos/' + encodeURIComponent(id));
+    if (!photo) return navigate('/fotograflar');
+    document.title = (photo.caption ? photo.caption + ' – ' : '') + 'Fotoğraf – TeaTube';
+    updatePageMeta(photo.caption || 'Fotoğraf', photo.caption || '', photo.url || '');
+    app.innerHTML = `
+      <div class="container page">
+        <div class="section">
+          <div class="photo-detail">
+            <div class="photo-detail-media"><img src="${escHtml(photo.url)}" alt="${escHtml(photo.caption||'')}"></div>
+            <div class="photo-detail-body">
+              <h2>${escHtml(photo.caption||'')}</h2>
+              <div class="meta-row">Paylaşan: <a href="/profil/${escHtml(photo.username)}" data-link>${escHtml(photo.username)}</a></div>
+              <div style="margin-top:12px">
+                <button class="btn btn-ghost photo-like-btn" data-id="${escHtml(photo.id)}">${photo.liked?'<i class="fas fa-heart" style="color:var(--accent-red2)"></i>':'<i class="far fa-heart"></i>'} <span class="photo-like-count">${photo.like_count||0}</span></button>
+                <button class="btn btn-ghost photo-comment-btn" data-id="${escHtml(photo.id)}"><i class="fas fa-comment"></i> Yorumlar (${photo.comment_count||0})</button>
+              </div>
+              <div id="photo-comments-list" style="margin-top:16px"></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    attachPhotoCardActions(app);
+    // load comments
+    try {
+      const comments = await api(`/photos/${encodeURIComponent(id)}/comments`);
+      const el = $('#photo-comments-list');
+      if (!comments.length) { el.innerHTML = '<div class="empty-state"><p>Henüz yorum yok.</p></div>'; }
+      else el.innerHTML = comments.map(c => `<div class="comment-item">${escHtml(c.username)}: ${escHtml(c.content)}</div>`).join('');
+    } catch {}
+  } catch (e) {
+    toast('Fotoğraf bulunamadı', 'error'); navigate('/fotograflar');
+  }
+}
+
 function renderForumListItems(forums) {
   const el = $('#forums-list');
   if (!el) return;
@@ -651,10 +670,8 @@ function photoCardHTML(p) {
   const isOwn = currentUser && currentUser.username === p.username;
   return `
     <div class="photo-card">
-      <div class="photo-card-media">
-        <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer">
-          <img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" />
-        </a>
+      <div class="photo-card-media" onclick="navigate('/foto/${escHtml(p.id)}')" style="cursor:pointer">
+        <img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" />
         ${isOwn ? `<div class="photo-card-actions">
           <button class="btn btn-ghost btn-sm photo-edit-btn" data-id="${escHtml(p.id)}" title="Düzenle"><i class="fas fa-edit"></i></button>
           <button class="btn btn-danger btn-sm photo-delete-btn" data-id="${escHtml(p.id)}" title="Sil"><i class="fas fa-trash"></i></button>
@@ -4063,7 +4080,7 @@ function openMiniPlayer(audioUrl, slug, song) {
     </div>`;
   player.style.display = 'block';
   // localStorage'dan ses seviyesini oku
-  const savedVol = parseFloat(localStorage.getItem('demlik_volume') ?? '0.8');
+  const savedVol = parseFloat(localStorage.getItem('teatube_volume') ?? localStorage.getItem('demlik_volume') ?? '0.8');
   audio.volume = savedVol;
 
   function fmtTime(s) { const m=Math.floor(s/60); return m+':'+(Math.floor(s%60)+'').padStart(2,'0'); }
@@ -4101,6 +4118,7 @@ function openMiniPlayer(audioUrl, slug, song) {
     volSlider.addEventListener('input', e => {
       const v = parseInt(e.target.value);
       audio.volume = v / 100;
+      localStorage.setItem('teatube_volume', v / 100);
       localStorage.setItem('demlik_volume', v / 100);
       updateVolIcon(v);
     });
@@ -4109,10 +4127,12 @@ function openMiniPlayer(audioUrl, slug, song) {
     volBtn.addEventListener('click', () => {
       if (audio.volume > 0) {
         audio.volume = 0; if(volSlider) volSlider.value = 0;
+        localStorage.setItem('teatube_volume', '0');
         localStorage.setItem('demlik_volume', '0');
         volBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
       } else {
         audio.volume = 0.8; if(volSlider) volSlider.value = 80;
+        localStorage.setItem('teatube_volume', '0.8');
         localStorage.setItem('demlik_volume', '0.8');
         volBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
       }
@@ -4228,7 +4248,7 @@ async function renderMusicDetail(app, slug) {
   seek?.addEventListener('input', e => { if(audio.duration) audio.currentTime=(parseFloat(e.target.value)/100)*audio.duration; });
 
   // Detail page ses kontrolü (localStorage'dan başlat)
-  const savedVol = parseFloat(localStorage.getItem('demlik_volume') ?? '0.8');
+  const savedVol = parseFloat(localStorage.getItem('teatube_volume') ?? localStorage.getItem('demlik_volume') ?? '0.8');
   audio.volume = savedVol;
   const detailVolSlider = document.getElementById('detail-vol');
   const detailVolBtn = document.getElementById('detail-vol-btn');
@@ -4242,16 +4262,19 @@ async function renderMusicDetail(app, slug) {
     detailVolSlider.addEventListener('input', e => {
       const v = parseInt(e.target.value);
       audio.volume = v / 100;
+      localStorage.setItem('teatube_volume', v / 100);
       localStorage.setItem('demlik_volume', v / 100);
       updateVolIcon(v);
     });
     detailVolBtn?.addEventListener('click', () => {
       if (audio.volume > 0) {
         audio.volume = 0; detailVolSlider.value = 0;
+        localStorage.setItem('teatube_volume', '0');
         localStorage.setItem('demlik_volume', '0');
         if (detailVolBtn) detailVolBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
       } else {
         audio.volume = 0.8; detailVolSlider.value = 80;
+        localStorage.setItem('teatube_volume', '0.8');
         localStorage.setItem('demlik_volume', '0.8');
         if (detailVolBtn) detailVolBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
       }
