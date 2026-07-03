@@ -270,6 +270,20 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS gifts (
+        id BIGSERIAL PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        sender_id BIGINT NOT NULL,
+        recipient_id BIGINT,
+        recipient_username TEXT DEFAULT '',
+        type TEXT NOT NULL,
+        redeemed INTEGER DEFAULT 0,
+        redeemed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(recipient_id) REFERENCES users(id) ON DELETE SET NULL
+      );
+
     CREATE TABLE IF NOT EXISTS system_logs (
       id BIGSERIAL PRIMARY KEY,
       actor TEXT,

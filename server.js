@@ -489,9 +489,12 @@ app.post('/api/auth/logout', authMiddleware, async (req, res) => {
 
 // ===== PURCHASE (demo) =====
 app.post('/api/purchase', authMiddleware, async (req, res) => {
+  // Backward-compatible purchase endpoint.
+  // Membership is only granted when payments are enabled (ENABLE_PAYMENTS=1).
   try {
     const { type } = req.body;
     if (!type || (type !== 'vip' && type !== 'plus')) return res.status(400).json({ error: 'Geçersiz paket' });
+    if (process.env.ENABLE_PAYMENTS !== '1') return res.status(502).json({ error: 'Ödeme hizmeti şu an devre dışı. Üyelik aktif edilemedi.' });
     const userId = req.user.id;
     if (type === 'vip') {
       await query('UPDATE users SET is_vip=1 WHERE id=$1', [userId]);
@@ -500,6 +503,86 @@ app.post('/api/purchase', authMiddleware, async (req, res) => {
     }
     const { rows } = await query('SELECT * FROM users WHERE id=$1', [userId]);
     res.json(sanitizeUser(rows[0]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Create payment session (frontend calls this to start checkout)
+app.post('/api/create-payment-session', authMiddleware, async (req, res) => {
+  try {
+    const { type } = req.body || {};
+    if (!type || (type !== 'vip' && type !== 'plus')) return res.status(400).json({ error: 'Geçersiz paket' });
+    // If payments are disabled, return a friendly failure so frontend can show error
+    if (process.env.ENABLE_PAYMENTS !== '1') {
+      return res.status(502).json({ error: 'Ödeme hizmeti şu an devre dışı (test modunda). Ödeme gerçekleştirilemedi.' });
+    }
+    // If ENABLE_PAYMENTS=1 and STRIPE_SECRET is set, you can integrate real provider here.
+    // Example (commented):
+    // const stripe = require('stripe')(process.env.STRIPE_SECRET);
+    // const session = await stripe.checkout.sessions.create({ ... });
+    // res.json({ url: session.url });
+    return res.status(500).json({ error: 'Ödeme sağlayıcı yapılandırılmamış. Lütfen yöneticiyle iletişime geçin.' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ===== GIFTS =====
+function makeCode() {
+  return 'GIFT-' + Math.random().toString(36).substring(2,10).toUpperCase();
+}
+
+// Create a gift; if recipient username exists, assign immediately
+app.post('/api/gift', authMiddleware, async (req, res) => {
+  try {
+    const { type, to_username } = req.body || {};
+    if (!type || (type !== 'vip' && type !== 'plus')) return res.status(400).json({ error: 'Geçersiz paket' });
+    const sender = req.user;
+    const code = makeCode();
+    let recipient = null;
+    if (to_username) {
+      const { rows } = await query('SELECT * FROM users WHERE username=$1', [to_username]);
+      if (rows.length) recipient = rows[0];
+    }
+    let recipient_id = recipient ? recipient.id : null;
+    await query('INSERT INTO gifts(code,sender_id,recipient_id,recipient_username,type,created_at) VALUES($1,$2,$3,$4,$5,NOW())', [code, sender.id, recipient_id, to_username || '', type]);
+    // If recipient exists, immediately redeem (assign membership)
+    if (recipient) {
+      if (type === 'vip') await query('UPDATE users SET is_vip=1 WHERE id=$1', [recipient.id]);
+      if (type === 'plus') await query('UPDATE users SET is_plus=1 WHERE id=$1', [recipient.id]);
+      await query('UPDATE gifts SET redeemed=1, redeemed_at=NOW() WHERE code=$1', [code]);
+      await logAction(sender.username, 'gift_sent', `${type} -> ${recipient.username}`);
+      // return recipient sanitized
+      const { rows: updated } = await query('SELECT * FROM users WHERE id=$1', [recipient.id]);
+      return res.json({ ok: true, code, assigned_to: sanitizeUser(updated[0]) });
+    }
+    await logAction(sender.username, 'gift_created', `${type} -> ${to_username || 'code'}`);
+    res.json({ ok: true, code, message: 'Hediye oluşturuldu. Kodu alıcıya verin veya gönderin.' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Redeem gift by code
+app.post('/api/redeem-gift', authMiddleware, async (req, res) => {
+  try {
+    const { code } = req.body || {};
+    if (!code) return res.status(400).json({ error: 'Kod gerekli' });
+    const { rows } = await query('SELECT * FROM gifts WHERE code=$1', [code]);
+    if (!rows.length) return res.status(404).json({ error: 'Hediye bulunamadı' });
+    const gift = rows[0];
+    if (gift.redeemed) return res.status(400).json({ error: 'Hediye zaten kullanılmış' });
+    const userId = req.user.id;
+    if (gift.recipient_id && gift.recipient_id !== userId) return res.status(403).json({ error: 'Bu hediye sizin için değil' });
+    if (gift.type === 'vip') await query('UPDATE users SET is_vip=1 WHERE id=$1', [userId]);
+    if (gift.type === 'plus') await query('UPDATE users SET is_plus=1 WHERE id=$1', [userId]);
+    await query('UPDATE gifts SET redeemed=1, redeemed_at=NOW(), recipient_id=$1, recipient_username=(SELECT username FROM users WHERE id=$1) WHERE code=$2', [userId, code]);
+    await logAction(req.user.username, 'gift_redeemed', code);
+    const { rows: updated } = await query('SELECT * FROM users WHERE id=$1', [userId]);
+    res.json(sanitizeUser(updated[0]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// List gifts sent by current user
+app.get('/api/gifts', authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await query('SELECT * FROM gifts WHERE sender_id=$1 ORDER BY created_at DESC', [req.user.id]);
+    res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

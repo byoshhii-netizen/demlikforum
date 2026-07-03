@@ -293,16 +293,25 @@ async function renderVip(app) {
     </div>`;
 
   $('#buy-vip')?.addEventListener('click', async () => {
+    // Open checkout modal and start payment session
+    showModal('Ödeme — VIP', `<div style="padding:12px"><p>VIP üyelik satın alma işlemi başlatılıyor...</p><div id="checkout-spinner" style="margin-top:12px"><div class="spinner"></div></div></div>`);
     try {
-      const res = await api('/purchase', { method: 'POST', body: JSON.stringify({ type: 'vip' }) });
-      currentUser = res; updateNavUI(); toast('VIP üyeliğiniz aktif edildi'); renderRoute(location.pathname);
-    } catch (e) { toast(e.message, 'error'); }
+      const resp = await api('/create-payment-session', { method: 'POST', body: JSON.stringify({ type: 'vip' }) });
+      // if provider returned a URL, redirect user
+      if (resp && resp.url) {
+        hideModal(); window.location = resp.url; return;
+      }
+      // otherwise show failure
+      hideModal(); showModal('Ödeme Hatası', `<div style="padding:12px">Ödeme başlatılamadı: ${escHtml(resp && resp.error || 'Bilinmeyen hata')}</div>`);
+    } catch (e) { hideModal(); showModal('Ödeme Hatası', `<div style="padding:12px">Ödeme gerçekleştirilemedi: ${escHtml(e.message)}</div>`); }
   });
   $('#buy-plus')?.addEventListener('click', async () => {
+    showModal('Ödeme — Plus+', `<div style="padding:12px"><p>Plus+ üyelik satın alma işlemi başlatılıyor...</p><div id="checkout-spinner" style="margin-top:12px"><div class="spinner"></div></div></div>`);
     try {
-      const res = await api('/purchase', { method: 'POST', body: JSON.stringify({ type: 'plus' }) });
-      currentUser = res; updateNavUI(); toast('Plus+ üyeliğiniz aktif edildi'); renderRoute(location.pathname);
-    } catch (e) { toast(e.message, 'error'); }
+      const resp = await api('/create-payment-session', { method: 'POST', body: JSON.stringify({ type: 'plus' }) });
+      if (resp && resp.url) { hideModal(); window.location = resp.url; return; }
+      hideModal(); showModal('Ödeme Hatası', `<div style="padding:12px">Ödeme başlatılamadı: ${escHtml(resp && resp.error || 'Bilinmeyen hata')}</div>`);
+    } catch (e) { hideModal(); showModal('Ödeme Hatası', `<div style="padding:12px">Ödeme gerçekleştirilemedi: ${escHtml(e.message)}</div>`); }
   });
 
   // gift buttons redirect to a placeholder flow
