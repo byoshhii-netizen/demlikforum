@@ -649,6 +649,21 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--text-secondary); border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.2s; cursor: pointer; }
 .tab:hover { color: var(--text-primary); }
 .tab.active { color: var(--accent-red2); border-bottom-color: var(--accent-red); }
+.home-tabs-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.home-tab { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border-radius: 999px; border: 1px solid transparent; background: var(--bg-card2); color: var(--text-secondary); transition: all 0.2s; text-decoration: none; }
+.home-tab:hover { color: var(--text-primary); background: var(--bg-active); }
+.home-tab.active { color: var(--accent-red2); border-color: var(--accent-red); background: rgba(220,38,38,0.08); }
+.home-categories { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.home-category-btn { border: 1px solid var(--border); background: var(--bg-card2); color: var(--text-primary); border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: all 0.2s; }
+.home-category-btn:hover { background: var(--bg-active); border-color: var(--accent-red); }
+.dm-tab-buttons { display: flex; gap: 8px; width: 100%; flex-wrap: wrap; }
+.dm-tab { flex: 1; border: none; background: var(--bg-card2); color: var(--text-secondary); padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+.dm-tab:hover { background: var(--bg-active); }
+.dm-tab.active { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); }
+.dm-group-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.15s; }
+.dm-group-item:hover { background: var(--bg-active); }
+.profile-header { align-items: center; text-align: center; }
+.profile-info { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .friends-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 @media (max-width: 768px) {
   .friends-layout { grid-template-columns: 1fr; gap: 16px; }

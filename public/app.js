@@ -337,6 +337,10 @@ $('#mbb-new')?.addEventListener('click', e => {
 });
 
 $('#nav-user-btn').addEventListener('click', () => {
+  if (window.innerWidth <= 768 && currentUser) {
+    navigate('/profil/' + currentUser.username);
+    return;
+  }
   $('#dropdown-menu').classList.toggle('hidden');
 });
 document.addEventListener('click', e => {
@@ -448,6 +452,12 @@ async function renderHome(app) {
   updatePageMeta('TeaTube – Topluluk Platformu', 'TeaTube her tür içeriğin paylaşıldığı fotoğraf, yazı ve müzik platformu.', '');
   app.innerHTML = `
     <div class="container page">
+      <div class="home-tabs-row">
+        <a href="/" data-link class="home-tab active">Ana Sayfa</a>
+        <a href="/forum" data-link class="home-tab">Konular</a>
+        <a href="/muzikler" data-link class="home-tab">Müzikler</a>
+        <a href="/gruplar" data-link class="home-tab">Gruplar</a>
+      </div>
       <div class="section">
         <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
           <div><div class="page-title">Öne Çıkan Fotoğraflar</div><div class="page-subtitle">Topluluğun en yeni paylaşımları</div></div>
@@ -2793,11 +2803,90 @@ async function renderMessages(app, targetUsername) {
     </div>`;
 
   app.innerHTML = `<div class="dm-layout">
-    ${sidebarHTML}
+    <div class="dm-sidebar">
+      <div class="dm-sidebar-header" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px">
+          <span style="font-size:13px;font-weight:700">Mesajlar</span>
+          <button class="btn btn-primary btn-sm" id="new-dm-btn"><i class="fas fa-edit"></i></button>
+        </div>
+        <div class="dm-tab-buttons">
+          <button class="dm-tab active" data-tab="dm">Bireysel</button>
+          <button class="dm-tab" data-tab="groups">Gruplar</button>
+        </div>
+        <div class="dm-search-wrap"><input id="dm-search" type="text" placeholder="Ara..." class="dm-search" /></div>
+      </div>
+      <div id="dm-conv-list" class="dm-conv-list">
+        ${convs.map(c => dmConvItemHTML(c)).join('') || `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Henüz mesaj yok</div>`}
+      </div>
+    </div>
     <div class="dm-main" id="dm-main">
       ${targetUsername ? '' : `<div class="dm-empty"><i class="fas fa-comments" style="font-size:48px;color:var(--text-muted);margin-bottom:16px"></i><p style="color:var(--text-muted)">Bir konuşma seçin</p></div>`}
     </div>
   </div>`;
+
+  const dmTabs = $$('.dm-tab');
+  function setDmTab(tab) {
+    dmTabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    const convList = $('#dm-conv-list');
+    if (!convList) return;
+    if (tab === 'groups') {
+      convList.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+      api('/groups').then(groups => {
+        convList.innerHTML = groups.length ? groups.map(g => `
+          <div class="dm-group-item" onclick="navigate('/grup/${escHtml(g.slug)}')">
+            ${g.cover_image ? `<img src="${escHtml(g.cover_image)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-users"></i></div>`}
+            <div style="flex:1;min-width:0">
+              <div class="dm-conv-name">${escHtml(g.name)}</div>
+              <div class="dm-conv-last">${escHtml(g.description || 'Grup sohbetine git')}</div>
+            </div>
+          </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Henüz grup yok</div>';
+      }).catch(() => {
+        convList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--accent-red2);font-size:13px">Gruplar yüklenemedi</div>';
+      });
+    } else {
+      convList.innerHTML = convs.map(c => dmConvItemHTML(c)).join('') || `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Henüz mesaj yok</div>`;
+      bindConvItems();
+    }
+  }
+
+  function bindConvItems() {
+    $$('.dm-conv-item').forEach(el => {
+      el.addEventListener('click', () => {
+        $$('.dm-conv-item').forEach(x => x.classList.remove('active'));
+        el.classList.add('active');
+        renderDMChat(el.dataset.username);
+      });
+    });
+  }
+  dmTabs.forEach(btn => btn.addEventListener('click', () => setDmTab(btn.dataset.tab)));
+  bindConvItems();
+
+  $('#dm-search')?.addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    $$('.dm-conv-item, .dm-group-item').forEach(el => {
+      const text = (el.dataset.username || el.textContent || '').toLowerCase();
+      el.style.display = text.includes(q) ? '' : 'none';
+    });
+  });
+
+  $('#new-dm-btn')?.addEventListener('click', () => {
+    showModal('Yeni Mesaj', `
+      <div class="form-group"><label>Kullanıcı adı</label><input id="new-dm-username" type="text" placeholder="kullanici_adi" /></div>
+      <button class="btn btn-primary" style="width:100%" id="new-dm-go">Mesaja Git</button>
+    `);
+    $('#new-dm-go').addEventListener('click', () => {
+      const u = $('#new-dm-username').value.trim();
+      if (!u) return;
+      hideModal();
+      navigate('/mesajlar/' + u);
+    });
+  });
+
+  if (targetUsername) {
+    const activeEl = $(`.dm-conv-item[data-username="${CSS.escape(targetUsername)}"]`);
+    if (activeEl) { activeEl.classList.add('active'); }
+    await renderDMChat(targetUsername);
+  }
 
   $('#dm-search')?.addEventListener('input', e => {
     const q = e.target.value.toLowerCase();
