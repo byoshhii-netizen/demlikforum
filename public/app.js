@@ -317,6 +317,47 @@ async function renderVip(app) {
   // gift buttons redirect to a placeholder flow
   $('#gift-vip')?.addEventListener('click', () => { showModal('Hediye Et', '<div style="padding:12px">Hediye etme özelliği yakında kullanılabilir.</div>'); });
   $('#gift-plus')?.addEventListener('click', () => { showModal('Hediye Et', '<div style="padding:12px">Hediye etme özelliği yakında kullanılabilir.</div>'); });
+  // Open gift modal
+  $('#gift-vip')?.addEventListener('click', () => openGiftModal('vip'));
+  $('#gift-plus')?.addEventListener('click', () => openGiftModal('plus'));
+
+  function openGiftModal(type) {
+    showModal('Üyelik Hediye Et', `
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div>Kime hediye edeceksiniz? (kullanıcı adı)</div>
+        <input id="gift-to-username" placeholder="alici_kullanici_adi" />
+        <div style="font-size:13px;color:var(--text-muted)">Eğer kullanıcı henüz kayıtlı değilse, hediye kodu oluşturulacak ve el ile paylaşabilirsiniz.</div>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" id="gift-send">Gönder</button><button class="btn btn-ghost" id="gift-cancel">İptal</button></div>
+      </div>
+    `);
+    $('#gift-cancel')?.addEventListener('click', hideModal);
+    $('#gift-send')?.addEventListener('click', async () => {
+      const to = ($('#gift-to-username').value || '').trim();
+      if (!to) { toast('Alıcı kullanıcı adı girin','error'); return; }
+      try {
+        const resp = await api('/gift', { method: 'POST', body: JSON.stringify({ type, to_username: to }) });
+        hideModal();
+        if (resp.assigned_to) {
+          toast('Üyelik hediye edildi');
+        } else {
+          showModal('Hediye Kodu', `<div style="padding:12px">Hediye oluşturuldu. Kodu alıcıya iletin: <div style="margin-top:8px;padding:8px;background:var(--bg-card2);border:1px solid var(--border);border-radius:6px;font-weight:700">${escHtml(resp.code)}</div></div>`);
+        }
+      } catch (e) { hideModal(); showModal('Hata', `<div style="padding:12px">Hediye başarısız: ${escHtml(e.message)}</div>`); }
+    });
+  }
+
+  // Redeem flow: allow user to enter code on VIP page
+  const redeemEl = document.getElementById('redeem-gift-inline');
+  if (redeemEl) {
+    $('#redeem-btn')?.addEventListener('click', async () => {
+      const code = ($('#redeem-code')?.value || '').trim();
+      if (!code) return toast('Kod girin','error');
+      try {
+        const updated = await api('/redeem-gift', { method: 'POST', body: JSON.stringify({ code }) });
+        currentUser = updated; updateNavUI(); toast('Hediye başarıyla kullanıldı'); renderRoute(location.pathname);
+      } catch (e) { toast(e.message,'error'); }
+    });
+  }
 }
 
 async function initAuth() {
