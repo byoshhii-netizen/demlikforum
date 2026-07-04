@@ -283,8 +283,12 @@ function showEditUserModal(user) {
       <div class="form-group"><label>E-posta</label><input id="eu-email" type="email" value="${escHtml(user.email)}" /></div>
     </div>
     <div class="form-row">
+      <div class="form-group"><label>Takma Ad</label><input id="eu-nickname" value="${escHtml(user.nickname||'')}" placeholder="Opsiyonel" /></div>
       <div class="form-group"><label>Yeni Şifre (boş=değişme)</label><input id="eu-pw" type="password" placeholder="••••••" /></div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label>Seviye ID</label><input id="eu-level" type="number" value="${user.level_id||1}" /></div>
+      <div class="form-group"><label>Ünvan</label><input id="eu-title" value="${escHtml(user.title||'')}" placeholder="Örn: Yazılımcı" /></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Ünvan</label><input id="eu-title" value="${escHtml(user.title||'')}" placeholder="Örn: Yazılımcı" /></div>
@@ -300,7 +304,7 @@ function showEditUserModal(user) {
   `);
   $('#eu-submit').addEventListener('click', async () => {
     const wasAdmin = !!user.is_admin, isAdmin = $('#eu-admin').checked;
-    const body = { username: $('#eu-username').value.trim(), email: $('#eu-email').value.trim(),
+    const body = { username: $('#eu-username').value.trim(), email: $('#eu-email').value.trim(), nickname: $('#eu-nickname').value.trim(),
       is_vip: $('#eu-vip').checked, is_plus: $('#eu-plus').checked,
       name_color: $('#eu-color').value, level_id: parseInt($('#eu-level').value)||1,
       title: $('#eu-title').value.trim() };
@@ -1616,6 +1620,16 @@ async function renderSettings(main) {
         </div>
       </div>
       <div class="card">
+        <div class="card-header"><span><i class="fas fa-cogs" style="color:var(--red2);margin-right:8px"></i>Forum Ayarları</span></div>
+        <div class="card-body">
+          <div class="form-group"><label>Ayrılmış Kullanıcı Adları</label><textarea id="s-reserved-usernames" rows="4" placeholder="Birer satıra yazın">${escHtml(settings['reserved_usernames']||'')}</textarea></div>
+          <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="s-default-forum-comments" ${settings['forum_default_allow_comments']!=='0'?'checked':''} /> Yeni konular için varsayılan olarak yorumlara izin ver</label></div>
+          <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="s-default-forum-likes" ${settings['forum_default_allow_likes']!=='0'?'checked':''} /> Yeni konular için varsayılan olarak beğenilere izin ver</label></div>
+          <button class="btn btn-primary" id="s-forum-settings-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
+          <div id="s-forum-settings-msg" class="form-error mt-4"></div>
+        </div>
+      </div>
+      <div class="card">
         <div class="card-header"><span><i class="fas fa-shield-halved" style="color:var(--red2);margin-right:8px"></i>KVKK Metni</span></div>
         <div class="card-body">
           <div class="form-group"><textarea id="s-kvkk" rows="5">${escHtml(settings['kvkk_text']||'')}</textarea></div>
@@ -1659,6 +1673,17 @@ async function renderSettings(main) {
       toast('Logo güncellendi!'); msgEl.style.color='var(--green)'; msgEl.textContent='✓ Kaydedildi';
     } catch(e) { msgEl.style.color='var(--red2)'; msgEl.textContent=e.message; }
     finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-check"></i> Logoyu Kaydet'; }
+  });
+
+  document.getElementById('s-forum-settings-save')?.addEventListener('click', async () => {
+    const msgEl = document.getElementById('s-forum-settings-msg');
+    if (msgEl) msgEl.textContent = '';
+    try {
+      await saveSetting('reserved_usernames', $('#s-reserved-usernames').value.trim(), msgEl);
+      await saveSetting('forum_default_allow_comments', $('#s-default-forum-comments').checked ? '1' : '0', msgEl);
+      await saveSetting('forum_default_allow_likes', $('#s-default-forum-likes').checked ? '1' : '0', msgEl);
+      toast('Forum ayarları kaydedildi');
+    } catch (e) { if (msgEl) msgEl.textContent = e.message; }
   });
 
   async function saveSetting(key, value, msgEl) {

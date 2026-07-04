@@ -146,6 +146,23 @@ function sanitizeUser(u) {
   return rest;
 }
 
+async function getSetting(key, defaultValue = '') {
+  const { rows } = await query('SELECT value FROM settings WHERE key=$1', [key]);
+  if (!rows.length || rows[0].value === null || rows[0].value === undefined) return defaultValue;
+  return rows[0].value;
+}
+
+async function getReservedUsernames() {
+  const value = await getSetting('reserved_usernames', '');
+  return value.split(/[\r\n,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+
+async function isReservedUsername(username) {
+  if (!username) return false;
+  const reserved = await getReservedUsernames();
+  return reserved.includes(username.toLowerCase());
+}
+
 function makeSlug(title, id) {
   const base = slugify(title, { lower: true, strict: false, locale: 'tr', replacement: '-' })
     .replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-').substring(0, 60);
@@ -387,19 +404,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ===== AUTH =====
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { username, email, password, kvkk_accepted } = req.body;
+    const { username, nickname, email, password, kvkk_accepted } = req.body;
     if (!username || !email || !password) return res.status(400).json({ error: 'Tüm alanlar zorunlu' });
     if (!kvkk_accepted) return res.status(400).json({ error: 'KVKK onayı zorunlu' });
     if (username.length < 3 || username.length > 30) return res.status(400).json({ error: 'Kullanıcı adı 3-30 karakter olmalı' });
+    if (!/^[a-z0-9_]+$/i.test(username)) return res.status(400).json({ error: 'Kullanıcı adı sadece harf, sayı ve alt çizgi içerebilir' });
+    const normalizedUsername = username.toLowerCase();
+    if (await isReservedUsername(normalizedUsername)) return res.status(400).json({ error: 'Bu kullanıcı adı ayrılmış veya kullanılamaz' });
     if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalı' });
     const ip = getIp(req);
     const { rows: ipBan } = await query("SELECT id FROM users WHERE banned_ip=$1 AND ban_type='ip'", [ip]);
     if (ipBan.length) return res.status(403).json({ error: 'Bu IP adresi yasaklanmış' });
-    const { rows: existing } = await query('SELECT id FROM users WHERE username=$1 OR email=$2', [username, email]);
+    const { rows: existing } = await query('SELECT id FROM users WHERE LOWER(username)=LOWER($1) OR email=$2', [normalizedUsername, email]);
     if (existing.length) return res.status(400).json({ error: 'Bu kullanıcı adı veya e-posta zaten kullanılıyor' });
     const { rows } = await query(
-      'INSERT INTO users (username,email,password_hash,kvkk_accepted,ip) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-      [username, email, hashPassword(password), 1, ip]);
+      'INSERT INTO users (username,nickname,email,password_hash,kvkk_accepted,ip) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+      [normalizedUsername, nickname ? nickname.trim() : '', email, hashPassword(password), 1, ip]);
     const user = rows[0];
     const token = generateToken(user.id);
     await query('INSERT INTO sessions (token,user_id) VALUES ($1,$2)', [token, user.id]);
@@ -603,7 +623,7 @@ app.post('/api/forum/:slug/view', async (req, res) => {
 
 app.post('/api/forums', authMiddleware, async (req, res) => {
   try {
-    const { title, content, banner_image, allow_comments, tagIds, customTags, banner_fit, images, thumbnail } = req.body;
+    const { title, content, banner_image, allow_comments, allow_likes, tagIds, customTags, banner_fit, images, thumbnail } = req.body;
     if (!title || !content) return res.status(400).json({ error: 'Başlık ve içerik zorunlu' });
     const limitErr = await checkDailyLimit(req.user.id, req.user, 'forums');
     if (limitErr) return res.status(429).json({ error: limitErr });
@@ -613,9 +633,13 @@ app.post('/api/forums', authMiddleware, async (req, res) => {
     const manualTags = Array.isArray(customTags) ? customTags : (customTags ? customTags.split(',').map(t => t.trim()).filter(Boolean) : []);
     const allCustomTags = [...new Set([...manualTags.map(t => t.toLowerCase()), ...contentHashtags])];
     const customTagsStr = allCustomTags.join(',');
+    const defaultAllowComments = await getSetting('forum_default_allow_comments', '1');
+    const defaultAllowLikes = await getSetting('forum_default_allow_likes', '1');
+    const allowCommentsValue = allow_comments !== undefined ? (allow_comments ? 1 : 0) : (defaultAllowComments === '0' ? 0 : 1);
+    const allowLikesValue = allow_likes !== undefined ? (allow_likes ? 1 : 0) : (defaultAllowLikes === '0' ? 0 : 1);
     const { rows } = await query(
-      'INSERT INTO forums (user_id,title,content,banner_image,slug,allow_comments,custom_tags,banner_fit,images,thumbnail) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id',
-      [req.user.id, title, content, banner_image || '', tempSlug, allow_comments !== false ? 1 : 0, customTagsStr, banner_fit || 'cover', JSON.stringify(images || []), thumbnail || '']);
+      'INSERT INTO forums (user_id,title,content,banner_image,slug,allow_comments,allow_likes,custom_tags,banner_fit,images,thumbnail) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
+      [req.user.id, title, content, banner_image || '', tempSlug, allowCommentsValue, allowLikesValue, customTagsStr, banner_fit || 'cover', JSON.stringify(images || []), thumbnail || '']);
     const id = rows[0].id;
     const realSlug = makeSlug(title, id);
     await query('UPDATE forums SET slug=$1 WHERE id=$2', [realSlug, id]);
@@ -639,16 +663,18 @@ app.put('/api/forum/:slug', authMiddleware, async (req, res) => {
   if (!fRows.length) return res.status(404).json({ error: 'Konu bulunamadı' });
   const forum = fRows[0];
   if (forum.user_id != req.user.id) return res.status(403).json({ error: 'Yetki yok' });
-  const { title, content, banner_image, allow_comments, tagIds, customTags, banner_fit, images, thumbnail } = req.body;
+  const { title, content, banner_image, allow_comments, allow_likes, tagIds, customTags, banner_fit, images, thumbnail } = req.body;
   // İçerik içindeki #tag'ları da custom_tags'e merge et
   const newContent = content || forum.content;
   const contentHashtags = (newContent.match(/#([a-zA-Z0-9_\u00c7\u00e7\u011e\u011f\u0130\u0131\u00d6\u00f6\u015e\u015f\u00dc\u00fc]+)/g) || []).map(t => t.slice(1).toLowerCase());
   const manualTagsPut = customTags !== undefined ? (Array.isArray(customTags) ? customTags : customTags.split(',').map(t => t.trim()).filter(Boolean)) : (forum.custom_tags ? forum.custom_tags.split(',').map(t => t.trim()).filter(Boolean) : []);
   const allCustomTagsPut = [...new Set([...manualTagsPut.map(t => t.toLowerCase()), ...contentHashtags])];
   const customTagsStr = allCustomTagsPut.join(',');
-  await query('UPDATE forums SET title=$1,content=$2,banner_image=$3,allow_comments=$4,custom_tags=$5,banner_fit=$6,images=$7,thumbnail=$8,updated_at=NOW() WHERE id=$9',
+  await query('UPDATE forums SET title=$1,content=$2,banner_image=$3,allow_comments=$4,allow_likes=$5,custom_tags=$6,banner_fit=$7,images=$8,thumbnail=$9,updated_at=NOW() WHERE id=$10',
     [title||forum.title, content||forum.content, banner_image??forum.banner_image,
-     allow_comments!==undefined?(allow_comments?1:0):forum.allow_comments, customTagsStr,
+     allow_comments!==undefined?(allow_comments?1:0):forum.allow_comments,
+     allow_likes!==undefined?(allow_likes?1:0):forum.allow_likes,
+     customTagsStr,
      banner_fit||forum.banner_fit||'cover',
      JSON.stringify(images !== undefined ? images : ((() => { try { return JSON.parse(forum.images||'[]'); } catch{return [];} })())),
      thumbnail !== undefined ? thumbnail : (forum.thumbnail || ''),
@@ -678,8 +704,9 @@ app.delete('/api/forum/:slug', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/forum/:slug/like', authMiddleware, async (req, res) => {
-  const { rows } = await query('SELECT id FROM forums WHERE slug=$1', [req.params.slug]);
+  const { rows } = await query('SELECT id, allow_likes FROM forums WHERE slug=$1', [req.params.slug]);
   if (!rows.length) return res.status(404).json({ error: 'Konu bulunamadı' });
+  if (rows[0].allow_likes !== 1) return res.status(403).json({ error: 'Beğeniler kapatılmış' });
   const fid = rows[0].id;
   const { rows: ex } = await query('SELECT id FROM forum_likes WHERE forum_id=$1 AND user_id=$2', [fid, req.user.id]);
   if (ex.length) { await query('DELETE FROM forum_likes WHERE id=$1', [ex[0].id]); res.json({ liked: false }); }
@@ -763,12 +790,21 @@ app.get('/api/forum/:slug/tags', async (req, res) => {
 
 // ===== BOOKS =====
 app.get('/api/books', async (req, res) => {
-  const { rows } = await query(`SELECT b.*, u.username, u.avatar, u.name_color FROM books b LEFT JOIN users u ON b.user_id=u.id ORDER BY b.created_at DESC`);
+  const q = (req.query.q || '').trim();
+  let rows;
+  if (q) {
+    const search = '%' + q.toLowerCase() + '%';
+    const result = await query(`SELECT b.*, u.username, u.avatar, u.name_color, u.nickname FROM books b LEFT JOIN users u ON b.user_id=u.id WHERE LOWER(b.title) LIKE $1 OR LOWER(b.topic) LIKE $1 OR LOWER(u.username) LIKE $1 OR LOWER(u.nickname) LIKE $1 ORDER BY b.created_at DESC`, [search]);
+    rows = result.rows;
+  } else {
+    const result = await query(`SELECT b.*, u.username, u.avatar, u.name_color, u.nickname FROM books b LEFT JOIN users u ON b.user_id=u.id ORDER BY b.created_at DESC`);
+    rows = result.rows;
+  }
   res.json(rows);
 });
 
 app.get('/api/book/:slug', async (req, res) => {
-  const { rows: bRows } = await query(`SELECT b.*, u.username, u.avatar, u.name_color FROM books b LEFT JOIN users u ON b.user_id=u.id WHERE b.slug=$1`, [req.params.slug]);
+  const { rows: bRows } = await query(`SELECT b.*, u.username, u.avatar, u.name_color, u.nickname FROM books b LEFT JOIN users u ON b.user_id=u.id WHERE b.slug=$1`, [req.params.slug]);
   if (!bRows.length) return res.status(404).json({ error: 'Kitap bulunamadı' });
   const book = bRows[0];
   const { rows: chapters } = await query('SELECT * FROM book_chapters WHERE book_id=$1 ORDER BY order_num ASC', [book.id]);
@@ -778,13 +814,13 @@ app.get('/api/book/:slug', async (req, res) => {
 
 app.post('/api/books', authMiddleware, async (req, res) => {
   try {
-    const { title, preface, cover_image } = req.body;
+    const { title, preface, cover_image, topic } = req.body;
     if (!title) return res.status(400).json({ error: 'Başlık zorunlu' });
     const limitErr = await checkDailyLimit(req.user.id, req.user, 'books');
     if (limitErr) return res.status(429).json({ error: limitErr });
     const tempSlug = slugify(title, { lower: true, strict: false, locale: 'tr' }).substring(0, 60) + '-' + uuidv4().substring(0, 8);
-    const { rows } = await query('INSERT INTO books (user_id,title,preface,cover_image,slug) VALUES ($1,$2,$3,$4,$5) RETURNING id',
-      [req.user.id, title, preface||'', cover_image||'', tempSlug]);
+    const { rows } = await query('INSERT INTO books (user_id,title,preface,topic,cover_image,slug) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
+      [req.user.id, title, preface||'', topic||'', cover_image||'', tempSlug]);
     const id = rows[0].id;
     const realSlug = makeSlug(title, id);
     await query('UPDATE books SET slug=$1 WHERE id=$2', [realSlug, id]);
@@ -801,9 +837,9 @@ app.put('/api/book/:slug', authMiddleware, async (req, res) => {
   if (!bRows.length) return res.status(404).json({ error: 'Kitap bulunamadı' });
   const book = bRows[0];
   if (book.user_id != req.user.id) return res.status(403).json({ error: 'Yetki yok' });
-  const { title, preface, cover_image } = req.body;
-  await query('UPDATE books SET title=$1,preface=$2,cover_image=$3,updated_at=NOW() WHERE id=$4',
-    [title||book.title, preface??book.preface, cover_image??book.cover_image, book.id]);
+  const { title, preface, cover_image, topic } = req.body;
+  await query('UPDATE books SET title=$1,preface=$2,cover_image=$3,topic=$4,updated_at=NOW() WHERE id=$5',
+    [title||book.title, preface??book.preface, cover_image??book.cover_image, topic??book.topic, book.id]);
   const { rows } = await query('SELECT * FROM books WHERE id=$1', [book.id]);
   res.json(rows[0]);
 });
@@ -1173,7 +1209,7 @@ app.get('/api/profile/:username', async (req, res) => {
 });
 
 app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
-  const { bio, links, name_color, show_level_badge, show_level_color, title, location, allow_mentions } = req.body;
+  const { bio, links, name_color, show_level_badge, show_level_color, title, location, allow_mentions, nickname } = req.body;
   let newAvatar = req.user.avatar;
   if (req.file) {
     try {
@@ -1183,12 +1219,13 @@ app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res
     }
   }
   const newLinks = links ? (typeof links === 'string' ? links : JSON.stringify(links)) : req.user.links;
-  await query('UPDATE users SET bio=$1,links=$2,name_color=$3,show_level_badge=$4,show_level_color=$5,avatar=$6,title=$7,location=$8,allow_mentions=$9 WHERE id=$10',
+  await query('UPDATE users SET bio=$1,links=$2,name_color=$3,show_level_badge=$4,show_level_color=$5,avatar=$6,title=$7,location=$8,allow_mentions=$9,nickname=$10 WHERE id=$11',
     [bio??req.user.bio, newLinks, name_color??req.user.name_color,
      show_level_badge!==undefined?(show_level_badge?1:0):req.user.show_level_badge,
      show_level_color!==undefined?(show_level_color?1:0):req.user.show_level_color,
      newAvatar, title??req.user.title??'', location??req.user.location??'',
      allow_mentions!==undefined?(allow_mentions?1:0):(req.user.allow_mentions??1),
+     nickname ? nickname.trim() : req.user.nickname || '',
      req.user.id]);
   const { rows } = await query('SELECT * FROM users WHERE id=$1', [req.user.id]);
   res.json(sanitizeUser(rows[0]));
@@ -1229,12 +1266,15 @@ app.put('/api/admin/user/:id', adminMiddleware, async (req, res) => {
   const { rows } = await query('SELECT * FROM users WHERE id=$1', [req.params.id]);
   if (!rows.length) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
   const user = rows[0];
-  const { username, email, password, is_vip, is_plus, name_color, level_id } = req.body;
+  const { username, email, password, is_vip, is_plus, name_color, level_id, nickname } = req.body;
+  const newUsername = username ? username.trim().toLowerCase() : user.username;
+  if (!/^[a-z0-9_]+$/i.test(newUsername)) return res.status(400).json({ error: 'Kullanıcı adı sadece harf, sayı ve alt çizgi içerebilir' });
+  if (await isReservedUsername(newUsername)) return res.status(400).json({ error: 'Bu kullanıcı adı ayrılmış veya kullanılamaz' });
   const newPwHash = password ? hashPassword(password) : user.password_hash;
-  await query('UPDATE users SET username=$1,email=$2,password_hash=$3,is_vip=$4,is_plus=$5,name_color=$6,level_id=$7 WHERE id=$8',
-    [username||user.username, email||user.email, newPwHash,
+  await query('UPDATE users SET username=$1,email=$2,password_hash=$3,is_vip=$4,is_plus=$5,name_color=$6,level_id=$7,nickname=$8 WHERE id=$9',
+    [newUsername, email||user.email, newPwHash,
      is_vip!==undefined?(is_vip?1:0):user.is_vip, is_plus!==undefined?(is_plus?1:0):user.is_plus,
-     name_color??user.name_color, level_id||user.level_id, user.id]);
+     name_color??user.name_color, level_id||user.level_id, nickname!==undefined?nickname.trim():user.nickname, user.id]);
   await logAction('admin', 'edit_user', user.username);
   const { rows: updated } = await query('SELECT * FROM users WHERE id=$1', [user.id]);
   res.json(sanitizeUser(updated[0]));
