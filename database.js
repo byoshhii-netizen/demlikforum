@@ -234,56 +234,6 @@ async function initDb() {
       created_at TIMESTAMP DEFAULT NOW()
     );
 
-    CREATE TABLE IF NOT EXISTS photos (
-      id BIGSERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL,
-      url TEXT NOT NULL,
-      caption TEXT DEFAULT '',
-      created_at TIMESTAMP DEFAULT NOW(),
-      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-      CREATE TABLE IF NOT EXISTS photo_likes (
-        id BIGSERIAL PRIMARY KEY,
-        photo_id BIGINT NOT NULL,
-        user_id BIGINT NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(photo_id, user_id),
-        FOREIGN KEY(photo_id) REFERENCES photos(id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS photo_comments (
-        id BIGSERIAL PRIMARY KEY,
-        photo_id BIGINT NOT NULL,
-        user_id BIGINT,
-        content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW(),
-        FOREIGN KEY(photo_id) REFERENCES photos(id) ON DELETE CASCADE,
-        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS badges (
-        id BIGSERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        icon TEXT DEFAULT '',
-        color TEXT DEFAULT '#6b7280',
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-
-      CREATE TABLE IF NOT EXISTS gifts (
-        id BIGSERIAL PRIMARY KEY,
-        code TEXT UNIQUE NOT NULL,
-        sender_id BIGINT NOT NULL,
-        recipient_id BIGINT,
-        recipient_username TEXT DEFAULT '',
-        type TEXT NOT NULL,
-        redeemed INTEGER DEFAULT 0,
-        redeemed_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT NOW(),
-        FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY(recipient_id) REFERENCES users(id) ON DELETE SET NULL
-      );
-
     CREATE TABLE IF NOT EXISTS system_logs (
       id BIGSERIAL PRIMARY KEY,
       actor TEXT,
@@ -352,12 +302,6 @@ async function initDb() {
     ALTER TABLE forums ADD COLUMN IF NOT EXISTS allow_sharing INTEGER DEFAULT 1;
     ALTER TABLE forums ADD COLUMN IF NOT EXISTS share_count INTEGER DEFAULT 0;
     ALTER TABLE dm_conversations ADD COLUMN IF NOT EXISTS read_until_user1 BIGINT DEFAULT 0;
-      ALTER TABLE photos ADD COLUMN IF NOT EXISTS show_likes INTEGER DEFAULT 1;
-      ALTER TABLE photos ADD COLUMN IF NOT EXISTS allow_comments INTEGER DEFAULT 1;
-      ALTER TABLE photos ADD COLUMN IF NOT EXISTS allow_shares INTEGER DEFAULT 1;
-      ALTER TABLE photos ADD COLUMN IF NOT EXISTS like_count INTEGER DEFAULT 0;
-      ALTER TABLE photos ADD COLUMN IF NOT EXISTS comment_count INTEGER DEFAULT 0;
-      ALTER TABLE photos ADD COLUMN IF NOT EXISTS share_count INTEGER DEFAULT 0;
     ALTER TABLE dm_conversations ADD COLUMN IF NOT EXISTS read_until_user2 BIGINT DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INTEGER DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_since TIMESTAMP;
@@ -410,10 +354,6 @@ async function initDb() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_bio TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_genre TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_website TEXT DEFAULT '';
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS badge_name TEXT DEFAULT '';
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS badge_icon TEXT DEFAULT '';
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS badge_color TEXT DEFAULT '#6b7280';
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS badge_display TEXT DEFAULT 'level';
     ALTER TABLE songs ADD COLUMN IF NOT EXISTS ban_reason TEXT DEFAULT '';
     ALTER TABLE songs ADD COLUMN IF NOT EXISTS ban_until TIMESTAMP;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS delete_requested_at TIMESTAMP;
@@ -509,10 +449,10 @@ async function initDb() {
   if (kvkkRows.length === 0) {
     await query('INSERT INTO settings (key,value) VALUES ($1,$2)', ['kvkk_text', `KİŞİSEL VERİLERİN KORUNMASI KANUNU (KVKK) AYDINLATMA METNİ
 
-TeaTube olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında kişisel verilerinizin işlenmesine ilişkin sizi bilgilendirmek isteriz.
+Demlik Forum olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında kişisel verilerinizin işlenmesine ilişkin sizi bilgilendirmek isteriz.
 
 1. VERİ SORUMLUSU
-TeaTube platformu, veri sorumlusu sıfatıyla hareket etmektedir.
+Demlik Forum platformu, veri sorumlusu sıfatıyla hareket etmektedir.
 
 2. İŞLENEN KİŞİSEL VERİLER
 Kullanıcı adı, e-posta adresi, IP adresi, platform içi içerikleriniz (forum gönderileri, kitap sayfaları, grup mesajları) işlenmektedir.
