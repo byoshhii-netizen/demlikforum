@@ -9,7 +9,7 @@ function $$(sel) { return document.querySelectorAll(sel); }
 function updatePageMeta(title, description, imageUrl) {
   document.title = title;
   let desc = document.querySelector('meta[name="description"]');
-  if (!desc) { desc = document.createElement('meta'); desc.setAttribute('name','description'); document.head.appendChild(desc); }
+  if (!desc) { desc = document.createElement('meta'); desc.setAttribute('name', 'description'); document.head.appendChild(desc); }
   desc.setAttribute('content', description);
 
   const ogFields = { 'og:title': title, 'og:description': description, 'og:image': imageUrl || (SITE_URL + '/teatube.png'), 'og:url': location.href };
@@ -27,7 +27,7 @@ function updatePageMeta(title, description, imageUrl) {
   });
 
   let canonical = document.querySelector('link[rel="canonical"]');
-  if (!canonical) { canonical = document.createElement('link'); canonical.setAttribute('rel','canonical'); document.head.appendChild(canonical); }
+  if (!canonical) { canonical = document.createElement('link'); canonical.setAttribute('rel', 'canonical'); document.head.appendChild(canonical); }
   canonical.setAttribute('href', location.href);
 
   let ld = document.getElementById('page-jsonld');
@@ -162,7 +162,7 @@ function formatDate(dt) {
 
 function escHtml(s) {
   if (!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function userDisplayName(u) {
@@ -344,7 +344,7 @@ async function renderVip(app) {
     $('#gift-cancel')?.addEventListener('click', hideModal);
     $('#gift-send')?.addEventListener('click', async () => {
       const to = ($('#gift-to-username').value || '').trim();
-      if (!to) { toast('Alıcı kullanıcı adı girin','error'); return; }
+      if (!to) { toast('Alıcı kullanıcı adı girin', 'error'); return; }
       try {
         const resp = await api('/gift', { method: 'POST', body: JSON.stringify({ type, to_username: to }) });
         hideModal();
@@ -359,11 +359,11 @@ async function renderVip(app) {
 
   $('#redeem-btn')?.addEventListener('click', async () => {
     const code = ($('#redeem-code')?.value || '').trim();
-    if (!code) return toast('Kod girin','error');
+    if (!code) return toast('Kod girin', 'error');
     try {
       const updated = await api('/redeem-gift', { method: 'POST', body: JSON.stringify({ code }) });
       currentUser = updated; updateNavUI(); toast('Hediye başarıyla kullanıldı'); renderRoute(location.pathname);
-    } catch (e) { toast(e.message,'error'); }
+    } catch (e) { toast(e.message, 'error'); }
   });
 
   async function loadGiftHistory() {
@@ -428,7 +428,7 @@ function updateNavUI() {
       <button class="mobile-nav-link" id="mob-logout" style="background:none;border:none;width:100%;text-align:left;color:var(--accent-red2)"><i class="fas fa-sign-out-alt" style="width:18px"></i> Çıkış Yap</button>
     `;
     $('#mob-logout')?.addEventListener('click', async () => {
-      try { await api('/auth/logout', { method: 'POST' }); } catch {}
+      try { await api('/auth/logout', { method: 'POST' }); } catch { }
       currentToken = null; currentUser = null;
       localStorage.removeItem('token');
       updateNavUI(); navigate('/'); toast('Çıkış yapıldı');
@@ -499,7 +499,7 @@ async function loadNotifCount() {
     if (!badge) return;
     if (data.count > 0) { badge.style.display = ''; badge.textContent = data.count > 9 ? '9+' : data.count; }
     else { badge.style.display = 'none'; }
-  } catch {}
+  } catch { }
 }
 
 async function openNotifDropdown() {
@@ -521,7 +521,7 @@ async function openNotifDropdown() {
         <span><i class="fas fa-bell" style="color:var(--accent-red2);margin-right:6px"></i>Bildirimler</span>
       </div>
       ${notifs.map(n => `
-        <div class="notif-item${n.is_read ? '' : ' notif-unread'}" data-link="${escHtml(n.link||'')}" data-id="${n.id}" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+        <div class="notif-item${n.is_read ? '' : ' notif-unread'}" data-link="${escHtml(n.link || '')}" data-id="${n.id}" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
           <div style="display:flex;gap:10px;align-items:flex-start">
             ${n.actor_avatar ? `<img src="${escHtml(n.actor_avatar)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />` : `<div style="width:32px;height:32px;border-radius:50%;background:var(--bg-card2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-bell" style="font-size:12px;color:var(--accent-red2)"></i></div>`}
             <div style="flex:1;min-width:0">
@@ -537,7 +537,7 @@ async function openNotifDropdown() {
         if (link) navigate(link);
       });
     });
-  } catch(e) {
+  } catch (e) {
     dd.innerHTML = `<div style="padding:16px;color:var(--accent-red2);font-size:13px">${e.message}</div>`;
   }
 }
@@ -551,7 +551,7 @@ $('#nav-new-book')?.addEventListener('click', () => { $('#new-dropdown').classLi
 $('#nav-new-photo')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); if (!currentUser) { navigate('/giris'); return; } showNewPhotoModal(); });
 $('#nav-new-group')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/gruplar'); });
 $('#logout-btn').addEventListener('click', async () => {
-  try { await api('/auth/logout', { method: 'POST' }); } catch {}
+  try { await api('/auth/logout', { method: 'POST' }); } catch { }
   currentToken = null; currentUser = null;
   localStorage.removeItem('token');
   updateNavUI();
@@ -627,85 +627,85 @@ async function renderHome(app) {
   }
 
   async function loadHomePhotos() {
-     const contentEl = $('#home-content');
-     if (!contentEl) return;
-     try {
-       const photos = await api('/photos');
-       if (!photos.length) {
-         contentEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>'; 
-         return;
-       }
-       contentEl.innerHTML = `<div class="photos-grid">${photos.slice(0, 8).map(photoCardHTML).join('')}</div>`;
-       attachPhotoCardActions(contentEl);
-     } catch (e) {
-       contentEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
-     }
-   }
-
-   async function loadHomeForums() {
-     const contentEl = $('#home-content');
-     if (!contentEl) return;
-     try {
-       const forums = await api('/forums');
-       if (!forums.length) { contentEl.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Henüz konu yok.</p></div>'; return; }
-       contentEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${forums.slice(0,8).map(f => forumCardHTML(f)).join('')}</div>`;
-     } catch (e) {
-       contentEl.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
+    const contentEl = $('#home-content');
+    if (!contentEl) return;
+    try {
+      const photos = await api('/photos');
+      if (!photos.length) {
+        contentEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>';
+        return;
+      }
+      contentEl.innerHTML = `<div class="photos-grid">${photos.slice(0, 8).map(photoCardHTML).join('')}</div>`;
+      attachPhotoCardActions(contentEl);
+    } catch (e) {
+      contentEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
+    }
   }
 
-  let allForums = [];
-  try {
-    allForums = await api('/forums');
-    const el = $('#home-forums');
-    if (!el) return;
-    if (!allForums.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Henüz konu yok.</p></div>'; }
-    else el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${allForums.slice(0, 10).map(f => forumCardHTML(f)).join('')}</div>`;
-  } catch {}
-
-  try {
-    const tags = await api('/tags');
-    const categories = $('#home-categories');
-    if (categories) {
-      categories.innerHTML = tags.length
-        ? tags.slice(0, 8).map(t => `<button type="button" class="home-category-btn" onclick="navigate('/forum?tag=${encodeURIComponent(t.name)}')">#${escHtml(t.name)}</button>`).join('')
-        : '';
+  async function loadHomeForums() {
+    const contentEl = $('#home-content');
+    if (!contentEl) return;
+    try {
+      const forums = await api('/forums');
+      if (!forums.length) { contentEl.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Henüz konu yok.</p></div>'; return; }
+      contentEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${forums.slice(0, 8).map(f => forumCardHTML(f)).join('')}</div>`;
+    } catch (e) {
+      contentEl.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
     }
-  } catch {}
 
-  $('#home-forum-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    const filtered = allForums.filter(f => f.title.toLowerCase().includes(q) || f.content.toLowerCase().includes(q));
-    const el = $('#home-forums');
-    if (!el) return;
-    if (!filtered.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Konu bulunamadı.</p></div>'; return; }
-    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${filtered.map(f => forumCardHTML(f)).join('')}</div>`;
-  });
+    let allForums = [];
+    try {
+      allForums = await api('/forums');
+      const el = $('#home-forums');
+      if (!el) return;
+      if (!allForums.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Henüz konu yok.</p></div>'; }
+      else el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${allForums.slice(0, 10).map(f => forumCardHTML(f)).join('')}</div>`;
+    } catch { }
 
-  try {
-    const friends = await api('/friends');
-    const el = $('#home-friends');
-    if (!friends.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Henüz arkadaş yok.</p></div>'; }
-    else el.innerHTML = friends.filter(f => f.status === 'accepted').slice(0, 6).map(f => friendItemHTML(f, 'accepted', currentUser ? currentUser.id : 0)).join('');
-  } catch {}
+    try {
+      const tags = await api('/tags');
+      const categories = $('#home-categories');
+      if (categories) {
+        categories.innerHTML = tags.length
+          ? tags.slice(0, 8).map(t => `<button type="button" class="home-category-btn" onclick="navigate('/forum?tag=${encodeURIComponent(t.name)}')">#${escHtml(t.name)}</button>`).join('')
+          : '';
+      }
+    } catch { }
 
-  // Decide default home content based on viewport: mobile -> photos, desktop -> topics
-  const isMobile = window.innerWidth <= 900;
-  // Toggle active state on tabs (only photos/forums have explicit ids)
-  $('#photos-tab')?.classList.toggle('active', isMobile);
-  $('#forums-tab')?.classList.toggle('active', !isMobile);
-  if (isMobile) loadHomePhotos(); else loadHomeForums();
-}
+    $('#home-forum-search')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      const filtered = allForums.filter(f => f.title.toLowerCase().includes(q) || f.content.toLowerCase().includes(q));
+      const el = $('#home-forums');
+      if (!el) return;
+      if (!filtered.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Konu bulunamadı.</p></div>'; return; }
+      el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${filtered.map(f => forumCardHTML(f)).join('')}</div>`;
+    });
 
-async function renderForumList(app, queryString) {
-  document.title = 'Konular – TeaTube';
-  updatePageMeta('Konular – TeaTube', 'Toplulukla fikir paylaş, tartış, keşfet.', '');
+    try {
+      const friends = await api('/friends');
+      const el = $('#home-friends');
+      if (!friends.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Henüz arkadaş yok.</p></div>'; }
+      else el.innerHTML = friends.filter(f => f.status === 'accepted').slice(0, 6).map(f => friendItemHTML(f, 'accepted', currentUser ? currentUser.id : 0)).join('');
+    } catch { }
 
-  // URL'den ?tag= parametresini oku — önce argüman, yoksa location.search
-  const qs = queryString !== undefined ? queryString : location.search;
-  const urlParams = new URLSearchParams(qs);
-  const activeTag = urlParams.get('tag') || '';
+    // Decide default home content based on viewport: mobile -> photos, desktop -> topics
+    const isMobile = window.innerWidth <= 900;
+    // Toggle active state on tabs (only photos/forums have explicit ids)
+    $('#photos-tab')?.classList.toggle('active', isMobile);
+    $('#forums-tab')?.classList.toggle('active', !isMobile);
+    if (isMobile) loadHomePhotos(); else loadHomeForums();
+  }
 
-  app.innerHTML = `
+  async function renderForumList(app, queryString) {
+    document.title = 'Konular – TeaTube';
+    updatePageMeta('Konular – TeaTube', 'Toplulukla fikir paylaş, tartış, keşfet.', '');
+
+    // URL'den ?tag= parametresini oku — önce argüman, yoksa location.search
+    const qs = queryString !== undefined ? queryString : location.search;
+    const urlParams = new URLSearchParams(qs);
+    const activeTag = urlParams.get('tag') || '';
+
+    app.innerHTML = `
     <div class="container page">
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div>
@@ -718,97 +718,97 @@ async function renderForumList(app, queryString) {
       <div id="forums-list"><div class="loading-center"><div class="spinner"></div></div></div>
     </div>`;
 
-  if (currentUser) $('#new-forum-btn')?.addEventListener('click', () => showNewForumModal());
+    if (currentUser) $('#new-forum-btn')?.addEventListener('click', () => showNewForumModal());
 
-  let forums = [];
-  try {
-    const url = activeTag ? `/forums?tag=${encodeURIComponent(activeTag)}` : '/forums';
-    forums = await api(url);
-  } catch {}
-  renderForumListItems(forums);
+    let forums = [];
+    try {
+      const url = activeTag ? `/forums?tag=${encodeURIComponent(activeTag)}` : '/forums';
+      forums = await api(url);
+    } catch { }
+    renderForumListItems(forums);
 
-  $('#forum-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase().replace(/^#/, '');
-    if (!q) { renderForumListItems(forums); return; }
-    const filtered = forums.filter(f => {
-      if (f.title.toLowerCase().includes(q) || f.content.toLowerCase().includes(q)) return true;
-      // Etiket araması
-      const sTags = Array.isArray(f.system_tags) ? f.system_tags : [];
-      if (sTags.some(t => t.name.toLowerCase().includes(q))) return true;
-      if ((f.custom_tags||'').toLowerCase().includes(q)) return true;
-      return false;
+    $('#forum-search')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase().replace(/^#/, '');
+      if (!q) { renderForumListItems(forums); return; }
+      const filtered = forums.filter(f => {
+        if (f.title.toLowerCase().includes(q) || f.content.toLowerCase().includes(q)) return true;
+        // Etiket araması
+        const sTags = Array.isArray(f.system_tags) ? f.system_tags : [];
+        if (sTags.some(t => t.name.toLowerCase().includes(q))) return true;
+        if ((f.custom_tags || '').toLowerCase().includes(q)) return true;
+        return false;
+      });
+      renderForumListItems(filtered);
     });
-    renderForumListItems(filtered);
-  });
-}
+  }
 
-async function renderPhotoDetail(app, id, ownerUsername) {
-  try {
-    const photo = await api('/photos/' + encodeURIComponent(id));
-    if (!photo) return navigate('/fotograflar');
-    document.title = (photo.caption ? photo.caption + ' – ' : '') + 'Fotoğraf – TeaTube';
-    updatePageMeta(photo.caption || 'Fotoğraf', photo.caption || '', photo.url || '');
-    app.innerHTML = `
+  async function renderPhotoDetail(app, id, ownerUsername) {
+    try {
+      const photo = await api('/photos/' + encodeURIComponent(id));
+      if (!photo) return navigate('/fotograflar');
+      document.title = (photo.caption ? photo.caption + ' – ' : '') + 'Fotoğraf – TeaTube';
+      updatePageMeta(photo.caption || 'Fotoğraf', photo.caption || '', photo.url || '');
+      app.innerHTML = `
       <div class="container page">
         <div class="section">
           <div class="photo-detail">
-            <div class="photo-detail-media"><img src="${escHtml(photo.url)}" alt="${escHtml(photo.caption||'')}"></div>
+            <div class="photo-detail-media"><img src="${escHtml(photo.url)}" alt="${escHtml(photo.caption || '')}"></div>
             <div class="photo-detail-body">
-              <h2>${escHtml(photo.caption||'')}</h2>
-              <div class="meta-row">Paylaşan: <a href="/profil/${escHtml(photo.username||ownerUsername||'')}" data-link>${escHtml(photo.username||ownerUsername||'')}</a></div>
+              <h2>${escHtml(photo.caption || '')}</h2>
+              <div class="meta-row">Paylaşan: <a href="/profil/${escHtml(photo.username || ownerUsername || '')}" data-link>${escHtml(photo.username || ownerUsername || '')}</a></div>
               <div style="margin-top:12px">
-                <button class="btn btn-ghost photo-like-btn" data-id="${escHtml(photo.id)}">${photo.liked?'<i class="fas fa-heart" style="color:var(--accent-red2)"></i>':'<i class="far fa-heart"></i>'} <span class="photo-like-count">${photo.like_count||0}</span></button>
-                <button class="btn btn-ghost photo-comment-btn" data-id="${escHtml(photo.id)}"><i class="fas fa-comment"></i> Yorumlar (${photo.comment_count||0})</button>
+                <button class="btn btn-ghost photo-like-btn" data-id="${escHtml(photo.id)}">${photo.liked ? '<i class="fas fa-heart" style="color:var(--accent-red2)"></i>' : '<i class="far fa-heart"></i>'} <span class="photo-like-count">${photo.like_count || 0}</span></button>
+                <button class="btn btn-ghost photo-comment-btn" data-id="${escHtml(photo.id)}"><i class="fas fa-comment"></i> Yorumlar (${photo.comment_count || 0})</button>
               </div>
               <div id="photo-comments-list" style="margin-top:16px"></div>
             </div>
           </div>
         </div>
       </div>`;
-    attachPhotoCardActions(app);
-    // load comments
-    try {
-      const comments = await api(`/photos/${encodeURIComponent(id)}/comments`);
-      const el = $('#photo-comments-list');
-      if (!comments.length) { el.innerHTML = '<div class="empty-state"><p>Henüz yorum yok.</p></div>'; }
-      else el.innerHTML = comments.map(c => `<div class="comment-item">${escHtml(c.username)}: ${escHtml(c.content)}</div>`).join('');
-    } catch {}
-  } catch (e) {
-    toast('Fotoğraf bulunamadı', 'error'); navigate('/fotograflar');
+      attachPhotoCardActions(app);
+      // load comments
+      try {
+        const comments = await api(`/photos/${encodeURIComponent(id)}/comments`);
+        const el = $('#photo-comments-list');
+        if (!comments.length) { el.innerHTML = '<div class="empty-state"><p>Henüz yorum yok.</p></div>'; }
+        else el.innerHTML = comments.map(c => `<div class="comment-item">${escHtml(c.username)}: ${escHtml(c.content)}</div>`).join('');
+      } catch { }
+    } catch (e) {
+      toast('Fotoğraf bulunamadı', 'error'); navigate('/fotograflar');
+    }
   }
-}
 
-function renderForumListItems(forums) {
-  const el = $('#forums-list');
-  if (!el) return;
-  if (!forums.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Konu bulunamadı.</p></div>'; return; }
-  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${forums.map(f => forumCardHTML(f)).join('')}</div>`;
-}
+  function renderForumListItems(forums) {
+    const el = $('#forums-list');
+    if (!el) return;
+    if (!forums.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>Konu bulunamadı.</p></div>'; return; }
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${forums.map(f => forumCardHTML(f)).join('')}</div>`;
+  }
 
-function forumCardHTML(f) {
-  const preview = f.content.substring(0, 140).replace(/</g,'&lt;');
-  const authorName = f.username || 'Silinmiş Kullanıcı';
-  const authorClick = f.username
-    ? `onclick="event.stopPropagation();navigate('/profil/${escHtml(f.username)}')" style="cursor:pointer"`
-    : `style="cursor:default;opacity:0.6"`;
-  const d = new Date(f.created_at);
-  const dateStr = d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
-  const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  function forumCardHTML(f) {
+    const preview = f.content.substring(0, 140).replace(/</g, '&lt;');
+    const authorName = f.username || 'Silinmiş Kullanıcı';
+    const authorClick = f.username
+      ? `onclick="event.stopPropagation();navigate('/profil/${escHtml(f.username)}')" style="cursor:pointer"`
+      : `style="cursor:default;opacity:0.6"`;
+    const d = new Date(f.created_at);
+    const dateStr = d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+    const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
-  // Etiketler
-  const systemTags = Array.isArray(f.system_tags) ? f.system_tags : (typeof f.system_tags === 'string' ? (() => { try { return JSON.parse(f.system_tags); } catch { return []; } })() : []);
-  const customTags = f.custom_tags ? f.custom_tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-  const tagsHTML = [
-    ...systemTags.map(t => `<span class="forum-tag" style="background:${escHtml(t.color||'#555')}22;color:${escHtml(t.color||'#aaa')};border:1px solid ${escHtml(t.color||'#555')}44" onclick="event.stopPropagation();navigateTag('${escHtml(t.name)}')">#${escHtml(t.name)}</span>`),
-    ...customTags.map(t => `<span class="forum-tag forum-tag-custom" onclick="event.stopPropagation();navigateTag('${escHtml(t)}')">#${escHtml(t)}</span>`)
-  ].join('');
+    // Etiketler
+    const systemTags = Array.isArray(f.system_tags) ? f.system_tags : (typeof f.system_tags === 'string' ? (() => { try { return JSON.parse(f.system_tags); } catch { return []; } })() : []);
+    const customTags = f.custom_tags ? f.custom_tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const tagsHTML = [
+      ...systemTags.map(t => `<span class="forum-tag" style="background:${escHtml(t.color || '#555')}22;color:${escHtml(t.color || '#aaa')};border:1px solid ${escHtml(t.color || '#555')}44" onclick="event.stopPropagation();navigateTag('${escHtml(t.name)}')">#${escHtml(t.name)}</span>`),
+      ...customTags.map(t => `<span class="forum-tag forum-tag-custom" onclick="event.stopPropagation();navigateTag('${escHtml(t)}')">#${escHtml(t)}</span>`)
+    ].join('');
 
-  // Kart thumbnail: önce thumbnail, yoksa 1. ek resim, yoksa banner
-  const extraImgs = Array.isArray(f.system_tags) ? [] : []; // system_tags zaten ayrı parse ediliyor
-  const parsedImages = (() => { try { return JSON.parse(f.images || '[]'); } catch { return []; } })();
-  const cardThumb = f.thumbnail || parsedImages[0] || f.banner_image || '';
+    // Kart thumbnail: önce thumbnail, yoksa 1. ek resim, yoksa banner
+    const extraImgs = Array.isArray(f.system_tags) ? [] : []; // system_tags zaten ayrı parse ediliyor
+    const parsedImages = (() => { try { return JSON.parse(f.images || '[]'); } catch { return []; } })();
+    const cardThumb = f.thumbnail || parsedImages[0] || f.banner_image || '';
 
-  return `<div class="forum-card" onclick="navigate('/forum/${escHtml(f.slug)}')">
+    return `<div class="forum-card" onclick="navigate('/forum/${escHtml(f.slug)}')">
     <div class="forum-card-accent"></div>
     <div class="forum-card-body">
       <div class="forum-card-title">${escHtml(f.title)}</div>
@@ -824,16 +824,16 @@ function forumCardHTML(f) {
     </div>
     ${cardThumb ? `<img src="${escHtml(cardThumb)}" class="forum-card-banner" alt="" />` : ''}
   </div>`;
-}
+  }
 
-// Hashtag tıklanınca o etikete göre filtrele
-window.navigateTag = function(tag) {
-  navigate('/forum?tag=' + encodeURIComponent(tag));
-};
+  // Hashtag tıklanınca o etikete göre filtrele
+  window.navigateTag = function (tag) {
+    navigate('/forum?tag=' + encodeURIComponent(tag));
+  };
 
-function photoCardHTML(p) {
-  const isOwn = currentUser && currentUser.username === p.username;
-  return `
+  function photoCardHTML(p) {
+    const isOwn = currentUser && currentUser.username === p.username;
+    return `
     <div class="photo-card">
       <div class="photo-card-media" onclick="navigate('/profil/${escHtml(p.username)}/foto/${escHtml(p.id)}')" style="cursor:pointer">
         <img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" />
@@ -850,160 +850,161 @@ function photoCardHTML(p) {
             <div class="photo-uploader">${escHtml(p.username)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <button class="btn btn-ghost btn-sm photo-like-btn" data-id="${escHtml(p.id)}" title="Beğen">${p.liked ? '<i class="fas fa-heart" style="color:var(--accent-red2)"></i>' : '<i class="far fa-heart"></i>'} <span class="photo-like-count">${p.like_count||0}</span></button>
-            <button class="btn btn-ghost btn-sm photo-comment-btn" data-id="${escHtml(p.id)}" title="Yorumlar"><i class="fas fa-comment"></i> <span class="photo-comment-count">${p.comment_count||0}</span></button>
+            <button class="btn btn-ghost btn-sm photo-like-btn" data-id="${escHtml(p.id)}" title="Beğen">${p.liked ? '<i class="fas fa-heart" style="color:var(--accent-red2)"></i>' : '<i class="far fa-heart"></i>'} <span class="photo-like-count">${p.like_count || 0}</span></button>
+            <button class="btn btn-ghost btn-sm photo-comment-btn" data-id="${escHtml(p.id)}" title="Yorumlar"><i class="fas fa-comment"></i> <span class="photo-comment-count">${p.comment_count || 0}</span></button>
           </div>
         </div>
       </div>
     </div>`;
-}
+  }
 
-function attachPhotoCardActions(container) {
-  container.querySelectorAll('.photo-edit-btn').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      await editPhoto(btn.dataset.id);
+  function attachPhotoCardActions(container) {
+    container.querySelectorAll('.photo-edit-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        await editPhoto(btn.dataset.id);
+      });
     });
-  });
-  container.querySelectorAll('.photo-delete-btn').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      await deletePhoto(btn.dataset.id);
+    container.querySelectorAll('.photo-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        await deletePhoto(btn.dataset.id);
+      });
     });
-  });
-  container.querySelectorAll('.photo-like-btn').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      await togglePhotoLike(btn.dataset.id, btn);
+    container.querySelectorAll('.photo-like-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        await togglePhotoLike(btn.dataset.id, btn);
+      });
     });
-  });
-  container.querySelectorAll('.photo-comment-btn').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      await showPhotoComments(btn.dataset.id);
+    container.querySelectorAll('.photo-comment-btn').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        await showPhotoComments(btn.dataset.id);
+      });
     });
-  });
-}
+  }
 
-async function editPhoto(photoId) {
-  try {
-    const photo = await api('/photos/' + encodeURIComponent(photoId));
-    if (!currentUser || photo.username !== currentUser.username) return toast('Bu fotoğrafı düzenleyemezsiniz', 'error');
-    showModal('Fotoğraf Düzenle', `
+  async function editPhoto(photoId) {
+    try {
+      const photo = await api('/photos/' + encodeURIComponent(photoId));
+      if (!currentUser || photo.username !== currentUser.username) return toast('Bu fotoğrafı düzenleyemezsiniz', 'error');
+      showModal('Fotoğraf Düzenle', `
       <div class="form-group"><label>Fotoğraf URL</label><input id="edit-photo-url" type="text" value="${escHtml(photo.url)}" /></div>
       <div class="form-group"><label>Başlık / Açıklama</label><textarea id="edit-photo-caption" rows="4">${escHtml(photo.caption || '')}</textarea></div>
       <div class="form-group"><label>Yeni Fotoğraf (opsiyonel)</label><input type="file" id="edit-photo-file" accept="image/*" /></div>
-      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-show-likes" ${photo.show_likes==1? 'checked' : ''} /> Beğeni sayısını göster</label></div>
-      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-allow-comments" ${photo.allow_comments==1? 'checked' : ''} /> Yorumlara izin ver</label></div>
-      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-allow-shares" ${photo.allow_shares==1? 'checked' : ''} /> İletilere izin ver</label></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-show-likes" ${photo.show_likes == 1 ? 'checked' : ''} /> Beğeni sayısını göster</label></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-allow-comments" ${photo.allow_comments == 1 ? 'checked' : ''} /> Yorumlara izin ver</label></div>
+      <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="edit-allow-shares" ${photo.allow_shares == 1 ? 'checked' : ''} /> İletilere izin ver</label></div>
       <button class="btn btn-primary" id="edit-photo-save" style="width:100%">Kaydet</button>
       <div id="edit-photo-error" class="form-error mt-4"></div>
     `);
 
-    $('#edit-photo-save')?.addEventListener('click', async () => {
-      const url = $('#edit-photo-url')?.value.trim();
-      const caption = $('#edit-photo-caption')?.value.trim();
-      if (!url) { $('#edit-photo-error').textContent = 'Fotoğraf URL gerekli'; return; }
-      let finalUrl = url;
-      const fileInput = $('#edit-photo-file');
-      if (fileInput && fileInput.files.length) {
+      $('#edit-photo-save')?.addEventListener('click', async () => {
+        const url = $('#edit-photo-url')?.value.trim();
+        const caption = $('#edit-photo-caption')?.value.trim();
+        if (!url) { $('#edit-photo-error').textContent = 'Fotoğraf URL gerekli'; return; }
+        let finalUrl = url;
+        const fileInput = $('#edit-photo-file');
+        if (fileInput && fileInput.files.length) {
+          try {
+            const fd = new FormData();
+            fd.append('file', fileInput.files[0]);
+            const uploadRes = await apiForm('/api/upload', fd);
+            finalUrl = uploadRes.url;
+          } catch (e) { $('#edit-photo-error').textContent = e.message; return; }
+        }
         try {
-          const fd = new FormData();
-          fd.append('file', fileInput.files[0]);
-          const uploadRes = await apiForm('/api/upload', fd);
-          finalUrl = uploadRes.url;
-        } catch (e) { $('#edit-photo-error').textContent = e.message; return; }
-      }
-      try {
-        const show_likes = $('#edit-show-likes')?.checked ? 1 : 0;
-        const allow_comments = $('#edit-allow-comments')?.checked ? 1 : 0;
-        const allow_shares = $('#edit-allow-shares')?.checked ? 1 : 0;
-        await api('/photos/' + encodeURIComponent(photoId), { method: 'PUT', body: JSON.stringify({ url: finalUrl, caption, show_likes, allow_comments, allow_shares }) });
-        hideModal();
-        toast('Fotoğraf güncellendi');
-        renderRoute(location.pathname);
-      } catch (e) { $('#edit-photo-error').textContent = e.message; }
-    });
-  } catch (e) {
-    toast(e.message, 'error');
-  }
-}
-
-async function togglePhotoLike(photoId, btn) {
-  if (!currentUser) { navigate('/giris'); return; }
-  try {
-    const res = await api(`/photos/${encodeURIComponent(photoId)}/like`, { method: 'POST' });
-    const countEl = btn.querySelector('.photo-like-count');
-    if (res.liked) {
-      btn.innerHTML = '<i class="fas fa-heart" style="color:var(--accent-red2)"></i> <span class="photo-like-count">' + ((countEl?parseInt(countEl.textContent||'0'):0)+1) + '</span>';
-    } else {
-      btn.innerHTML = '<i class="far fa-heart"></i> <span class="photo-like-count">' + (Math.max((countEl?parseInt(countEl.textContent||'0'):0)-1,0)) + '</span>';
+          const show_likes = $('#edit-show-likes')?.checked ? 1 : 0;
+          const allow_comments = $('#edit-allow-comments')?.checked ? 1 : 0;
+          const allow_shares = $('#edit-allow-shares')?.checked ? 1 : 0;
+          await api('/photos/' + encodeURIComponent(photoId), { method: 'PUT', body: JSON.stringify({ url: finalUrl, caption, show_likes, allow_comments, allow_shares }) });
+          hideModal();
+          toast('Fotoğraf güncellendi');
+          renderRoute(location.pathname);
+        } catch (e) { $('#edit-photo-error').textContent = e.message; }
+      });
+    } catch (e) {
+      toast(e.message, 'error');
     }
-  } catch (e) { toast(e.message, 'error'); }
-}
+  }
 
-async function showPhotoComments(photoId) {
-  try {
-    const comments = await api(`/photos/${encodeURIComponent(photoId)}/comments`);
-    const photo = await api(`/photos/${encodeURIComponent(photoId)}`);
-    showModal('Yorumlar', `
+  async function togglePhotoLike(photoId, btn) {
+    if (!currentUser) { navigate('/giris'); return; }
+    try {
+      const res = await api(`/photos/${encodeURIComponent(photoId)}/like`, { method: 'POST' });
+      const countEl = btn.querySelector('.photo-like-count');
+      if (res.liked) {
+        btn.innerHTML = '<i class="fas fa-heart" style="color:var(--accent-red2)"></i> <span class="photo-like-count">' + ((countEl ? parseInt(countEl.textContent || '0') : 0) + 1) + '</span>';
+      } else {
+        btn.innerHTML = '<i class="far fa-heart"></i> <span class="photo-like-count">' + (Math.max((countEl ? parseInt(countEl.textContent || '0') : 0) - 1, 0)) + '</span>';
+      }
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function showPhotoComments(photoId) {
+    try {
+      const comments = await api(`/photos/${encodeURIComponent(photoId)}/comments`);
+      const photo = await api(`/photos/${encodeURIComponent(photoId)}`);
+      showModal('Yorumlar', `
       <div style="display:flex;flex-direction:column;gap:12px">
         <div id="photo-comments-list" style="max-height:320px;overflow:auto;padding:6px"></div>
         ${currentUser ? `<textarea id="photo-comment-input" rows="3" style="width:100%;background:var(--bg-card2);border:1px solid var(--border);color:var(--text-primary);padding:8px;border-radius:8px" placeholder="Yorum yaz..."></textarea>
         <button class="btn btn-primary" id="photo-comment-send">Gönder</button>` : `<a href="/giris" data-link class="btn btn-primary">Giriş Yap</a>`}
       </div>
     `);
-    const listEl = $('#photo-comments-list');
-    function renderList() {
-      listEl.innerHTML = comments.length ? comments.map(c => `
+      const listEl = $('#photo-comments-list');
+      function renderList() {
+        listEl.innerHTML = comments.length ? comments.map(c => `
         <div style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start">
           ${c.avatar ? `<img src="${escHtml(c.avatar)}" class="avatar-sm" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
           <div style="flex:1;min-width:0">
-            <div style="display:flex;justify-content:space-between;align-items:center"><strong>${escHtml(c.username||'Silindi')}</strong><span style="font-size:12px;color:var(--text-muted)">${timeAgo(c.created_at)}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><strong>${escHtml(c.username || 'Silindi')}</strong><span style="font-size:12px;color:var(--text-muted)">${timeAgo(c.created_at)}</span></div>
             <div style="margin-top:6px;color:var(--text-primary)">${escHtml(c.content)}</div>
           </div>
-          ${currentUser && (currentUser.username===c.username || currentUser.is_admin || photo.user_id===currentUser.id) ? `<button class="btn btn-ghost btn-sm comment-delete" data-id="${escHtml(c.id)}">Sil</button>` : ''}
+          ${currentUser && (currentUser.username === c.username || currentUser.is_admin || photo.user_id === currentUser.id) ? `<button class="btn btn-ghost btn-sm comment-delete" data-id="${escHtml(c.id)}">Sil</button>` : ''}
         </div>
       `).join('') : '<div style="color:var(--text-muted);padding:8px;text-align:center">Yorum yok</div>';
-    }
-    renderList();
-    $('#photo-comment-send')?.addEventListener('click', async () => {
-      const txt = $('#photo-comment-input').value.trim();
-      if (!txt) return;
-      try {
-        const added = await api(`/photos/${encodeURIComponent(photoId)}/comments`, { method: 'POST', body: JSON.stringify({ content: txt }) });
-        comments.push(added);
-        renderList();
-        $('#photo-comment-input').value = '';
-      } catch (e) { $('#photo-comment-input').value = ''; toast(e.message, 'error'); }
-    });
-    $('#modal-body')?.addEventListener('click', async (e) => {
-      const del = e.target.closest('.comment-delete');
-      if (del) {
-        if (!confirm('Bu yorumu silmek istiyor musunuz?')) return;
-        try { await api(`/photos/comments/${encodeURIComponent(del.dataset.id)}`, { method: 'DELETE' });
-          const idx = comments.findIndex(c => c.id == del.dataset.id);
-          if (idx >= 0) comments.splice(idx,1);
-          renderList();
-        } catch (err) { toast(err.message, 'error'); }
       }
-    });
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-async function deletePhoto(photoId) {
-  if (!confirm('Bu fotoğrafı silmek istediğine emin misin?')) return;
-  try {
-    await api('/photos/' + encodeURIComponent(photoId), { method: 'DELETE' });
-    toast('Fotoğraf silindi');
-    renderRoute(location.pathname);
-  } catch (e) {
-    toast(e.message, 'error');
+      renderList();
+      $('#photo-comment-send')?.addEventListener('click', async () => {
+        const txt = $('#photo-comment-input').value.trim();
+        if (!txt) return;
+        try {
+          const added = await api(`/photos/${encodeURIComponent(photoId)}/comments`, { method: 'POST', body: JSON.stringify({ content: txt }) });
+          comments.push(added);
+          renderList();
+          $('#photo-comment-input').value = '';
+        } catch (e) { $('#photo-comment-input').value = ''; toast(e.message, 'error'); }
+      });
+      $('#modal-body')?.addEventListener('click', async (e) => {
+        const del = e.target.closest('.comment-delete');
+        if (del) {
+          if (!confirm('Bu yorumu silmek istiyor musunuz?')) return;
+          try {
+            await api(`/photos/comments/${encodeURIComponent(del.dataset.id)}`, { method: 'DELETE' });
+            const idx = comments.findIndex(c => c.id == del.dataset.id);
+            if (idx >= 0) comments.splice(idx, 1);
+            renderList();
+          } catch (err) { toast(err.message, 'error'); }
+        }
+      });
+    } catch (e) { toast(e.message, 'error'); }
   }
-}
 
-function showNewForumModal(existing = null) {
-  showModal(existing ? 'Konuyu Düzenle' : 'Yeni Konu Aç', `
+  async function deletePhoto(photoId) {
+    if (!confirm('Bu fotoğrafı silmek istediğine emin misin?')) return;
+    try {
+      await api('/photos/' + encodeURIComponent(photoId), { method: 'DELETE' });
+      toast('Fotoğraf silindi');
+      renderRoute(location.pathname);
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  function showNewForumModal(existing = null) {
+    showModal(existing ? 'Konuyu Düzenle' : 'Yeni Konu Aç', `
     <div class="form-group"><label>Başlık</label><input id="fm-title" type="text" placeholder="Konu başlığı" value="${existing ? escHtml(existing.title) : ''}" /></div>
     <div class="form-group"><label>İçerik</label><textarea id="fm-content" rows="8" placeholder="Yazınızı buraya girin...">${existing ? escHtml(existing.content) : ''}</textarea></div>
     <div class="form-group">
@@ -1026,13 +1027,13 @@ function showNewForumModal(existing = null) {
         <label style="font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">FOTOĞRAF GÖRÜNÜMÜ</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:6px">
-            <input type="radio" name="fm-fit" value="cover" ${!existing || (existing.banner_fit||'cover')==='cover' ? 'checked' : ''} style="width:auto" /> Kap (Dikdörtgen)
+            <input type="radio" name="fm-fit" value="cover" ${!existing || (existing.banner_fit || 'cover') === 'cover' ? 'checked' : ''} style="width:auto" /> Kap (Dikdörtgen)
           </label>
           <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:6px">
-            <input type="radio" name="fm-fit" value="contain" ${existing && existing.banner_fit==='contain' ? 'checked' : ''} style="width:auto" /> Sığdır (Tam Görünsün)
+            <input type="radio" name="fm-fit" value="contain" ${existing && existing.banner_fit === 'contain' ? 'checked' : ''} style="width:auto" /> Sığdır (Tam Görünsün)
           </label>
           <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:6px">
-            <input type="radio" name="fm-fit" value="original" ${existing && existing.banner_fit==='original' ? 'checked' : ''} style="width:auto" /> Gerçek Boyut
+            <input type="radio" name="fm-fit" value="original" ${existing && existing.banner_fit === 'original' ? 'checked' : ''} style="width:auto" /> Gerçek Boyut
           </label>
         </div>
       </div>
@@ -1047,243 +1048,243 @@ function showNewForumModal(existing = null) {
     <div id="fm-error" class="form-error mt-4"></div>
   `);
 
-  api('/tags').then(tags => {
-    const container = $('#fm-tags-checkboxes');
-    const loading = $('#fm-tags-loading');
-    if (!container || !loading) return;
-    loading.style.display = 'none';
-    container.style.display = 'block';
-    container.innerHTML = tags.map(t => `
+    api('/tags').then(tags => {
+      const container = $('#fm-tags-checkboxes');
+      const loading = $('#fm-tags-loading');
+      if (!container || !loading) return;
+      loading.style.display = 'none';
+      container.style.display = 'block';
+      container.innerHTML = tags.map(t => `
       <label class="checkbox-label" style="margin:4px 0;padding:4px;cursor:pointer">
         <input type="checkbox" class="fm-tag-check" value="${t.id}" />
         <span class="badge" style="background:${escHtml(t.color)};padding:3px 8px;border-radius:4px;margin-left:6px">${escHtml(t.name)}</span>
       </label>
     `).join('');
-    
-    if (existing) {
-      api('/forum/' + existing.slug + '/tags').then(data => {
-        data.systemTags.forEach(t => {
-          const cb = container.querySelector(`input[value="${t.id}"]`);
-          if (cb) cb.checked = true;
-        });
-        if (data.customTags.length > 0) {
-          $('#fm-custom-tags').value = data.customTags.join(', ');
-        }
-      }).catch(() => {});
-    }
-  }).catch(() => {
-    $('#fm-tags-loading').textContent = 'Tag yüklenemedi';
-  });
 
-  $('#fm-banner-file').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const prev = $('#fm-banner-preview');
-      prev.outerHTML = `<img id="fm-banner-preview" src="${ev.target.result}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:4px" />`;
-    };
-    reader.readAsDataURL(file);
-  });
+      if (existing) {
+        api('/forum/' + existing.slug + '/tags').then(data => {
+          data.systemTags.forEach(t => {
+            const cb = container.querySelector(`input[value="${t.id}"]`);
+            if (cb) cb.checked = true;
+          });
+          if (data.customTags.length > 0) {
+            $('#fm-custom-tags').value = data.customTags.join(', ');
+          }
+        }).catch(() => { });
+      }
+    }).catch(() => {
+      $('#fm-tags-loading').textContent = 'Tag yüklenemedi';
+    });
 
-  // Thumbnail önizleme
-  $('#fm-thumb-file')?.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const prev = $('#fm-thumb-preview');
-      if (prev) prev.outerHTML = `<img id="fm-thumb-preview" src="${ev.target.result}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" />`;
-    };
-    reader.readAsDataURL(file);
-  });
+    $('#fm-banner-file').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const prev = $('#fm-banner-preview');
+        prev.outerHTML = `<img id="fm-banner-preview" src="${ev.target.result}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:4px" />`;
+      };
+      reader.readAsDataURL(file);
+    });
 
-  // Enter tuşu ile input'lardan form submit tetiklenmesini önle
-  ['fm-title', 'fm-custom-tags'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
-  });
+    // Thumbnail önizleme
+    $('#fm-thumb-file')?.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const prev = $('#fm-thumb-preview');
+        if (prev) prev.outerHTML = `<img id="fm-thumb-preview" src="${ev.target.result}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" />`;
+      };
+      reader.readAsDataURL(file);
+    });
 
-  // Ek resimler önizleme
-  const existingImages = existing ? (() => { try { return JSON.parse(existing.images || '[]'); } catch { return []; } })() : [];
-  let extraImageFiles = []; // yeni yüklenecekler
-  let keptImages = [...existingImages]; // mevcut (silinmeyenler)
+    // Enter tuşu ile input'lardan form submit tetiklenmesini önle
+    ['fm-title', 'fm-custom-tags'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+    });
 
-  const renderImgPreviews = () => {
-    const wrap = $('#fm-images-preview'); if (!wrap) return;
-    const existingHTML = keptImages.map((url, i) => `
+    // Ek resimler önizleme
+    const existingImages = existing ? (() => { try { return JSON.parse(existing.images || '[]'); } catch { return []; } })() : [];
+    let extraImageFiles = []; // yeni yüklenecekler
+    let keptImages = [...existingImages]; // mevcut (silinmeyenler)
+
+    const renderImgPreviews = () => {
+      const wrap = $('#fm-images-preview'); if (!wrap) return;
+      const existingHTML = keptImages.map((url, i) => `
       <div style="position:relative;display:inline-block">
         <img src="${escHtml(url)}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border)" />
         <button type="button" data-kept="${i}" style="position:absolute;top:-6px;right:-6px;background:var(--accent-red);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">×</button>
       </div>`).join('');
-    const newHTML = extraImageFiles.map((f, i) => {
-      const url = URL.createObjectURL(f);
-      return `<div style="position:relative;display:inline-block">
+      const newHTML = extraImageFiles.map((f, i) => {
+        const url = URL.createObjectURL(f);
+        return `<div style="position:relative;display:inline-block">
         <img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border)" />
         <button type="button" data-new="${i}" style="position:absolute;top:-6px;right:-6px;background:var(--accent-red);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">×</button>
       </div>`;
-    }).join('');
-    wrap.innerHTML = existingHTML + newHTML;
-    wrap.querySelectorAll('[data-kept]').forEach(btn => {
-      btn.addEventListener('click', () => { keptImages.splice(parseInt(btn.dataset.kept), 1); renderImgPreviews(); });
+      }).join('');
+      wrap.innerHTML = existingHTML + newHTML;
+      wrap.querySelectorAll('[data-kept]').forEach(btn => {
+        btn.addEventListener('click', () => { keptImages.splice(parseInt(btn.dataset.kept), 1); renderImgPreviews(); });
+      });
+      wrap.querySelectorAll('[data-new]').forEach(btn => {
+        btn.addEventListener('click', () => { extraImageFiles.splice(parseInt(btn.dataset.new), 1); renderImgPreviews(); });
+      });
+    };
+    if (keptImages.length) renderImgPreviews();
+
+    $('#fm-images-file')?.addEventListener('change', e => {
+      const files = Array.from(e.target.files);
+      const remaining = 5 - keptImages.length - extraImageFiles.length;
+      extraImageFiles = [...extraImageFiles, ...files.slice(0, remaining)];
+      e.target.value = '';
+      renderImgPreviews();
     });
-    wrap.querySelectorAll('[data-new]').forEach(btn => {
-      btn.addEventListener('click', () => { extraImageFiles.splice(parseInt(btn.dataset.new), 1); renderImgPreviews(); });
-    });
-  };
-  if (keptImages.length) renderImgPreviews();
 
-  $('#fm-images-file')?.addEventListener('change', e => {
-    const files = Array.from(e.target.files);
-    const remaining = 5 - keptImages.length - extraImageFiles.length;
-    extraImageFiles = [...extraImageFiles, ...files.slice(0, remaining)];
-    e.target.value = '';
-    renderImgPreviews();
-  });
+    $('#fm-submit').addEventListener('click', async () => {
+      const title = $('#fm-title').value.trim();
+      const content = $('#fm-content').value.trim();
+      if (!title || !content) { $('#fm-error').textContent = 'Başlık ve içerik zorunlu'; return; }
 
-  $('#fm-submit').addEventListener('click', async () => {
-    const title = $('#fm-title').value.trim();
-    const content = $('#fm-content').value.trim();
-    if (!title || !content) { $('#fm-error').textContent = 'Başlık ve içerik zorunlu'; return; }
-    
-    const submitBtn = $('#fm-submit');
-    if (submitBtn._submitting) return;
-    submitBtn._submitting = true;
-    
-    const tagIds = Array.from($$('.fm-tag-check:checked')).map(cb => parseInt(cb.value));
-    const customTagsInput = $('#fm-custom-tags').value.trim();
-    const customTags = customTagsInput ? customTagsInput.split(',').map(t => t.trim()).filter(Boolean) : [];
-    
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:6px"></div> Yükleniyor...';
-
-    try {
-      let banner_image = existing ? (existing.banner_image || '') : '';
-      const bannerFile = $('#fm-banner-file').files[0];
-      if (bannerFile) {
-        // Progress göster
-        const progressWrap = document.createElement('div');
-        progressWrap.id = 'fm-upload-progress';
-        progressWrap.style.cssText = 'margin:8px 0;background:var(--bg-card2);border-radius:8px;overflow:hidden;height:6px';
-        progressWrap.innerHTML = '<div id="fm-progress-bar" style="height:100%;background:var(--grad-red);width:0%;transition:width 0.3s"></div>';
-        $('#fm-error').insertAdjacentElement('beforebegin', progressWrap);
-        
-        // XMLHttpRequest ile progress takibi
-        banner_image = await new Promise((resolve, reject) => {
-          const fd = new FormData();
-          fd.append('file', bannerFile);
-          const xhr = new XMLHttpRequest();
-          xhr.upload.addEventListener('progress', e => {
-            if (e.lengthComputable) {
-              const pct = Math.round((e.loaded / e.total) * 90);
-              const bar = $('#fm-progress-bar');
-              if (bar) bar.style.width = pct + '%';
-            }
-          });
-          xhr.addEventListener('load', () => {
-            const bar = $('#fm-progress-bar');
-            if (bar) bar.style.width = '100%';
-            try {
-              const data = JSON.parse(xhr.responseText);
-              if (xhr.status >= 400) return reject(new Error(data.error || 'Yükleme hatası'));
-              resolve(data.url);
-            } catch (e) {
-              reject(new Error('Sunucu yanıtı geçersiz: ' + xhr.responseText.substring(0, 100)));
-            }
-          });
-          xhr.addEventListener('error', () => reject(new Error('Ağ hatası, tekrar deneyin')));
-          xhr.open('POST', '/api/upload');
-          const token = localStorage.getItem('token');
-          if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-          xhr.send(fd);
-        });
-      }
-      // Thumbnail yükle
-      let thumbnailUrl = existing ? (existing.thumbnail || '') : '';
-      const thumbFile = $('#fm-thumb-file')?.files[0];
-      if (thumbFile) {
-        const thumbFd = new FormData(); thumbFd.append('file', thumbFile);
-        const thumbRes = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }, body: thumbFd });
-        const thumbText = await thumbRes.text();
-        const thumbData = thumbText ? JSON.parse(thumbText) : {};
-        if (!thumbRes.ok) throw new Error(thumbData.error || thumbText || 'Kapak resmi yüklenemedi');
-        if (thumbData.url) thumbnailUrl = thumbData.url;
-      }
-
-      // Ek resimleri yükle
-      const uploadedExtraImages = [...keptImages];
-      for (let i = 0; i < extraImageFiles.length; i++) {
-        const imgFile = extraImageFiles[i];
-        const imgFd = new FormData(); imgFd.append('file', imgFile);
-        const imgRes = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }, body: imgFd });
-        const imgText = await imgRes.text();
-        const imgData = imgText ? JSON.parse(imgText) : {};
-        if (!imgRes.ok) throw new Error(imgData.error || imgText || 'Resim yüklenemedi');
-        if (imgData.url) uploadedExtraImages.push(imgData.url);
-      }
-
-      if (existing) {
-        await api('/forum/' + existing.slug, { method: 'PUT', body: JSON.stringify({ title, content, banner_image, allow_comments: $('#fm-comments').checked, tagIds, customTags, banner_fit: document.querySelector('[name="fm-fit"]:checked')?.value || 'cover', images: uploadedExtraImages, thumbnail: thumbnailUrl }) });
-        toast('Konu güncellendi');
-      } else {
-        const f = await api('/forums', { method: 'POST', body: JSON.stringify({ title, content, banner_image, allow_comments: $('#fm-comments').checked, tagIds, customTags, banner_fit: document.querySelector('[name="fm-fit"]:checked')?.value || 'cover', images: uploadedExtraImages, thumbnail: thumbnailUrl }) });
-        toast('Konu oluşturuldu');
-        hideModal();
-        navigate('/forum/' + f.slug);
-        return;
-      }
-      hideModal();
-      navigate(location.pathname, false);
-      renderRoute(location.pathname);
-    } catch (e) {
-      $('#fm-error').textContent = e.message;
       const submitBtn = $('#fm-submit');
-      if (submitBtn) { submitBtn.disabled = false; submitBtn._submitting = false; submitBtn.innerHTML = existing ? 'Güncelle' : 'Yayınla'; }
-      const prog = $('#fm-upload-progress');
-      if (prog) prog.remove();
-    }
-  });
-}
+      if (submitBtn._submitting) return;
+      submitBtn._submitting = true;
 
-async function renderForumDetail(app, slug) {
-  app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
-  let forum, liked = false, comments = [];
-  try {
-    forum = await api('/forum/' + slug);
-    document.title = forum.title + ' – TeaTube';
-    updatePageMeta(
-      forum.title + ' – TeaTube',
-      forum.content.substring(0, 155).replace(/\n/g, ' '),
-      forum.banner_image || ''
-    );
+      const tagIds = Array.from($$('.fm-tag-check:checked')).map(cb => parseInt(cb.value));
+      const customTagsInput = $('#fm-custom-tags').value.trim();
+      const customTags = customTagsInput ? customTagsInput.split(',').map(t => t.trim()).filter(Boolean) : [];
 
-    let ld = document.getElementById('page-jsonld');
-    if (!ld) { ld = document.createElement('script'); ld.type = 'application/ld+json'; ld.id = 'page-jsonld'; document.head.appendChild(ld); }
-    ld.textContent = JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'DiscussionForumPosting',
-      'headline': forum.title,
-      'text': forum.content.substring(0, 500),
-      'url': SITE_URL + '/forum/' + forum.slug,
-      'datePublished': forum.created_at,
-      'dateModified': forum.updated_at || forum.created_at,
-      'author': { '@type': 'Person', 'name': forum.username || 'Anonim' },
-      'publisher': { '@type': 'Organization', 'name': 'TeaTube', 'url': SITE_URL },
-      'interactionStatistic': [
-        { '@type': 'InteractionCounter', 'interactionType': 'https://schema.org/LikeAction', 'userInteractionCount': forum.like_count || 0 },
-        { '@type': 'InteractionCounter', 'interactionType': 'https://schema.org/CommentAction', 'userInteractionCount': forum.comment_count || 0 }
-      ],
-      ...(forum.banner_image ? { 'image': { '@type': 'ImageObject', 'url': forum.banner_image } } : {})
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:6px"></div> Yükleniyor...';
+
+      try {
+        let banner_image = existing ? (existing.banner_image || '') : '';
+        const bannerFile = $('#fm-banner-file').files[0];
+        if (bannerFile) {
+          // Progress göster
+          const progressWrap = document.createElement('div');
+          progressWrap.id = 'fm-upload-progress';
+          progressWrap.style.cssText = 'margin:8px 0;background:var(--bg-card2);border-radius:8px;overflow:hidden;height:6px';
+          progressWrap.innerHTML = '<div id="fm-progress-bar" style="height:100%;background:var(--grad-red);width:0%;transition:width 0.3s"></div>';
+          $('#fm-error').insertAdjacentElement('beforebegin', progressWrap);
+
+          // XMLHttpRequest ile progress takibi
+          banner_image = await new Promise((resolve, reject) => {
+            const fd = new FormData();
+            fd.append('file', bannerFile);
+            const xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener('progress', e => {
+              if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 90);
+                const bar = $('#fm-progress-bar');
+                if (bar) bar.style.width = pct + '%';
+              }
+            });
+            xhr.addEventListener('load', () => {
+              const bar = $('#fm-progress-bar');
+              if (bar) bar.style.width = '100%';
+              try {
+                const data = JSON.parse(xhr.responseText);
+                if (xhr.status >= 400) return reject(new Error(data.error || 'Yükleme hatası'));
+                resolve(data.url);
+              } catch (e) {
+                reject(new Error('Sunucu yanıtı geçersiz: ' + xhr.responseText.substring(0, 100)));
+              }
+            });
+            xhr.addEventListener('error', () => reject(new Error('Ağ hatası, tekrar deneyin')));
+            xhr.open('POST', '/api/upload');
+            const token = localStorage.getItem('token');
+            if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.send(fd);
+          });
+        }
+        // Thumbnail yükle
+        let thumbnailUrl = existing ? (existing.thumbnail || '') : '';
+        const thumbFile = $('#fm-thumb-file')?.files[0];
+        if (thumbFile) {
+          const thumbFd = new FormData(); thumbFd.append('file', thumbFile);
+          const thumbRes = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }, body: thumbFd });
+          const thumbText = await thumbRes.text();
+          const thumbData = thumbText ? JSON.parse(thumbText) : {};
+          if (!thumbRes.ok) throw new Error(thumbData.error || thumbText || 'Kapak resmi yüklenemedi');
+          if (thumbData.url) thumbnailUrl = thumbData.url;
+        }
+
+        // Ek resimleri yükle
+        const uploadedExtraImages = [...keptImages];
+        for (let i = 0; i < extraImageFiles.length; i++) {
+          const imgFile = extraImageFiles[i];
+          const imgFd = new FormData(); imgFd.append('file', imgFile);
+          const imgRes = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }, body: imgFd });
+          const imgText = await imgRes.text();
+          const imgData = imgText ? JSON.parse(imgText) : {};
+          if (!imgRes.ok) throw new Error(imgData.error || imgText || 'Resim yüklenemedi');
+          if (imgData.url) uploadedExtraImages.push(imgData.url);
+        }
+
+        if (existing) {
+          await api('/forum/' + existing.slug, { method: 'PUT', body: JSON.stringify({ title, content, banner_image, allow_comments: $('#fm-comments').checked, tagIds, customTags, banner_fit: document.querySelector('[name="fm-fit"]:checked')?.value || 'cover', images: uploadedExtraImages, thumbnail: thumbnailUrl }) });
+          toast('Konu güncellendi');
+        } else {
+          const f = await api('/forums', { method: 'POST', body: JSON.stringify({ title, content, banner_image, allow_comments: $('#fm-comments').checked, tagIds, customTags, banner_fit: document.querySelector('[name="fm-fit"]:checked')?.value || 'cover', images: uploadedExtraImages, thumbnail: thumbnailUrl }) });
+          toast('Konu oluşturuldu');
+          hideModal();
+          navigate('/forum/' + f.slug);
+          return;
+        }
+        hideModal();
+        navigate(location.pathname, false);
+        renderRoute(location.pathname);
+      } catch (e) {
+        $('#fm-error').textContent = e.message;
+        const submitBtn = $('#fm-submit');
+        if (submitBtn) { submitBtn.disabled = false; submitBtn._submitting = false; submitBtn.innerHTML = existing ? 'Güncelle' : 'Yayınla'; }
+        const prog = $('#fm-upload-progress');
+        if (prog) prog.remove();
+      }
     });
+  }
 
-    try { await api('/forum/' + slug + '/view', { method: 'POST' }); } catch {}
-    if (currentUser) { const l = await api('/forum/' + slug + '/liked'); liked = l.liked; }
-    comments = await api('/forum/' + slug + '/comments');
-  } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Konu bulunamadı.</p></div></div>'; return; }
+  async function renderForumDetail(app, slug) {
+    app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
+    let forum, liked = false, comments = [];
+    try {
+      forum = await api('/forum/' + slug);
+      document.title = forum.title + ' – TeaTube';
+      updatePageMeta(
+        forum.title + ' – TeaTube',
+        forum.content.substring(0, 155).replace(/\n/g, ' '),
+        forum.banner_image || ''
+      );
 
-  const isOwner = currentUser && currentUser.id === forum.user_id;
+      let ld = document.getElementById('page-jsonld');
+      if (!ld) { ld = document.createElement('script'); ld.type = 'application/ld+json'; ld.id = 'page-jsonld'; document.head.appendChild(ld); }
+      ld.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'DiscussionForumPosting',
+        'headline': forum.title,
+        'text': forum.content.substring(0, 500),
+        'url': SITE_URL + '/forum/' + forum.slug,
+        'datePublished': forum.created_at,
+        'dateModified': forum.updated_at || forum.created_at,
+        'author': { '@type': 'Person', 'name': forum.username || 'Anonim' },
+        'publisher': { '@type': 'Organization', 'name': 'TeaTube', 'url': SITE_URL },
+        'interactionStatistic': [
+          { '@type': 'InteractionCounter', 'interactionType': 'https://schema.org/LikeAction', 'userInteractionCount': forum.like_count || 0 },
+          { '@type': 'InteractionCounter', 'interactionType': 'https://schema.org/CommentAction', 'userInteractionCount': forum.comment_count || 0 }
+        ],
+        ...(forum.banner_image ? { 'image': { '@type': 'ImageObject', 'url': forum.banner_image } } : {})
+      });
 
-  app.innerHTML = `<div class="container page">
+      try { await api('/forum/' + slug + '/view', { method: 'POST' }); } catch { }
+      if (currentUser) { const l = await api('/forum/' + slug + '/liked'); liked = l.liked; }
+      comments = await api('/forum/' + slug + '/comments');
+    } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Konu bulunamadı.</p></div></div>'; return; }
+
+    const isOwner = currentUser && currentUser.id === forum.user_id;
+
+    app.innerHTML = `<div class="container page">
     <div class="forum-detail">
       ${isOwner ? `<div style="display:flex;gap:8px;margin-bottom:16px">
         <button class="btn btn-outline btn-sm" id="edit-forum-btn"><i class="fas fa-edit"></i> Düzenle</button>
@@ -1319,7 +1320,7 @@ async function renderForumDetail(app, slug) {
         const cTags = forum.custom_tags ? forum.custom_tags.split(',').map(t => t.trim()).filter(Boolean) : [];
         if (!sTags.length && !cTags.length) return '';
         const html = [
-          ...sTags.map(t => `<a href="/forum?tag=${encodeURIComponent(t.name)}" data-link class="forum-tag" style="background:${escHtml(t.color||'#555')}22;color:${escHtml(t.color||'#aaa')};border:1px solid ${escHtml(t.color||'#555')}44">#${escHtml(t.name)}</a>`),
+          ...sTags.map(t => `<a href="/forum?tag=${encodeURIComponent(t.name)}" data-link class="forum-tag" style="background:${escHtml(t.color || '#555')}22;color:${escHtml(t.color || '#aaa')};border:1px solid ${escHtml(t.color || '#555')}44">#${escHtml(t.name)}</a>`),
           ...cTags.map(t => `<a href="/forum?tag=${encodeURIComponent(t)}" data-link class="forum-tag forum-tag-custom">#${escHtml(t)}</a>`)
         ].join('');
         return `<div class="forum-tags-row" style="margin:12px 0">${html}</div>`;
@@ -1345,73 +1346,73 @@ async function renderForumDetail(app, slug) {
     </div>
   </div>`;
 
-  if (isOwner) {
-    $('#edit-forum-btn').addEventListener('click', () => showNewForumModal(forum));
-    $('#del-forum-btn').addEventListener('click', async () => {
-      if (!confirm('Konuyu silmek istediğinize emin misiniz?')) return;
-      try { await api('/forum/' + slug, { method: 'DELETE' }); toast('Konu silindi'); navigate('/forum'); } catch (e) { toast(e.message, 'error'); }
+    if (isOwner) {
+      $('#edit-forum-btn').addEventListener('click', () => showNewForumModal(forum));
+      $('#del-forum-btn').addEventListener('click', async () => {
+        if (!confirm('Konuyu silmek istediğinize emin misiniz?')) return;
+        try { await api('/forum/' + slug, { method: 'DELETE' }); toast('Konu silindi'); navigate('/forum'); } catch (e) { toast(e.message, 'error'); }
+      });
+    }
+
+    $('#like-btn').addEventListener('click', async () => {
+      if (!currentUser) { navigate('/giris'); return; }
+      try {
+        const r = await api('/forum/' + slug + '/like', { method: 'POST' });
+        liked = r.liked;
+        const btn = $('#like-btn'); const cnt = $('#like-count');
+        btn.classList.toggle('liked', liked);
+        cnt.textContent = parseInt(cnt.textContent) + (liked ? 1 : -1);
+      } catch { }
+    });
+
+    $('#share-btn').addEventListener('click', () => {
+      const url = location.href;
+      if (navigator.clipboard) { navigator.clipboard.writeText(url); toast('Link kopyalandı!'); }
+      else { window.prompt('Linki kopyalayın:', url); }
+    });
+
+    $('#forward-forum-btn')?.addEventListener('click', () => showForwardForumModal(forum));
+
+    $('#comment-submit')?.addEventListener('click', async () => {
+      const content = $('#comment-input').value.trim();
+      if (!content) return;
+      try {
+        const c = await api('/forum/' + slug + '/comments', { method: 'POST', body: JSON.stringify({ content }) });
+        $('#comments-list').insertAdjacentHTML('beforeend', commentHTML(c));
+        $('#comment-input').value = '';
+        const title = $('.comments-title');
+        if (title) title.innerHTML = `<i class="fas fa-comments" style="color:var(--accent-red)"></i> Yorumlar (${$('#comments-list').children.length})`;
+      } catch (e) { toast(e.message, 'error'); }
+    });
+
+    $('#comments-list').addEventListener('click', async e => {
+      const del = e.target.closest('.del-comment');
+      if (del) {
+        if (!confirm('Yorum silinsin mi?')) return;
+        const id = del.dataset.id;
+        try {
+          await api('/forum/' + slug + '/comments/' + id, { method: 'DELETE' });
+          del.closest('.comment').remove();
+        } catch (e) { toast(e.message, 'error'); }
+      }
+
+      const likeBtn = e.target.closest('.like-comment-btn');
+      if (likeBtn) {
+        if (!currentUser) { navigate('/giris'); return; }
+        const id = likeBtn.dataset.id;
+        try {
+          const r = await api(`/forum/${slug}/comments/${id}/like`, { method: 'POST' });
+          const cnt = likeBtn.querySelector('.like-cnt');
+          cnt.textContent = parseInt(cnt.textContent) + (r.liked ? 1 : -1);
+          likeBtn.classList.toggle('liked', r.liked);
+        } catch { }
+      }
     });
   }
 
-  $('#like-btn').addEventListener('click', async () => {
-    if (!currentUser) { navigate('/giris'); return; }
-    try {
-      const r = await api('/forum/' + slug + '/like', { method: 'POST' });
-      liked = r.liked;
-      const btn = $('#like-btn'); const cnt = $('#like-count');
-      btn.classList.toggle('liked', liked);
-      cnt.textContent = parseInt(cnt.textContent) + (liked ? 1 : -1);
-    } catch {}
-  });
-
-  $('#share-btn').addEventListener('click', () => {
-    const url = location.href;
-    if (navigator.clipboard) { navigator.clipboard.writeText(url); toast('Link kopyalandı!'); }
-    else { window.prompt('Linki kopyalayın:', url); }
-  });
-
-  $('#forward-forum-btn')?.addEventListener('click', () => showForwardForumModal(forum));
-
-  $('#comment-submit')?.addEventListener('click', async () => {
-    const content = $('#comment-input').value.trim();
-    if (!content) return;
-    try {
-      const c = await api('/forum/' + slug + '/comments', { method: 'POST', body: JSON.stringify({ content }) });
-      $('#comments-list').insertAdjacentHTML('beforeend', commentHTML(c));
-      $('#comment-input').value = '';
-      const title = $('.comments-title');
-      if (title) title.innerHTML = `<i class="fas fa-comments" style="color:var(--accent-red)"></i> Yorumlar (${$('#comments-list').children.length})`;
-    } catch (e) { toast(e.message, 'error'); }
-  });
-
-  $('#comments-list').addEventListener('click', async e => {
-    const del = e.target.closest('.del-comment');
-    if (del) {
-      if (!confirm('Yorum silinsin mi?')) return;
-      const id = del.dataset.id;
-      try {
-        await api('/forum/' + slug + '/comments/' + id, { method: 'DELETE' });
-        del.closest('.comment').remove();
-      } catch (e) { toast(e.message, 'error'); }
-    }
-
-    const likeBtn = e.target.closest('.like-comment-btn');
-    if (likeBtn) {
-      if (!currentUser) { navigate('/giris'); return; }
-      const id = likeBtn.dataset.id;
-      try {
-        const r = await api(`/forum/${slug}/comments/${id}/like`, { method: 'POST' });
-        const cnt = likeBtn.querySelector('.like-cnt');
-        cnt.textContent = parseInt(cnt.textContent) + (r.liked ? 1 : -1);
-        likeBtn.classList.toggle('liked', r.liked);
-      } catch {}
-    }
-  });
-}
-
-function commentHTML(c) {
-  const canDel = currentUser && currentUser.id === c.user_id;
-  return `<div class="comment">
+  function commentHTML(c) {
+    const canDel = currentUser && currentUser.id === c.user_id;
+    return `<div class="comment">
     ${avatarImg(c, 'comment-avatar')}
     <div class="comment-body">
       <div class="comment-header">
@@ -1429,12 +1430,12 @@ function commentHTML(c) {
       </div>
     </div>
   </div>`;
-}
+  }
 
-async function renderBookList(app) {
-  document.title = 'Kitaplar – TeaTube';
-  updatePageMeta('Kitaplar – TeaTube', 'Topluluğun yazdığı eserleri keşfet.', '');
-  app.innerHTML = `
+  async function renderBookList(app) {
+    document.title = 'Kitaplar – TeaTube';
+    updatePageMeta('Kitaplar – TeaTube', 'Topluluğun yazdığı eserleri keşfet.', '');
+    app.innerHTML = `
     <div class="container page">
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div><div class="page-title">Kitaplar</div><div class="page-subtitle">Topluluğun eserleri</div></div>
@@ -1444,27 +1445,27 @@ async function renderBookList(app) {
       <div id="books-grid" class="grid-3"><div class="loading-center"><div class="spinner"></div></div></div>
     </div>`;
 
-  if (currentUser) $('#new-book-btn')?.addEventListener('click', () => showNewBookModal());
+    if (currentUser) $('#new-book-btn')?.addEventListener('click', () => showNewBookModal());
 
-  let books = [];
-  try { books = await api('/books'); } catch {}
-  renderBookGrid(books);
+    let books = [];
+    try { books = await api('/books'); } catch { }
+    renderBookGrid(books);
 
-  $('#book-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    renderBookGrid(books.filter(b => b.title.toLowerCase().includes(q) || b.username?.toLowerCase().includes(q)));
-  });
-}
+    $('#book-search')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      renderBookGrid(books.filter(b => b.title.toLowerCase().includes(q) || b.username?.toLowerCase().includes(q)));
+    });
+  }
 
-function renderBookGrid(books) {
-  const el = $('#books-grid'); if (!el) return;
-  if (!books.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-book-open"></i><p>Kitap bulunamadı.</p></div>'; return; }
-  el.innerHTML = books.map(b => bookCardHTML(b)).join('');
-}
+  function renderBookGrid(books) {
+    const el = $('#books-grid'); if (!el) return;
+    if (!books.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-book-open"></i><p>Kitap bulunamadı.</p></div>'; return; }
+    el.innerHTML = books.map(b => bookCardHTML(b)).join('');
+  }
 
-function bookCardHTML(b) {
-  const previewText = b.preface ? b.preface.substring(0, 80) : '';
-  return `<div class="book-card" onclick="navigate('/kitap/${escHtml(b.slug)}')">
+  function bookCardHTML(b) {
+    const previewText = b.preface ? b.preface.substring(0, 80) : '';
+    return `<div class="book-card" onclick="navigate('/kitap/${escHtml(b.slug)}')">
     <div class="book-cover">
       ${b.cover_image ? `<img src="${escHtml(b.cover_image)}" alt="" />` : `<div class="book-cover-placeholder"><i class="fas fa-book"></i></div>`}
     </div>
@@ -1475,10 +1476,10 @@ function bookCardHTML(b) {
       ${previewText ? `<div class="book-desc">${escHtml(previewText)}...</div>` : ''}
     </div>
   </div>`;
-}
+  }
 
-function showNewBookModal(existing = null) {
-  showModal(existing ? 'Kitabı Düzenle' : 'Yeni Kitap', `
+  function showNewBookModal(existing = null) {
+    showModal(existing ? 'Kitabı Düzenle' : 'Yeni Kitap', `
     <div class="form-group"><label>Başlık</label><input id="bk-title" type="text" value="${existing ? escHtml(existing.title) : ''}" /></div>
     <div class="form-group"><label>Önsöz</label><textarea id="bk-preface" rows="4">${existing ? escHtml(existing.preface || '') : ''}</textarea></div>
     <div class="form-group">
@@ -1490,53 +1491,53 @@ function showNewBookModal(existing = null) {
     <div id="bk-error" class="form-error mt-4"></div>
   `);
 
-  $('#bk-cover-file').addEventListener('change', e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const prev = $('#bk-cover-preview');
-      prev.outerHTML = `<img id="bk-cover-preview" src="${ev.target.result}" style="width:100px;height:133px;object-fit:cover;border-radius:8px;margin-top:4px" />`;
-    };
-    reader.readAsDataURL(file);
-  });
+    $('#bk-cover-file').addEventListener('change', e => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const prev = $('#bk-cover-preview');
+        prev.outerHTML = `<img id="bk-cover-preview" src="${ev.target.result}" style="width:100px;height:133px;object-fit:cover;border-radius:8px;margin-top:4px" />`;
+      };
+      reader.readAsDataURL(file);
+    });
 
-  $('#bk-submit').addEventListener('click', async () => {
-    const title = $('#bk-title').value.trim();
-    if (!title) { $('#bk-error').textContent = 'Başlık zorunlu'; return; }
-    try {
-      let cover_image = existing ? (existing.cover_image || '') : '';
-      const coverFile = $('#bk-cover-file').files[0];
-      if (coverFile) {
-        const fd = new FormData(); fd.append('file', coverFile);
-        const r = await apiForm('/api/upload', fd);
-        cover_image = r.url;
-      }
-      if (existing) {
-        await api('/book/' + existing.slug, { method: 'PUT', body: JSON.stringify({ title, preface: $('#bk-preface').value.trim(), cover_image }) });
-        toast('Kitap güncellendi'); hideModal(); renderRoute(location.pathname);
-      } else {
-        const b = await api('/books', { method: 'POST', body: JSON.stringify({ title, preface: $('#bk-preface').value.trim(), cover_image }) });
-        toast('Kitap oluşturuldu'); hideModal(); navigate('/kitap/' + b.slug);
-      }
-    } catch (e) { $('#bk-error').textContent = e.message; }
-  });
-}
+    $('#bk-submit').addEventListener('click', async () => {
+      const title = $('#bk-title').value.trim();
+      if (!title) { $('#bk-error').textContent = 'Başlık zorunlu'; return; }
+      try {
+        let cover_image = existing ? (existing.cover_image || '') : '';
+        const coverFile = $('#bk-cover-file').files[0];
+        if (coverFile) {
+          const fd = new FormData(); fd.append('file', coverFile);
+          const r = await apiForm('/api/upload', fd);
+          cover_image = r.url;
+        }
+        if (existing) {
+          await api('/book/' + existing.slug, { method: 'PUT', body: JSON.stringify({ title, preface: $('#bk-preface').value.trim(), cover_image }) });
+          toast('Kitap güncellendi'); hideModal(); renderRoute(location.pathname);
+        } else {
+          const b = await api('/books', { method: 'POST', body: JSON.stringify({ title, preface: $('#bk-preface').value.trim(), cover_image }) });
+          toast('Kitap oluşturuldu'); hideModal(); navigate('/kitap/' + b.slug);
+        }
+      } catch (e) { $('#bk-error').textContent = e.message; }
+    });
+  }
 
-async function renderBookDetail(app, slug) {
-  app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
-  let data;
-  try { data = await api('/book/' + slug); } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Kitap bulunamadı.</p></div></div>'; return; }
+  async function renderBookDetail(app, slug) {
+    app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
+    let data;
+    try { data = await api('/book/' + slug); } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Kitap bulunamadı.</p></div></div>'; return; }
 
-  const { book, chapters, pages } = data;
-  document.title = book.title + ' – TeaTube';
-  updatePageMeta(book.title + ' – TeaTube', book.preface ? book.preface.substring(0,155) : book.title + ' – TeaTube\'da yayınlanan kitap.', book.cover_image || '');
-  const isOwner = currentUser && currentUser.id === book.user_id;
+    const { book, chapters, pages } = data;
+    document.title = book.title + ' – TeaTube';
+    updatePageMeta(book.title + ' – TeaTube', book.preface ? book.preface.substring(0, 155) : book.title + ' – TeaTube\'da yayınlanan kitap.', book.cover_image || '');
+    const isOwner = currentUser && currentUser.id === book.user_id;
 
-  const unassigned = pages.filter(p => !p.chapter_id);
-  const chapPages = {};
-  chapters.forEach(c => { chapPages[c.id] = pages.filter(p => p.chapter_id === c.id); });
+    const unassigned = pages.filter(p => !p.chapter_id);
+    const chapPages = {};
+    chapters.forEach(c => { chapPages[c.id] = pages.filter(p => p.chapter_id === c.id); });
 
-  const chapListHTML = chapters.map(c => `
+    const chapListHTML = chapters.map(c => `
     <div class="chapter-item">
       <div class="chapter-title"><i class="fas fa-bookmark" style="color:var(--accent-red);font-size:12px"></i> ${escHtml(c.title)}
         ${isOwner ? `<button class="btn btn-ghost btn-sm del-chapter" data-id="${c.id}" style="float:right;padding:0 6px;color:var(--accent-red2)"><i class="fas fa-trash"></i></button>` : ''}
@@ -1544,9 +1545,9 @@ async function renderBookDetail(app, slug) {
       ${(chapPages[c.id] || []).map(p => pageItemHTML(p, slug)).join('')}
     </div>`).join('');
 
-  const unassignedHTML = unassigned.map(p => pageItemHTML(p, slug)).join('');
+    const unassignedHTML = unassigned.map(p => pageItemHTML(p, slug)).join('');
 
-  app.innerHTML = `<div class="container page">
+    app.innerHTML = `<div class="container page">
     <div class="book-detail-header">
       <div class="book-detail-cover">
         ${book.cover_image ? `<img src="${escHtml(book.cover_image)}" alt="" />` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg-card2)"><i class="fas fa-book" style="font-size:40px;color:var(--text-muted)"></i></div>`}
@@ -1579,118 +1580,118 @@ async function renderBookDetail(app, slug) {
     </div>
   </div>`;
 
-  if (isOwner) {
-    $('#edit-book-btn').addEventListener('click', () => showNewBookModal(book));
-    $('#del-book-btn').addEventListener('click', async () => {
-      if (!confirm('Kitabı ve tüm sayfalarını silmek istediğinize emin misiniz?')) return;
-      try { await api('/book/' + slug, { method: 'DELETE' }); toast('Kitap silindi'); navigate('/kitaplar'); } catch (e) { toast(e.message, 'error'); }
-    });
-    $('#add-page-btn').addEventListener('click', () => showAddPageModal(slug, chapters));
-    $('#add-chap-btn').addEventListener('click', () => showAddChapterModal(slug));
-    document.querySelectorAll('.del-chapter').forEach(btn => {
-      btn.addEventListener('click', async e => {
-        e.stopPropagation();
-        if (!confirm('Bölümü silmek istediğinize emin misiniz?')) return;
-        try { await api(`/book/${slug}/chapter/${btn.dataset.id}`, { method: 'DELETE' }); toast('Bölüm silindi'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
+    if (isOwner) {
+      $('#edit-book-btn').addEventListener('click', () => showNewBookModal(book));
+      $('#del-book-btn').addEventListener('click', async () => {
+        if (!confirm('Kitabı ve tüm sayfalarını silmek istediğinize emin misiniz?')) return;
+        try { await api('/book/' + slug, { method: 'DELETE' }); toast('Kitap silindi'); navigate('/kitaplar'); } catch (e) { toast(e.message, 'error'); }
       });
+      $('#add-page-btn').addEventListener('click', () => showAddPageModal(slug, chapters));
+      $('#add-chap-btn').addEventListener('click', () => showAddChapterModal(slug));
+      document.querySelectorAll('.del-chapter').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          e.stopPropagation();
+          if (!confirm('Bölümü silmek istediğinize emin misiniz?')) return;
+          try { await api(`/book/${slug}/chapter/${btn.dataset.id}`, { method: 'DELETE' }); toast('Bölüm silindi'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
+        });
+      });
+    }
+
+    // Oku butonu: en son okunan sayfaya devam etme
+    $('#book-read-btn')?.addEventListener('click', () => {
+      try {
+        const last = localStorage.getItem('book_last_' + book.slug);
+        if (last) return navigate('/kitap/' + encodeURIComponent(book.slug) + '/sayfa/' + encodeURIComponent(last));
+        // yoksa ilk sayfaya git
+        if (pages && pages.length) return navigate('/kitap/' + encodeURIComponent(book.slug) + '/sayfa/' + encodeURIComponent(pages[0].slug));
+        navigate('/kitap/' + encodeURIComponent(book.slug));
+      } catch (e) { navigate('/kitap/' + encodeURIComponent(book.slug)); }
+    });
+
+    $('#download-pdf-btn')?.addEventListener('click', async () => {
+      toast('PDF hazırlanıyor...', 'success');
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pageW = 210; const margin = 20; const contentW = pageW - margin * 2;
+        let y = margin;
+
+        function addText(text, size, bold, color) {
+          doc.setFontSize(size);
+          doc.setFont('helvetica', bold ? 'bold' : 'normal');
+          if (color) doc.setTextColor(...color); else doc.setTextColor(30, 30, 30);
+          const lines = doc.splitTextToSize(text || '', contentW);
+          lines.forEach(line => {
+            if (y > 270) { doc.addPage(); y = margin; }
+            doc.text(line, margin, y);
+            y += size * 0.45;
+          });
+          y += 3;
+        }
+
+        addText(book.title, 24, true, [30, 30, 30]);
+        addText('Yazar: ' + (book.username || 'Bilinmiyor'), 12, false, [100, 100, 100]);
+        addText(book.page_count + ' sayfa', 11, false, [130, 130, 130]);
+        y += 6;
+
+        doc.setDrawColor(200, 50, 50);
+        doc.line(margin, y, pageW - margin, y);
+        y += 8;
+
+        if (book.preface) {
+          addText('ÖNSÖZ', 14, true, [180, 30, 30]);
+          addText(book.preface, 11, false);
+          y += 6;
+          doc.line(margin, y, pageW - margin, y);
+          y += 8;
+        }
+
+        addText('İÇİNDEKİLER', 14, true, [180, 30, 30]);
+        const allPagesData = await api('/book/' + slug);
+        const allP = allPagesData.pages || [];
+        allP.forEach(p => { addText(p.page_num + '. ' + p.title, 11, false); });
+        y += 8;
+        doc.line(margin, y, pageW - margin, y);
+        y += 8;
+
+        for (const p of allP) {
+          try {
+            const pd = await api('/book/' + slug + '/page/' + p.slug);
+            const pg = pd.page;
+            doc.addPage(); y = margin;
+            addText(pg.page_num + '. SAYFA', 10, false, [150, 150, 150]);
+            addText(pg.title, 16, true, [30, 30, 30]);
+            doc.setDrawColor(220, 80, 80);
+            doc.line(margin, y, pageW - margin, y);
+            y += 6;
+            addText(pg.content, 11, false, [40, 40, 40]);
+          } catch { }
+        }
+
+        doc.save(book.title.replace(/[^a-zA-Z0-9\s]/g, '') + '.pdf');
+        toast('PDF indirildi!', 'success');
+      } catch (e) { toast('PDF oluşturulamadı: ' + e.message, 'error'); }
     });
   }
 
-  // Oku butonu: en son okunan sayfaya devam etme
-  $('#book-read-btn')?.addEventListener('click', () => {
-    try {
-      const last = localStorage.getItem('book_last_' + book.slug);
-      if (last) return navigate('/kitap/' + encodeURIComponent(book.slug) + '/sayfa/' + encodeURIComponent(last));
-      // yoksa ilk sayfaya git
-      if (pages && pages.length) return navigate('/kitap/' + encodeURIComponent(book.slug) + '/sayfa/' + encodeURIComponent(pages[0].slug));
-      navigate('/kitap/' + encodeURIComponent(book.slug));
-    } catch (e) { navigate('/kitap/' + encodeURIComponent(book.slug)); }
-  });
-
-  $('#download-pdf-btn')?.addEventListener('click', async () => {
-    toast('PDF hazırlanıyor...', 'success');
-    try {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageW = 210; const margin = 20; const contentW = pageW - margin * 2;
-      let y = margin;
-
-      function addText(text, size, bold, color) {
-        doc.setFontSize(size);
-        doc.setFont('helvetica', bold ? 'bold' : 'normal');
-        if (color) doc.setTextColor(...color); else doc.setTextColor(30, 30, 30);
-        const lines = doc.splitTextToSize(text || '', contentW);
-        lines.forEach(line => {
-          if (y > 270) { doc.addPage(); y = margin; }
-          doc.text(line, margin, y);
-          y += size * 0.45;
-        });
-        y += 3;
-      }
-
-      addText(book.title, 24, true, [30, 30, 30]);
-      addText('Yazar: ' + (book.username || 'Bilinmiyor'), 12, false, [100, 100, 100]);
-      addText(book.page_count + ' sayfa', 11, false, [130, 130, 130]);
-      y += 6;
-
-      doc.setDrawColor(200, 50, 50);
-      doc.line(margin, y, pageW - margin, y);
-      y += 8;
-
-      if (book.preface) {
-        addText('ÖNSÖZ', 14, true, [180, 30, 30]);
-        addText(book.preface, 11, false);
-        y += 6;
-        doc.line(margin, y, pageW - margin, y);
-        y += 8;
-      }
-
-      addText('İÇİNDEKİLER', 14, true, [180, 30, 30]);
-      const allPagesData = await api('/book/' + slug);
-      const allP = allPagesData.pages || [];
-      allP.forEach(p => { addText(p.page_num + '. ' + p.title, 11, false); });
-      y += 8;
-      doc.line(margin, y, pageW - margin, y);
-      y += 8;
-
-      for (const p of allP) {
-        try {
-          const pd = await api('/book/' + slug + '/page/' + p.slug);
-          const pg = pd.page;
-          doc.addPage(); y = margin;
-          addText(pg.page_num + '. SAYFA', 10, false, [150, 150, 150]);
-          addText(pg.title, 16, true, [30, 30, 30]);
-          doc.setDrawColor(220, 80, 80);
-          doc.line(margin, y, pageW - margin, y);
-          y += 6;
-          addText(pg.content, 11, false, [40, 40, 40]);
-        } catch {}
-      }
-
-      doc.save(book.title.replace(/[^a-zA-Z0-9\s]/g, '') + '.pdf');
-      toast('PDF indirildi!', 'success');
-    } catch (e) { toast('PDF oluşturulamadı: ' + e.message, 'error'); }
-  });
-}
-
-function pageItemHTML(p, bookSlug) {
-  const canEdit = currentUser && !!bookSlug;
-  return `<div class="page-item">
+  function pageItemHTML(p, bookSlug) {
+    const canEdit = currentUser && !!bookSlug;
+    return `<div class="page-item">
     <span class="page-num">${p.page_num}</span>
     <a href="/kitap/${escHtml(bookSlug)}/sayfa/${escHtml(p.slug)}" data-link class="page-title">${escHtml(p.title)}</a>
   </div>`;
-}
+  }
 
-async function showAddPageModal(bookSlug, chapters) {
-  // Önce mevcut sayfa sayısını al
-  let pageCount = 0;
-  try {
-    const data = await api('/book/' + bookSlug);
-    pageCount = data.book.page_count || 0;
-  } catch {}
+  async function showAddPageModal(bookSlug, chapters) {
+    // Önce mevcut sayfa sayısını al
+    let pageCount = 0;
+    try {
+      const data = await api('/book/' + bookSlug);
+      pageCount = data.book.page_count || 0;
+    } catch { }
 
-  const chapOptions = chapters.map(c => `<option value="${c.id}">${escHtml(c.title)}</option>`).join('');
-  showModal('Yeni Sayfa', `
+    const chapOptions = chapters.map(c => `<option value="${c.id}">${escHtml(c.title)}</option>`).join('');
+    showModal('Yeni Sayfa', `
     <div style="background:var(--bg-card2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--text-secondary)">
       <i class="fas fa-info-circle" style="color:var(--accent-red)"></i>
       Bu sayfa <strong style="color:var(--text-primary)">${pageCount + 1}. sayfa</strong> olarak eklenecek
@@ -1707,70 +1708,70 @@ async function showAddPageModal(bookSlug, chapters) {
     <div id="pg-error" class="form-error mt-4"></div>
   `);
 
-  $('#pg-image-file').addEventListener('change', e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const prev = $('#pg-image-preview');
-      prev.style.display = 'block';
-      prev.innerHTML = `<img src="${ev.target.result}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-top:4px" />`;
-    };
-    reader.readAsDataURL(file);
-  });
+    $('#pg-image-file').addEventListener('change', e => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const prev = $('#pg-image-preview');
+        prev.style.display = 'block';
+        prev.innerHTML = `<img src="${ev.target.result}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-top:4px" />`;
+      };
+      reader.readAsDataURL(file);
+    });
 
-  $('#pg-submit').addEventListener('click', async () => {
-    const title = $('#pg-title').value.trim();
-    const content = $('#pg-content').value.trim();
-    if (!title || !content) { $('#pg-error').textContent = 'Başlık ve içerik zorunlu'; return; }
-    const chapter_id = $('#pg-chap')?.value || null;
-    try {
-      let image_url = '';
-      const imgFile = $('#pg-image-file').files[0];
-      if (imgFile) {
-        const fd = new FormData(); fd.append('file', imgFile);
-        const r = await apiForm('/api/upload', fd);
-        image_url = r.url;
-      }
-      await api('/book/' + bookSlug + '/pages', { method: 'POST', body: JSON.stringify({ title, content, chapter_id, image_url }) });
-      toast('Sayfa eklendi'); hideModal(); renderRoute(location.pathname);
-    } catch (e) { $('#pg-error').textContent = e.message; }
-  });
-}
+    $('#pg-submit').addEventListener('click', async () => {
+      const title = $('#pg-title').value.trim();
+      const content = $('#pg-content').value.trim();
+      if (!title || !content) { $('#pg-error').textContent = 'Başlık ve içerik zorunlu'; return; }
+      const chapter_id = $('#pg-chap')?.value || null;
+      try {
+        let image_url = '';
+        const imgFile = $('#pg-image-file').files[0];
+        if (imgFile) {
+          const fd = new FormData(); fd.append('file', imgFile);
+          const r = await apiForm('/api/upload', fd);
+          image_url = r.url;
+        }
+        await api('/book/' + bookSlug + '/pages', { method: 'POST', body: JSON.stringify({ title, content, chapter_id, image_url }) });
+        toast('Sayfa eklendi'); hideModal(); renderRoute(location.pathname);
+      } catch (e) { $('#pg-error').textContent = e.message; }
+    });
+  }
 
-function showAddChapterModal(bookSlug) {
-  showModal('Yeni Bölüm', `
+  function showAddChapterModal(bookSlug) {
+    showModal('Yeni Bölüm', `
     <div class="form-group"><label>Bölüm Adı</label><input id="ch-title" type="text" /></div>
     <div class="form-group"><label>Sıra</label><input id="ch-order" type="number" value="0" /></div>
     <button class="btn btn-primary" id="ch-submit" style="width:100%">Ekle</button>
     <div id="ch-error" class="form-error mt-4"></div>
   `);
-  $('#ch-submit').addEventListener('click', async () => {
-    const title = $('#ch-title').value.trim();
-    if (!title) { $('#ch-error').textContent = 'Başlık zorunlu'; return; }
-    try {
-      await api('/book/' + bookSlug + '/chapters', { method: 'POST', body: JSON.stringify({ title, order_num: parseInt($('#ch-order').value) || 0 }) });
-      toast('Bölüm eklendi'); hideModal(); renderRoute(location.pathname);
-    } catch (e) { $('#ch-error').textContent = e.message; }
-  });
-}
+    $('#ch-submit').addEventListener('click', async () => {
+      const title = $('#ch-title').value.trim();
+      if (!title) { $('#ch-error').textContent = 'Başlık zorunlu'; return; }
+      try {
+        await api('/book/' + bookSlug + '/chapters', { method: 'POST', body: JSON.stringify({ title, order_num: parseInt($('#ch-order').value) || 0 }) });
+        toast('Bölüm eklendi'); hideModal(); renderRoute(location.pathname);
+      } catch (e) { $('#ch-error').textContent = e.message; }
+    });
+  }
 
-async function renderPageReader(app, bookSlug, pageSlug) {
-  app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
-  let data;
-  try { data = await api(`/book/${bookSlug}/page/${pageSlug}`); } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Sayfa bulunamadı.</p></div></div>'; return; }
+  async function renderPageReader(app, bookSlug, pageSlug) {
+    app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
+    let data;
+    try { data = await api(`/book/${bookSlug}/page/${pageSlug}`); } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Sayfa bulunamadı.</p></div></div>'; return; }
 
-  const { page, book, prev, next } = data;
-  document.title = page.title + ' - ' + book.title;
-  const isOwner = currentUser && currentUser.id === book.user_id;
+    const { page, book, prev, next } = data;
+    document.title = page.title + ' - ' + book.title;
+    const isOwner = currentUser && currentUser.id === book.user_id;
 
-  // Kitabın tüm sayfalarını al (içindekiler için)
-  let allPages = [];
-  try { const bd = await api('/book/' + bookSlug); allPages = bd.pages || []; } catch {}
+    // Kitabın tüm sayfalarını al (içindekiler için)
+    let allPages = [];
+    try { const bd = await api('/book/' + bookSlug); allPages = bd.pages || []; } catch { }
 
-  // Font boyutu localStorage'dan al
-  let fontSize = parseInt(localStorage.getItem('ebook-font-size') || '17');
+    // Font boyutu localStorage'dan al
+    let fontSize = parseInt(localStorage.getItem('ebook-font-size') || '17');
 
-  const tocHTML = allPages.map(p => `
+    const tocHTML = allPages.map(p => `
     <a href="/kitap/${escHtml(bookSlug)}/sayfa/${escHtml(p.slug)}" data-link
       class="ebook-toc-item${p.slug === pageSlug ? ' ebook-toc-active' : ''}"
       style="display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:13px;color:${p.slug === pageSlug ? 'var(--accent-red2)' : 'var(--text-secondary)'};background:${p.slug === pageSlug ? 'rgba(220,38,38,0.08)' : 'none'};border-left:3px solid ${p.slug === pageSlug ? 'var(--accent-red)' : 'transparent'};transition:all 0.15s;text-decoration:none">
@@ -1778,7 +1779,7 @@ async function renderPageReader(app, bookSlug, pageSlug) {
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.title)}</span>
     </a>`).join('');
 
-  app.innerHTML = `<div style="max-width:960px;margin:0 auto;padding:20px">
+    app.innerHTML = `<div style="max-width:960px;margin:0 auto;padding:20px">
     <!-- Breadcrumb -->
     <div class="breadcrumb" style="margin-bottom:16px">
       <a href="/kitaplar" data-link>Kitaplar</a>
@@ -1842,62 +1843,62 @@ async function renderPageReader(app, bookSlug, pageSlug) {
     </div>
   </div>`;
 
-  // Font boyutu kontrolleri
-  const contentEl = $('#ebook-content');
-  $('#font-dec').addEventListener('click', () => {
-    if (fontSize > 12) { fontSize--; contentEl.style.fontSize = fontSize + 'px'; $('#font-size-label').textContent = fontSize + 'px'; localStorage.setItem('ebook-font-size', fontSize); }
-  });
-  $('#font-inc').addEventListener('click', () => {
-    if (fontSize < 26) { fontSize++; contentEl.style.fontSize = fontSize + 'px'; $('#font-size-label').textContent = fontSize + 'px'; localStorage.setItem('ebook-font-size', fontSize); }
-  });
+    // Font boyutu kontrolleri
+    const contentEl = $('#ebook-content');
+    $('#font-dec').addEventListener('click', () => {
+      if (fontSize > 12) { fontSize--; contentEl.style.fontSize = fontSize + 'px'; $('#font-size-label').textContent = fontSize + 'px'; localStorage.setItem('ebook-font-size', fontSize); }
+    });
+    $('#font-inc').addEventListener('click', () => {
+      if (fontSize < 26) { fontSize++; contentEl.style.fontSize = fontSize + 'px'; $('#font-size-label').textContent = fontSize + 'px'; localStorage.setItem('ebook-font-size', fontSize); }
+    });
 
-  // İçindekiler toggle
-  const tocEl = $('#ebook-toc');
-  const layout = document.querySelector('.ebook-layout');
-  let tocOpen = window.innerWidth >= 900;
-  function updateToc() {
-    if (tocOpen) {
-      tocEl.style.display = 'flex';
-      tocEl.style.flexDirection = 'column';
-      layout.style.gap = '0';
-    } else {
-      tocEl.style.display = 'none';
+    // İçindekiler toggle
+    const tocEl = $('#ebook-toc');
+    const layout = document.querySelector('.ebook-layout');
+    let tocOpen = window.innerWidth >= 900;
+    function updateToc() {
+      if (tocOpen) {
+        tocEl.style.display = 'flex';
+        tocEl.style.flexDirection = 'column';
+        layout.style.gap = '0';
+      } else {
+        tocEl.style.display = 'none';
+      }
     }
-  }
-  updateToc();
-  $('#toc-toggle').addEventListener('click', () => { tocOpen = !tocOpen; updateToc(); });
+    updateToc();
+    $('#toc-toggle').addEventListener('click', () => { tocOpen = !tocOpen; updateToc(); });
 
-  if (isOwner) {
-    $('#edit-page-btn').addEventListener('click', () => {
-      showModal('Sayfayı Düzenle', `
+    if (isOwner) {
+      $('#edit-page-btn').addEventListener('click', () => {
+        showModal('Sayfayı Düzenle', `
         <div class="form-group"><label>Başlık</label><input id="ep-title" type="text" value="${escHtml(page.title)}" /></div>
         <div class="form-group"><label>İçerik</label><textarea id="ep-content" rows="14">${escHtml(page.content)}</textarea></div>
         <button class="btn btn-primary" id="ep-submit" style="width:100%">Kaydet</button>
         <div id="ep-error" class="form-error mt-4"></div>
       `);
-      $('#ep-submit').addEventListener('click', async () => {
-        const title = $('#ep-title').value.trim();
-        const content = $('#ep-content').value.trim();
-        if (!title || !content) { $('#ep-error').textContent = 'Zorunlu alan'; return; }
-        try {
-          await api(`/book/${bookSlug}/page/${pageSlug}`, { method: 'PUT', body: JSON.stringify({ title, content }) });
-          toast('Sayfa güncellendi'); hideModal(); renderRoute(location.pathname);
-        } catch (e) { $('#ep-error').textContent = e.message; }
+        $('#ep-submit').addEventListener('click', async () => {
+          const title = $('#ep-title').value.trim();
+          const content = $('#ep-content').value.trim();
+          if (!title || !content) { $('#ep-error').textContent = 'Zorunlu alan'; return; }
+          try {
+            await api(`/book/${bookSlug}/page/${pageSlug}`, { method: 'PUT', body: JSON.stringify({ title, content }) });
+            toast('Sayfa güncellendi'); hideModal(); renderRoute(location.pathname);
+          } catch (e) { $('#ep-error').textContent = e.message; }
+        });
       });
-    });
-    $('#del-page-btn').addEventListener('click', async () => {
-      if (!confirm('Sayfa silinsin mi?')) return;
-      try { await api(`/book/${bookSlug}/page/${pageSlug}`, { method: 'DELETE' }); toast('Sayfa silindi'); navigate('/kitap/' + bookSlug); } catch (e) { toast(e.message, 'error'); }
-    });
+      $('#del-page-btn').addEventListener('click', async () => {
+        if (!confirm('Sayfa silinsin mi?')) return;
+        try { await api(`/book/${bookSlug}/page/${pageSlug}`, { method: 'DELETE' }); toast('Sayfa silindi'); navigate('/kitap/' + bookSlug); } catch (e) { toast(e.message, 'error'); }
+      });
+    }
+
+    // Sayfa görüntülendi: son okunan konumu kaydet
+    try { localStorage.setItem('book_last_' + bookSlug, page.slug); } catch (e) { }
   }
 
-  // Sayfa görüntülendi: son okunan konumu kaydet
-  try { localStorage.setItem('book_last_' + bookSlug, page.slug); } catch (e) {}
-}
-
-async function renderGroupList(app) {
-  document.title = 'Gruplar - TeaTube';
-  app.innerHTML = `
+  async function renderGroupList(app) {
+    document.title = 'Gruplar - TeaTube';
+    app.innerHTML = `
     <div class="container page">
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div><div class="page-title">Gruplar</div><div class="page-subtitle">Topluluğa katıl</div></div>
@@ -1913,36 +1914,36 @@ async function renderGroupList(app) {
       <div id="groups-grid" class="grid-3"><div class="loading-center"><div class="spinner"></div></div></div>
     </div>`;
 
-  if (currentUser) {
-    $('#new-group-btn')?.addEventListener('click', () => showNewGroupModal());
-    $('#join-invite-btn')?.addEventListener('click', async () => {
-      const code = $('#invite-code-input').value.trim();
-      if (!code) return;
-      try { await api('/group/join-invite', { method: 'POST', body: JSON.stringify({ invite_code: code }) }); toast('Gruba katıldınız!'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
+    if (currentUser) {
+      $('#new-group-btn')?.addEventListener('click', () => showNewGroupModal());
+      $('#join-invite-btn')?.addEventListener('click', async () => {
+        const code = $('#invite-code-input').value.trim();
+        if (!code) return;
+        try { await api('/group/join-invite', { method: 'POST', body: JSON.stringify({ invite_code: code }) }); toast('Gruba katıldınız!'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
+      });
+    }
+
+    let groups = [];
+    try { groups = await api('/groups'); } catch { }
+
+    function renderGroups(list) {
+      const el = $('#groups-grid');
+      if (!el) return;
+      if (!list.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-users"></i><p>Grup bulunamadı.</p></div>'; return; }
+      el.innerHTML = list.map(g => groupCardHTML(g)).join('');
+    }
+
+    renderGroups(groups);
+
+    $('#group-search')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      renderGroups(groups.filter(g => g.name.toLowerCase().includes(q) || (g.description || '').toLowerCase().includes(q)));
     });
   }
 
-  let groups = [];
-  try { groups = await api('/groups'); } catch {}
-
-  function renderGroups(list) {
-    const el = $('#groups-grid');
-    if (!el) return;
-    if (!list.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-users"></i><p>Grup bulunamadı.</p></div>'; return; }
-    el.innerHTML = list.map(g => groupCardHTML(g)).join('');
-  }
-
-  renderGroups(groups);
-
-  $('#group-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    renderGroups(groups.filter(g => g.name.toLowerCase().includes(q) || (g.description || '').toLowerCase().includes(q)));
-  });
-}
-
-async function renderPhotos(app) {
-  document.title = 'Fotoğraflar - TeaTube';
-  app.innerHTML = `<div class="container page">
+  async function renderPhotos(app) {
+    document.title = 'Fotoğraflar - TeaTube';
+    app.innerHTML = `<div class="container page">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
       <div><div class="page-title">Fotoğraflar</div><div class="page-subtitle">Topluluk tarafından paylaşılan fotoğraflar</div></div>
       ${currentUser ? `<button class="btn btn-primary" id="photo-upload-btn"><i class="fas fa-upload"></i> Fotoğraf Yükle</button>` : `<a href="/giris" data-link class="btn btn-primary btn-sm">Giriş Yap</a>`}
@@ -1950,52 +1951,52 @@ async function renderPhotos(app) {
     <div id="photos-grid" class="photos-grid"><div class="loading-center"><div class="spinner"></div></div></div>
   </div>`;
 
-  async function loadPhotos() {
-    const grid = $('#photos-grid');
-    if (!grid) return;
-    try {
-      const photos = await api('/photos');
-      if (!photos.length) {
-        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>';
-        return;
+    async function loadPhotos() {
+      const grid = $('#photos-grid');
+      if (!grid) return;
+      try {
+        const photos = await api('/photos');
+        if (!photos.length) {
+          grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>';
+          return;
+        }
+        grid.innerHTML = photos.map(photoCardHTML).join('');
+        attachPhotoCardActions(grid);
+      } catch (e) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
       }
-      grid.innerHTML = photos.map(photoCardHTML).join('');
-      attachPhotoCardActions(grid);
-    } catch (e) {
-      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-exclamation-circle"></i><p style="color:var(--accent-red2)">${escHtml(e.message)}</p></div>`;
     }
-  }
 
-  loadPhotos();
+    loadPhotos();
 
-  $('#photo-upload-btn')?.addEventListener('click', () => {
-    showModal('Fotoğraf Yükle', `
+    $('#photo-upload-btn')?.addEventListener('click', () => {
+      showModal('Fotoğraf Yükle', `
       <div class="form-group"><label>Fotoğraf</label><input type="file" id="photo-file-input" accept="image/*" /></div>
       <div class="form-group"><label>Başlık / Açıklama (opsiyonel)</label><input type="text" id="photo-caption" /></div>
       <button class="btn btn-primary" id="photo-submit-btn" style="width:100%">Yükle</button>
       <div id="photo-upload-error" class="form-error mt-4"></div>
     `);
-    $('#photo-submit-btn')?.addEventListener('click', async () => {
-      const fileInput = $('#photo-file-input');
-      const caption = $('#photo-caption')?.value.trim();
-      if (!fileInput || !fileInput.files.length) { $('#photo-upload-error').textContent = 'Fotoğraf seçmelisiniz'; return; }
-      const file = fileInput.files[0];
-      const form = new FormData();
-      form.append('file', file);
-      try {
-        const uploadRes = await apiForm('/api/upload', form);
-        await api('/photos', { method: 'POST', body: JSON.stringify({ url: uploadRes.url, caption }) });
-        hideModal();
-        toast('Fotoğraf yüklendi');
-        loadPhotos();
-      } catch (err) { $('#photo-upload-error').textContent = err.message; }
+      $('#photo-submit-btn')?.addEventListener('click', async () => {
+        const fileInput = $('#photo-file-input');
+        const caption = $('#photo-caption')?.value.trim();
+        if (!fileInput || !fileInput.files.length) { $('#photo-upload-error').textContent = 'Fotoğraf seçmelisiniz'; return; }
+        const file = fileInput.files[0];
+        const form = new FormData();
+        form.append('file', file);
+        try {
+          const uploadRes = await apiForm('/api/upload', form);
+          await api('/photos', { method: 'POST', body: JSON.stringify({ url: uploadRes.url, caption }) });
+          hideModal();
+          toast('Fotoğraf yüklendi');
+          loadPhotos();
+        } catch (err) { $('#photo-upload-error').textContent = err.message; }
+      });
     });
-  });
-}
+  }
 
-function groupCardHTML(g) {
-  const typeBadge = g.type === 'private' ? `<span class="badge badge-red"><i class="fas fa-lock"></i> Özel</span>` : `<span class="badge badge-green"><i class="fas fa-globe"></i> Açık</span>`;
-  return `<div class="group-card" onclick="navigate('/grup/${escHtml(g.slug)}')">
+  function groupCardHTML(g) {
+    const typeBadge = g.type === 'private' ? `<span class="badge badge-red"><i class="fas fa-lock"></i> Özel</span>` : `<span class="badge badge-green"><i class="fas fa-globe"></i> Açık</span>`;
+    return `<div class="group-card" onclick="navigate('/grup/${escHtml(g.slug)}')">
     <div class="group-cover">
       ${g.cover_image ? `<img src="${escHtml(g.cover_image)}" alt="" />` : `<div class="group-cover-placeholder"><i class="fas fa-users"></i></div>`}
     </div>
@@ -2008,10 +2009,10 @@ function groupCardHTML(g) {
       </div>
     </div>
   </div>`;
-}
+  }
 
-function showNewGroupModal() {
-  showModal('Yeni Grup', `
+  function showNewGroupModal() {
+    showModal('Yeni Grup', `
     <div class="form-group"><label>Grup Adı</label><input id="gr-name" type="text" /></div>
     <div class="form-group"><label>Açıklama</label><textarea id="gr-desc" rows="3"></textarea></div>
     <div class="form-group">
@@ -2029,53 +2030,53 @@ function showNewGroupModal() {
     <div id="gr-error" class="form-error mt-4"></div>
   `);
 
-  $('#gr-cover-file').addEventListener('change', e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const prev = $('#gr-cover-preview');
-      prev.outerHTML = `<img id="gr-cover-preview" src="${ev.target.result}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px" />`;
-    };
-    reader.readAsDataURL(file);
-  });
+    $('#gr-cover-file').addEventListener('change', e => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const prev = $('#gr-cover-preview');
+        prev.outerHTML = `<img id="gr-cover-preview" src="${ev.target.result}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px" />`;
+      };
+      reader.readAsDataURL(file);
+    });
 
-  $('#gr-submit').addEventListener('click', async () => {
-    const name = $('#gr-name').value.trim();
-    if (!name) { $('#gr-error').textContent = 'İsim zorunlu'; return; }
+    $('#gr-submit').addEventListener('click', async () => {
+      const name = $('#gr-name').value.trim();
+      if (!name) { $('#gr-error').textContent = 'İsim zorunlu'; return; }
+      try {
+        let cover_image = '';
+        const coverFile = $('#gr-cover-file').files[0];
+        if (coverFile) {
+          const fd = new FormData(); fd.append('file', coverFile);
+          const r = await apiForm('/api/upload', fd);
+          cover_image = r.url;
+        }
+        const g = await api('/groups', { method: 'POST', body: JSON.stringify({ name, description: $('#gr-desc').value.trim(), cover_image, type: $('#gr-type').value, allow_chat: $('#gr-chat').checked, allow_photos: $('#gr-photos').checked, invite_only: $('#gr-invite').checked }) });
+        toast('Grup oluşturuldu'); hideModal(); navigate('/grup/' + g.slug);
+      } catch (e) { $('#gr-error').textContent = e.message; }
+    });
+  }
+
+  let chatPollInterval = null;
+
+  async function renderGroupDetail(app, slug) {
+    if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+    app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
+
+    let groupData, members = [], messages = [];
     try {
-      let cover_image = '';
-      const coverFile = $('#gr-cover-file').files[0];
-      if (coverFile) {
-        const fd = new FormData(); fd.append('file', coverFile);
-        const r = await apiForm('/api/upload', fd);
-        cover_image = r.url;
-      }
-      const g = await api('/groups', { method: 'POST', body: JSON.stringify({ name, description: $('#gr-desc').value.trim(), cover_image, type: $('#gr-type').value, allow_chat: $('#gr-chat').checked, allow_photos: $('#gr-photos').checked, invite_only: $('#gr-invite').checked }) });
-      toast('Grup oluşturuldu'); hideModal(); navigate('/grup/' + g.slug);
-    } catch (e) { $('#gr-error').textContent = e.message; }
-  });
-}
+      groupData = await api('/group/' + slug);
+      members = await api('/group/' + slug + '/members');
+      try { messages = await api('/group/' + slug + '/messages'); } catch { }
+    } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Grup bulunamadı.</p></div></div>'; return; }
 
-let chatPollInterval = null;
+    const { group, isMember, role } = groupData;
+    document.title = group.name + ' - TeaTube';
+    const isOwner = currentUser && currentUser.id === group.owner_id;
+    const isMod = role === 'moderator';
+    const canSend = currentUser && isMember && group.allow_chat;
 
-async function renderGroupDetail(app, slug) {
-  if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
-  app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
-
-  let groupData, members = [], messages = [];
-  try {
-    groupData = await api('/group/' + slug);
-    members = await api('/group/' + slug + '/members');
-    try { messages = await api('/group/' + slug + '/messages'); } catch {}
-  } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Grup bulunamadı.</p></div></div>'; return; }
-
-  const { group, isMember, role } = groupData;
-  document.title = group.name + ' - TeaTube';
-  const isOwner = currentUser && currentUser.id === group.owner_id;
-  const isMod = role === 'moderator';
-  const canSend = currentUser && isMember && group.allow_chat;
-
-  app.innerHTML = `<div class="container page">
+    app.innerHTML = `<div class="container page">
     <div style="margin-bottom:20px">
       ${group.cover_image ? `<img src="${escHtml(group.cover_image)}" style="width:100%;border-radius:var(--radius);aspect-ratio:16/5;object-fit:cover;margin-bottom:16px" alt="" />` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
@@ -2125,98 +2126,98 @@ async function renderGroupDetail(app, slug) {
     </div>
   </div>`;
 
-  const chatEl = $('#chat-messages');
-  if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+    const chatEl = $('#chat-messages');
+    if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
 
-  // Önceki mesajları yükle
-  let oldestMsgId = messages.length > 0 ? messages[0].id : null;
-  $('#load-more-msgs')?.addEventListener('click', async () => {
-    if (!oldestMsgId) return;
-    const btn = $('#load-more-msgs');
-    btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:12px;height:12px;display:inline-block"></div>';
-    try {
-      const older = await api('/group/' + slug + '/messages?before_id=' + oldestMsgId);
-      if (!older.length) { $('#load-more-msgs-wrap').style.display = 'none'; return; }
-      const chatEl2 = $('#chat-messages');
-      const prevHeight = chatEl2.scrollHeight;
-      chatEl2.insertAdjacentHTML('afterbegin', older.map(m => chatMsgHTML(m, isOwner || isMod)).join(''));
-      // Scroll pozisyonunu koru
-      chatEl2.scrollTop = chatEl2.scrollHeight - prevHeight;
-      oldestMsgId = older[0].id;
-      if (older.length < 60) $('#load-more-msgs-wrap').style.display = 'none';
-    } catch(e) { toast(e.message, 'error'); }
-    finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-history"></i> Önceki Mesajlar'; }
-  });
-
-  $('#join-btn')?.addEventListener('click', async () => {
-    try { await api('/group/' + slug + '/join', { method: 'POST' }); toast('Gruba katıldınız!'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
-  });
-  $('#leave-btn')?.addEventListener('click', async () => {
-    if (!confirm('Gruptan ayrılmak istiyor musunuz?')) return;
-    try { await api('/group/' + slug + '/leave', { method: 'POST' }); toast('Gruptan ayrıldınız.'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
-  });
-
-  if (canSend) {
-    const sendMsg = async () => {
-      const input = $('#chat-input');
-      const content = input?.value.trim();
-      if (!content) return;
+    // Önceki mesajları yükle
+    let oldestMsgId = messages.length > 0 ? messages[0].id : null;
+    $('#load-more-msgs')?.addEventListener('click', async () => {
+      if (!oldestMsgId) return;
+      const btn = $('#load-more-msgs');
+      btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:12px;height:12px;display:inline-block"></div>';
       try {
-        const msg = await api('/group/' + slug + '/messages', { method: 'POST', body: JSON.stringify({ content }) });
-        $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(msg, window._chatCanMod));
-        input.value = '';
-        chatEl.scrollTop = chatEl.scrollHeight;
+        const older = await api('/group/' + slug + '/messages?before_id=' + oldestMsgId);
+        if (!older.length) { $('#load-more-msgs-wrap').style.display = 'none'; return; }
+        const chatEl2 = $('#chat-messages');
+        const prevHeight = chatEl2.scrollHeight;
+        chatEl2.insertAdjacentHTML('afterbegin', older.map(m => chatMsgHTML(m, isOwner || isMod)).join(''));
+        // Scroll pozisyonunu koru
+        chatEl2.scrollTop = chatEl2.scrollHeight - prevHeight;
+        oldestMsgId = older[0].id;
+        if (older.length < 60) $('#load-more-msgs-wrap').style.display = 'none';
       } catch (e) { toast(e.message, 'error'); }
-    };
-    $('#send-msg-btn')?.addEventListener('click', sendMsg);
-    $('#chat-input')?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
-
-    $('#chat-img-input')?.addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return;
-      const fd = new FormData(); fd.append('image', file);
-      try {
-        const r = await apiForm('/group/' + slug + '/upload', fd);
-        const msg = await api('/group/' + slug + '/messages', { method: 'POST', body: JSON.stringify({ content: '', image_url: r.url }) });
-        $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(msg, window._chatCanMod));
-        chatEl.scrollTop = chatEl.scrollHeight;
-      } catch (e) { toast(e.message, 'error'); }
-      e.target.value = '';
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-history"></i> Önceki Mesajlar'; }
     });
 
-    let lastId = messages.length ? messages[messages.length - 1].id : 0;
-    chatPollInterval = setInterval(async () => {
-      if (!$('#chat-messages')) { clearInterval(chatPollInterval); return; }
+    $('#join-btn')?.addEventListener('click', async () => {
+      try { await api('/group/' + slug + '/join', { method: 'POST' }); toast('Gruba katıldınız!'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
+    });
+    $('#leave-btn')?.addEventListener('click', async () => {
+      if (!confirm('Gruptan ayrılmak istiyor musunuz?')) return;
+      try { await api('/group/' + slug + '/leave', { method: 'POST' }); toast('Gruptan ayrıldınız.'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
+    });
+
+    if (canSend) {
+      const sendMsg = async () => {
+        const input = $('#chat-input');
+        const content = input?.value.trim();
+        if (!content) return;
+        try {
+          const msg = await api('/group/' + slug + '/messages', { method: 'POST', body: JSON.stringify({ content }) });
+          $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(msg, window._chatCanMod));
+          input.value = '';
+          chatEl.scrollTop = chatEl.scrollHeight;
+        } catch (e) { toast(e.message, 'error'); }
+      };
+      $('#send-msg-btn')?.addEventListener('click', sendMsg);
+      $('#chat-input')?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
+
+      $('#chat-img-input')?.addEventListener('change', async e => {
+        const file = e.target.files[0]; if (!file) return;
+        const fd = new FormData(); fd.append('image', file);
+        try {
+          const r = await apiForm('/group/' + slug + '/upload', fd);
+          const msg = await api('/group/' + slug + '/messages', { method: 'POST', body: JSON.stringify({ content: '', image_url: r.url }) });
+          $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(msg, window._chatCanMod));
+          chatEl.scrollTop = chatEl.scrollHeight;
+        } catch (e) { toast(e.message, 'error'); }
+        e.target.value = '';
+      });
+
+      let lastId = messages.length ? messages[messages.length - 1].id : 0;
+      chatPollInterval = setInterval(async () => {
+        if (!$('#chat-messages')) { clearInterval(chatPollInterval); return; }
+        try {
+          const newMsgs = await api('/group/' + slug + '/messages');
+          const newest = newMsgs.filter(m => m.id > lastId);
+          if (newest.length) {
+            newest.forEach(m => { $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(m, window._chatCanMod)); });
+            lastId = newest[newest.length - 1].id;
+            const chatEl2 = $('#chat-messages');
+            if (chatEl2) chatEl2.scrollTop = chatEl2.scrollHeight;
+          }
+        } catch { }
+      }, 5000);
+    }
+
+    $('#chat-messages')?.addEventListener('click', async e => {
+      const del = e.target.closest('.del-msg');
+      if (!del) return;
+      try { await api('/group/' + slug + '/messages/' + del.dataset.id, { method: 'DELETE' }); del.closest('.chat-msg').remove(); } catch (e) { toast(e.message, 'error'); }
+    });
+
+    $('#gen-invite-btn')?.addEventListener('click', async () => {
       try {
-        const newMsgs = await api('/group/' + slug + '/messages');
-        const newest = newMsgs.filter(m => m.id > lastId);
-        if (newest.length) {
-          newest.forEach(m => { $('#chat-messages').insertAdjacentHTML('beforeend', chatMsgHTML(m, window._chatCanMod)); });
-          lastId = newest[newest.length - 1].id;
-          const chatEl2 = $('#chat-messages');
-          if (chatEl2) chatEl2.scrollTop = chatEl2.scrollHeight;
-        }
-      } catch {}
-    }, 5000);
-  }
-
-  $('#chat-messages')?.addEventListener('click', async e => {
-    const del = e.target.closest('.del-msg');
-    if (!del) return;
-    try { await api('/group/' + slug + '/messages/' + del.dataset.id, { method: 'DELETE' }); del.closest('.chat-msg').remove(); } catch (e) { toast(e.message, 'error'); }
-  });
-
-  $('#gen-invite-btn')?.addEventListener('click', async () => {
-    try {
-      const r = await api('/group/' + slug + '/invite', { method: 'POST' });
-      showModal('Davet Kodu', `<div style="text-align:center;padding:20px">
+        const r = await api('/group/' + slug + '/invite', { method: 'POST' });
+        showModal('Davet Kodu', `<div style="text-align:center;padding:20px">
         <div style="font-size:32px;font-weight:900;letter-spacing:6px;color:var(--accent-red2);background:var(--bg-card2);padding:16px;border-radius:8px;margin-bottom:16px">${r.invite_code}</div>
         <button class="btn btn-primary" onclick="navigator.clipboard && navigator.clipboard.writeText('${r.invite_code}'); toast('Kopyalandı!')">Kopyala</button>
       </div>`);
-    } catch (e) { toast(e.message, 'error'); }
-  });
+      } catch (e) { toast(e.message, 'error'); }
+    });
 
-  $('#group-settings-btn')?.addEventListener('click', () => {
-    showModal('Grup Ayarları', `
+    $('#group-settings-btn')?.addEventListener('click', () => {
+      showModal('Grup Ayarları', `
       <div class="form-group"><label>Grup Adı</label><input id="gs-name" type="text" value="${escHtml(group.name)}" /></div>
       <div class="form-group"><label>Açıklama</label><textarea id="gs-desc" rows="3">${escHtml(group.description || '')}</textarea></div>
       <div class="form-group">
@@ -2234,54 +2235,54 @@ async function renderGroupDetail(app, slug) {
       <div id="gs-error" class="form-error mt-4"></div>
     `);
 
-    $('#gs-cover-file').addEventListener('change', e => {
-      const file = e.target.files[0]; if (!file) return;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        const prev = $('#gs-cover-preview');
-        prev.outerHTML = `<img id="gs-cover-preview" src="${ev.target.result}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px" />`;
-      };
-      reader.readAsDataURL(file);
+      $('#gs-cover-file').addEventListener('change', e => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const prev = $('#gs-cover-preview');
+          prev.outerHTML = `<img id="gs-cover-preview" src="${ev.target.result}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px" />`;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      $('#gs-submit').addEventListener('click', async () => {
+        try {
+          let cover_image = group.cover_image || '';
+          const coverFile = $('#gs-cover-file').files[0];
+          if (coverFile) {
+            const fd = new FormData(); fd.append('file', coverFile);
+            const r = await apiForm('/api/upload', fd);
+            cover_image = r.url;
+          }
+          await api('/group/' + slug, { method: 'PUT', body: JSON.stringify({ name: $('#gs-name').value.trim(), description: $('#gs-desc').value.trim(), cover_image, type: $('#gs-type').value, allow_chat: $('#gs-chat').checked, allow_photos: $('#gs-photos').checked }) });
+          toast('Grup güncellendi'); hideModal(); renderRoute(location.pathname);
+        } catch (e) { $('#gs-error').textContent = e.message; }
+      });
+      $('#gs-delete').addEventListener('click', async () => {
+        if (!confirm('Grubu silmek istediğinize emin misiniz?')) return;
+        try { await api('/group/' + slug, { method: 'DELETE' }); toast('Grup silindi'); hideModal(); navigate('/gruplar'); } catch (e) { toast(e.message, 'error'); }
+      });
     });
 
-    $('#gs-submit').addEventListener('click', async () => {
-      try {
-        let cover_image = group.cover_image || '';
-        const coverFile = $('#gs-cover-file').files[0];
-        if (coverFile) {
-          const fd = new FormData(); fd.append('file', coverFile);
-          const r = await apiForm('/api/upload', fd);
-          cover_image = r.url;
-        }
-        await api('/group/' + slug, { method: 'PUT', body: JSON.stringify({ name: $('#gs-name').value.trim(), description: $('#gs-desc').value.trim(), cover_image, type: $('#gs-type').value, allow_chat: $('#gs-chat').checked, allow_photos: $('#gs-photos').checked }) });
-        toast('Grup güncellendi'); hideModal(); renderRoute(location.pathname);
-      } catch (e) { $('#gs-error').textContent = e.message; }
+    $('#members-list')?.addEventListener('click', async e => {
+      const banBtn = e.target.closest('.ban-member');
+      const modBtn = e.target.closest('.make-mod');
+      if (banBtn && isOwner) {
+        const uid = banBtn.dataset.uid;
+        if (!confirm('Üyeyi gruptan at?')) return;
+        try { await api(`/group/${slug}/ban/${uid}`, { method: 'POST' }); toast('Üye atıldı'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
+      }
+      if (modBtn && isOwner) {
+        const uid = modBtn.dataset.uid;
+        try { await api(`/group/${slug}/moderator/${uid}`, { method: 'POST' }); toast('Moderatör yapıldı'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
+      }
     });
-    $('#gs-delete').addEventListener('click', async () => {
-      if (!confirm('Grubu silmek istediğinize emin misiniz?')) return;
-      try { await api('/group/' + slug, { method: 'DELETE' }); toast('Grup silindi'); hideModal(); navigate('/gruplar'); } catch (e) { toast(e.message, 'error'); }
-    });
-  });
+  }
 
-  $('#members-list')?.addEventListener('click', async e => {
-    const banBtn = e.target.closest('.ban-member');
-    const modBtn = e.target.closest('.make-mod');
-    if (banBtn && isOwner) {
-      const uid = banBtn.dataset.uid;
-      if (!confirm('Üyeyi gruptan at?')) return;
-      try { await api(`/group/${slug}/ban/${uid}`, { method: 'POST' }); toast('Üye atıldı'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
-    }
-    if (modBtn && isOwner) {
-      const uid = modBtn.dataset.uid;
-      try { await api(`/group/${slug}/moderator/${uid}`, { method: 'POST' }); toast('Moderatör yapıldı'); renderRoute(location.pathname); } catch (e) { toast(e.message, 'error'); }
-    }
-  });
-}
-
-function chatMsgHTML(m, canModDelete = false) {
-  const isOwn = currentUser && currentUser.id === m.user_id;
-  const canDel = isOwn || canModDelete;
-  return `<div class="chat-msg">
+  function chatMsgHTML(m, canModDelete = false) {
+    const isOwn = currentUser && currentUser.id === m.user_id;
+    const canDel = isOwn || canModDelete;
+    return `<div class="chat-msg">
     ${m.avatar ? `<img src="${escHtml(m.avatar)}" class="chat-msg-avatar" alt="" />` : `<div class="chat-msg-avatar avatar-placeholder" style="font-size:11px;font-weight:700">?</div>`}
     <div class="chat-msg-body">
       <div class="chat-msg-meta">
@@ -2293,12 +2294,12 @@ function chatMsgHTML(m, canModDelete = false) {
       ${m.image_url ? `<img src="${escHtml(m.image_url)}" class="chat-msg-img" alt="" onclick="window.open(this.src)" />` : ''}
     </div>
   </div>`;
-}
+  }
 
-function memberItemHTML(m, isOwner, groupSlug) {
-  const roleLabel = m.role === 'owner' ? '<span class="badge badge-red">Sahip</span>' : m.role === 'moderator' ? '<span class="badge badge-orange">Mod</span>' : '';
-  const canAct = isOwner && m.role !== 'owner' && currentUser && currentUser.id !== m.user_id;
-  return `<div class="member-item">
+  function memberItemHTML(m, isOwner, groupSlug) {
+    const roleLabel = m.role === 'owner' ? '<span class="badge badge-red">Sahip</span>' : m.role === 'moderator' ? '<span class="badge badge-orange">Mod</span>' : '';
+    const canAct = isOwner && m.role !== 'owner' && currentUser && currentUser.id !== m.user_id;
+    return `<div class="member-item">
     ${m.avatar ? `<img src="${escHtml(m.avatar)}" class="member-avatar" alt="" />` : `<div class="member-avatar avatar-placeholder"><i class="fas fa-user" style="font-size:14px"></i></div>`}
     <div style="flex:1">
       <div style="font-size:13px;font-weight:600">${escHtml(m.username)}</div>
@@ -2309,135 +2310,135 @@ function memberItemHTML(m, isOwner, groupSlug) {
       <button class="btn btn-ghost btn-sm ban-member" data-uid="${m.user_id}" title="At" style="font-size:11px;color:var(--accent-red2)"><i class="fas fa-times"></i></button>
     </div>` : ''}
   </div>`;
-}
+  }
 
-async function renderProfile(app, username) {
-  app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
-  let data;
-  try { data = await api('/profile/' + username); } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-user-slash"></i><p>Kullanıcı bulunamadı.</p></div></div>'; return; }
+  async function renderProfile(app, username) {
+    app.innerHTML = `<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>`;
+    let data;
+    try { data = await api('/profile/' + username); } catch { app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-user-slash"></i><p>Kullanıcı bulunamadı.</p></div></div>'; return; }
 
-  const { user, forums, books, groups, level, levels, book_page_count } = data;
-  document.title = user.username + ' - TeaTube';
+    const { user, forums, books, groups, level, levels, book_page_count } = data;
+    document.title = user.username + ' - TeaTube';
 
-  let profileFriends = [];
-  let profilePhotos = [];
-  try { profileFriends = await api('/profile/' + username + '/friends'); } catch {}
-  try { profilePhotos = await api('/photos?username=' + encodeURIComponent(username)); } catch {}
+    let profileFriends = [];
+    let profilePhotos = [];
+    try { profileFriends = await api('/profile/' + username + '/friends'); } catch { }
+    try { profilePhotos = await api('/photos?username=' + encodeURIComponent(username)); } catch { }
 
-  const profilePhotosHTML = profilePhotos.length
-    ? `<div class="profile-photos-grid">${profilePhotos.slice(0, 6).map(p => `
+    const profilePhotosHTML = profilePhotos.length
+      ? `<div class="profile-photos-grid">${profilePhotos.slice(0, 6).map(p => `
         <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer" class="profile-photo-card">
           <img src="${escHtml(p.url)}" alt="${escHtml(p.caption || 'Fotoğraf')}" />
           ${p.caption ? `<div class="photo-caption">${escHtml(p.caption)}</div>` : ''}
         </a>`).join('')}</div>`
-    : '<div class="empty-state"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>';
+      : '<div class="empty-state"><i class="fas fa-camera-retro"></i><p>Henüz fotoğraf yok.</p></div>';
 
-  const profileFriendsHTML = profileFriends.length
-    ? `<div class="friends-grid">${profileFriends.map(f => `
+    const profileFriendsHTML = profileFriends.length
+      ? `<div class="friends-grid">${profileFriends.map(f => `
         <a href="/profil/${escHtml(f.username)}" data-link class="friend-card">
           ${f.avatar ? `<img src="${escHtml(f.avatar)}" alt="${escHtml(f.username)}" />` : `<div class="friend-avatar-placeholder"><i class="fas fa-user"></i></div>`}
           <div class="friend-card-name">${escHtml(f.username)}</div>
           ${f.title ? `<div class="friend-card-title">${escHtml(f.title)}</div>` : ''}
         </a>`).join('')}</div>`
-    : '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Arkadaş yok.</p></div>';
+      : '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Arkadaş yok.</p></div>';
 
-  const nextLevel = levels.find(l => l.order_num > (level?.order_num || 0));
-  let progressHTML = '';
-  if (nextLevel) {
-    const reqAny = nextLevel.require_any === 1;
-    const INF = 9999999;
-    const nf = nextLevel.min_forums >= INF ? null : nextLevel.min_forums;
-    const nb = nextLevel.min_books >= INF ? null : nextLevel.min_books;
-    const nc = nextLevel.min_comments >= INF ? null : nextLevel.min_comments;
-    const nbp = (nextLevel.min_book_pages || 0) >= INF ? null : (nextLevel.min_book_pages || 0);
+    const nextLevel = levels.find(l => l.order_num > (level?.order_num || 0));
+    let progressHTML = '';
+    if (nextLevel) {
+      const reqAny = nextLevel.require_any === 1;
+      const INF = 9999999;
+      const nf = nextLevel.min_forums >= INF ? null : nextLevel.min_forums;
+      const nb = nextLevel.min_books >= INF ? null : nextLevel.min_books;
+      const nc = nextLevel.min_comments >= INF ? null : nextLevel.min_comments;
+      const nbp = (nextLevel.min_book_pages || 0) >= INF ? null : (nextLevel.min_book_pages || 0);
 
-    const remaining = [];
-    if (nf !== null && nf > 0) { const left = Math.max(0, nf - user.forum_count); if (left > 0) remaining.push(`${left} konu`); }
-    if (nb !== null && nb > 0) { const left = Math.max(0, nb - user.book_count); if (left > 0) remaining.push(`${left} kitap`); }
-    if (nbp !== null && nbp > 0) { const left = Math.max(0, nbp - (book_page_count || 0)); if (left > 0) remaining.push(`${left} kitap sayfası`); }
-    if (nc !== null && nc > 0) { const left = Math.max(0, nc - user.comment_count); if (left > 0) remaining.push(`${left} yorum`); }
+      const remaining = [];
+      if (nf !== null && nf > 0) { const left = Math.max(0, nf - user.forum_count); if (left > 0) remaining.push(`${left} konu`); }
+      if (nb !== null && nb > 0) { const left = Math.max(0, nb - user.book_count); if (left > 0) remaining.push(`${left} kitap`); }
+      if (nbp !== null && nbp > 0) { const left = Math.max(0, nbp - (book_page_count || 0)); if (left > 0) remaining.push(`${left} kitap sayfası`); }
+      if (nc !== null && nc > 0) { const left = Math.max(0, nc - user.comment_count); if (left > 0) remaining.push(`${left} yorum`); }
 
-    let overallPct = 0;
-    const metrics = [];
-    if (nf !== null && nf > 0) metrics.push(Math.min(100, Math.round((user.forum_count / nf) * 100)));
-    if (nb !== null && nb > 0) metrics.push(Math.min(100, Math.round((user.book_count / nb) * 100)));
-    if (nbp !== null && nbp > 0) metrics.push(Math.min(100, Math.round(((book_page_count || 0) / nbp) * 100)));
-    if (nc !== null && nc > 0) metrics.push(Math.min(100, Math.round((user.comment_count / nc) * 100)));
+      let overallPct = 0;
+      const metrics = [];
+      if (nf !== null && nf > 0) metrics.push(Math.min(100, Math.round((user.forum_count / nf) * 100)));
+      if (nb !== null && nb > 0) metrics.push(Math.min(100, Math.round((user.book_count / nb) * 100)));
+      if (nbp !== null && nbp > 0) metrics.push(Math.min(100, Math.round(((book_page_count || 0) / nbp) * 100)));
+      if (nc !== null && nc > 0) metrics.push(Math.min(100, Math.round((user.comment_count / nc) * 100)));
 
-    if (reqAny) {
-      overallPct = metrics.length > 0 ? Math.max(...metrics) : 100;
-    } else {
-      overallPct = metrics.length > 0 ? Math.round(metrics.reduce((a, b) => a + b, 0) / metrics.length) : 100;
-    }
-
-    let hint = '';
-    if (remaining.length > 0) {
       if (reqAny) {
-        // "Bunlardan birini tamamlayarak seviye atlayabilirsin"
-        hint = `<div style="font-size:12px;color:var(--text-secondary);margin-top:6px;padding:8px 10px;background:rgba(220,38,38,0.06);border-radius:8px;border:1px solid rgba(220,38,38,0.12)">
+        overallPct = metrics.length > 0 ? Math.max(...metrics) : 100;
+      } else {
+        overallPct = metrics.length > 0 ? Math.round(metrics.reduce((a, b) => a + b, 0) / metrics.length) : 100;
+      }
+
+      let hint = '';
+      if (remaining.length > 0) {
+        if (reqAny) {
+          // "Bunlardan birini tamamlayarak seviye atlayabilirsin"
+          hint = `<div style="font-size:12px;color:var(--text-secondary);margin-top:6px;padding:8px 10px;background:rgba(220,38,38,0.06);border-radius:8px;border:1px solid rgba(220,38,38,0.12)">
           <i class="fas fa-info-circle" style="color:var(--accent-red2);margin-right:5px"></i>
           <strong>Şunlardan birini tamamlayarak seviye atlayabilirsin:</strong>
           <ul style="margin:6px 0 0 16px;list-style:disc">
             ${remaining.map(r => `<li style="margin:2px 0">${r}</li>`).join('')}
           </ul>
         </div>`;
-      } else {
-        hint = `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">${remaining.join(', ')} kaldı</div>`;
+        } else {
+          hint = `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">${remaining.join(', ')} kaldı</div>`;
+        }
       }
-    }
 
-    progressHTML = `<div style="margin-top:12px">
+      progressHTML = `<div style="margin-top:12px">
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
         ${escHtml(nextLevel.name)} seviyesine ${overallPct}% tamamlandı
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${overallPct}%"></div></div>
       ${hint}
     </div>`;
-  }
-
-  const levelColor = level?.color || '#6b7280';
-  const levelBadge = level && user.show_level_badge ? `<span class="level-badge" style="color:${levelColor};border-color:${levelColor};background:${levelColor}20"><i class="${escHtml(level.icon)}"></i> ${escHtml(level.name)}</span>` : '';
-
-  const links = (() => { try { return JSON.parse(user.links || '[]'); } catch { return []; } })();
-  const isOwn = currentUser && currentUser.id === user.id;
-  const renderBadgeIcon = icon => {
-    if (!icon) return '';
-    const trimmed = icon.trim();
-    if (/^https?:\/\//i.test(trimmed) || /\.(png|jpe?g|gif|svg)(\?.*)?$/i.test(trimmed)) {
-      return `<img src="${escHtml(trimmed)}" class="profile-badge-icon" alt="" />`;
     }
-    return `<i class="${escHtml(trimmed)}"></i>`;
-  };
-  const selectedNameBadge = (() => {
-    if (user.badge_display === 'vip' && user.is_vip) return ` <span class="profile-name-badge">${renderBadgeIcon('fas fa-gem')}</span>`;
-    if (user.badge_display === 'plus' && user.is_plus) return ` <span class="profile-name-badge">${renderBadgeIcon('fas fa-plus-circle')}</span>`;
-    if (user.badge_display === 'custom' && user.badge_icon) return ` <span class="profile-name-badge" style="color:${escHtml(user.badge_color || '#6b7280')};">${renderBadgeIcon(user.badge_icon)}</span>`;
-    if (user.badge_display === 'level' && level && user.show_level_badge) return ` <span class="profile-name-badge" style="color:${levelColor};">${renderBadgeIcon(level.icon)}</span>`;
-    return '';
-  })();
 
-  // Rozet satırı
-  const badgeItems = [];
-  if (level && user.show_level_badge) {
-    badgeItems.push(`<span class="profile-badge" style="color:${escHtml(levelColor)};border-color:${escHtml(levelColor)};background:${escHtml(levelColor)}20" title="Seviye: ${escHtml(level.name)}">${renderBadgeIcon(level.icon)} ${escHtml(level.name)} <span style="font-size:10px;opacity:0.7">seviye</span></span>`);
-  }
-  if (user.badge_name) {
-    const badgeColor = user.badge_color || '#6b7280';
-    const badgeIcon = user.badge_icon || 'fas fa-award';
-    badgeItems.push(`<span class="profile-badge" style="color:${escHtml(badgeColor)};border-color:${escHtml(badgeColor)};background:${escHtml(badgeColor)}20" title="${escHtml(user.badge_name)}">${renderBadgeIcon(badgeIcon)} ${escHtml(user.badge_name)}</span>`);
-  }
-  if (user.is_artist) {
-    badgeItems.push(`<span class="profile-badge" style="color:#a855f7;border-color:#a855f733;background:#a855f715" title="Artist"><i class="fas fa-microphone-alt"></i> Artist</span>`);
-  }
-  if (user.is_vip) {
-    badgeItems.push(`<span class="profile-badge" style="color:#fbbf24;border-color:#fbbf2433;background:#fbbf2415" title="VIP"><i class="fas fa-gem"></i> VIP</span>`);
-  }
-  if (user.is_plus) {
-    badgeItems.push(`<span class="profile-badge" style="color:#818cf8;border-color:#818cf833;background:#818cf815" title="Plus"><i class="fas fa-plus-circle"></i> Plus</span>`);
-  }
-  const badgesHTML = badgeItems.length ? `<div class="profile-badges-row">${badgeItems.join('')}</div>` : '';
+    const levelColor = level?.color || '#6b7280';
+    const levelBadge = level && user.show_level_badge ? `<span class="level-badge" style="color:${levelColor};border-color:${levelColor};background:${levelColor}20"><i class="${escHtml(level.icon)}"></i> ${escHtml(level.name)}</span>` : '';
 
-  app.innerHTML = `<div class="container page">
+    const links = (() => { try { return JSON.parse(user.links || '[]'); } catch { return []; } })();
+    const isOwn = currentUser && currentUser.id === user.id;
+    const renderBadgeIcon = icon => {
+      if (!icon) return '';
+      const trimmed = icon.trim();
+      if (/^https?:\/\//i.test(trimmed) || /\.(png|jpe?g|gif|svg)(\?.*)?$/i.test(trimmed)) {
+        return `<img src="${escHtml(trimmed)}" class="profile-badge-icon" alt="" />`;
+      }
+      return `<i class="${escHtml(trimmed)}"></i>`;
+    };
+    const selectedNameBadge = (() => {
+      if (user.badge_display === 'vip' && user.is_vip) return ` <span class="profile-name-badge">${renderBadgeIcon('fas fa-gem')}</span>`;
+      if (user.badge_display === 'plus' && user.is_plus) return ` <span class="profile-name-badge">${renderBadgeIcon('fas fa-plus-circle')}</span>`;
+      if (user.badge_display === 'custom' && user.badge_icon) return ` <span class="profile-name-badge" style="color:${escHtml(user.badge_color || '#6b7280')};">${renderBadgeIcon(user.badge_icon)}</span>`;
+      if (user.badge_display === 'level' && level && user.show_level_badge) return ` <span class="profile-name-badge" style="color:${levelColor};">${renderBadgeIcon(level.icon)}</span>`;
+      return '';
+    })();
+
+    // Rozet satırı
+    const badgeItems = [];
+    if (level && user.show_level_badge) {
+      badgeItems.push(`<span class="profile-badge" style="color:${escHtml(levelColor)};border-color:${escHtml(levelColor)};background:${escHtml(levelColor)}20" title="Seviye: ${escHtml(level.name)}">${renderBadgeIcon(level.icon)} ${escHtml(level.name)} <span style="font-size:10px;opacity:0.7">seviye</span></span>`);
+    }
+    if (user.badge_name) {
+      const badgeColor = user.badge_color || '#6b7280';
+      const badgeIcon = user.badge_icon || 'fas fa-award';
+      badgeItems.push(`<span class="profile-badge" style="color:${escHtml(badgeColor)};border-color:${escHtml(badgeColor)};background:${escHtml(badgeColor)}20" title="${escHtml(user.badge_name)}">${renderBadgeIcon(badgeIcon)} ${escHtml(user.badge_name)}</span>`);
+    }
+    if (user.is_artist) {
+      badgeItems.push(`<span class="profile-badge" style="color:#a855f7;border-color:#a855f733;background:#a855f715" title="Artist"><i class="fas fa-microphone-alt"></i> Artist</span>`);
+    }
+    if (user.is_vip) {
+      badgeItems.push(`<span class="profile-badge" style="color:#fbbf24;border-color:#fbbf2433;background:#fbbf2415" title="VIP"><i class="fas fa-gem"></i> VIP</span>`);
+    }
+    if (user.is_plus) {
+      badgeItems.push(`<span class="profile-badge" style="color:#818cf8;border-color:#818cf833;background:#818cf815" title="Plus"><i class="fas fa-plus-circle"></i> Plus</span>`);
+    }
+    const badgesHTML = badgeItems.length ? `<div class="profile-badges-row">${badgeItems.join('')}</div>` : '';
+
+    app.innerHTML = `<div class="container page">
     <div class="profile-header">
       <div class="profile-avatar-wrap">
         ${user.avatar ? `<img src="${escHtml(user.avatar)}" class="profile-avatar" alt="" />` : `<div class="profile-avatar-placeholder"><i class="fas fa-user"></i></div>`}
@@ -2452,10 +2453,10 @@ async function renderProfile(app, username) {
         ${progressHTML}
         ${user.bio ? `<div class="profile-bio" style="margin-top:10px">${escHtml(user.bio)}</div>` : ''}
         ${links.length ? `<div class="profile-links">${links.map(l => {
-          let url = (l.url||'').trim();
-          if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
-          return `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" class="profile-link"><i class="fas fa-link"></i> ${escHtml(l.label || l.url)}</a>`;
-        }).join('')}</div>` : ''}
+      let url = (l.url || '').trim();
+      if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+      return `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" class="profile-link"><i class="fas fa-link"></i> ${escHtml(l.label || l.url)}</a>`;
+    }).join('')}</div>` : ''}
         <div class="profile-stats" style="margin-top:12px">
           <div class="profile-stat"><div class="profile-stat-num">${user.forum_count}</div><div class="profile-stat-label">Forum</div></div>
           <div class="profile-stat"><div class="profile-stat-num">${user.book_count}</div><div class="profile-stat-label">Kitap</div></div>
@@ -2490,23 +2491,23 @@ async function renderProfile(app, username) {
     </div>
   </div>`;
 
-  $$('.tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $$('.tab').forEach(t => t.classList.remove('active'));
-      btn.classList.add('active');
-      ['forums', 'friends', 'groups'].forEach(name => $('#tab-' + name).classList.toggle('hidden', name !== btn.dataset.tab));
+    $$('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $$('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        ['forums', 'friends', 'groups'].forEach(name => $('#tab-' + name).classList.toggle('hidden', name !== btn.dataset.tab));
+      });
     });
-  });
 
-  // Spotify widget yükle
-  renderSpotifyWidget(username, `spotify-widget-${username}`);
-}
+    // Spotify widget yükle
+    renderSpotifyWidget(username, `spotify-widget-${username}`);
+  }
 
-async function renderSettings(app) {
-  if (!currentUser) { navigate('/giris'); return; }
-  document.title = 'Ayarlar - TeaTube';
+  async function renderSettings(app) {
+    if (!currentUser) { navigate('/giris'); return; }
+    document.title = 'Ayarlar - TeaTube';
 
-  app.innerHTML = `<div class="container page">
+    app.innerHTML = `<div class="container page">
     <div class="page-header"><div class="page-title">Ayarlar</div></div>
     <div class="settings-layout">
       <div class="settings-nav">
@@ -2521,27 +2522,27 @@ async function renderSettings(app) {
     </div>
   </div>`;
 
-  renderSettingsSection('profile');
+    renderSettingsSection('profile');
 
-  // Spotify callback param kontrolü
-  const urlParams = new URLSearchParams(location.search);
-  if (urlParams.get('spotify') === 'ok') { toast('Spotify bağlandı! 🎵'); history.replaceState({}, '', '/ayarlar'); }
-  if (urlParams.get('spotify') === 'error') { toast('Spotify bağlantısı başarısız', 'error'); history.replaceState({}, '', '/ayarlar'); }
+    // Spotify callback param kontrolü
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('spotify') === 'ok') { toast('Spotify bağlandı! 🎵'); history.replaceState({}, '', '/ayarlar'); }
+    if (urlParams.get('spotify') === 'error') { toast('Spotify bağlantısı başarısız', 'error'); history.replaceState({}, '', '/ayarlar'); }
 
-  $$('.settings-nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-      $$('.settings-nav-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      renderSettingsSection(item.dataset.section);
+    $$('.settings-nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        $$('.settings-nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        renderSettingsSection(item.dataset.section);
+      });
     });
-  });
-}
+  }
 
-function renderSettingsSection(section) {
-  const el = $('#settings-content'); if (!el) return;
-  if (section === 'profile') {
-    const links = (() => { try { return JSON.parse(currentUser.links || '[]'); } catch { return []; } })();
-    el.innerHTML = `
+  function renderSettingsSection(section) {
+    const el = $('#settings-content'); if (!el) return;
+    if (section === 'profile') {
+      const links = (() => { try { return JSON.parse(currentUser.links || '[]'); } catch { return []; } })();
+      el.innerHTML = `
       <div class="card">
         <div class="card-header"><span>Profil Bilgileri</span></div>
         <div class="card-body">
@@ -2569,63 +2570,63 @@ function renderSettingsSection(section) {
         </div>
       </div>`;
 
-    function renderLinkRows(linksArr) {
-      const container = $('#links-container');
-      container.innerHTML = linksArr.map((l, i) => `
+      function renderLinkRows(linksArr) {
+        const container = $('#links-container');
+        container.innerHTML = linksArr.map((l, i) => `
         <div class="link-row" data-idx="${i}" style="display:flex;gap:8px;align-items:center">
           <input type="text" placeholder="Başlık (örn: GitHub)" value="${escHtml(l.label || '')}" data-field="label" style="flex:1" />
           <input type="text" placeholder="URL (https://...)" value="${escHtml(l.url || '')}" data-field="url" style="flex:2" />
           <button type="button" class="btn btn-ghost btn-sm remove-link-btn" data-idx="${i}" style="color:var(--accent-red2);flex-shrink:0"><i class="fas fa-times"></i></button>
         </div>`).join('');
-    }
-
-    let currentLinks = [...links];
-    renderLinkRows(currentLinks);
-
-    $('#add-link-btn').addEventListener('click', () => {
-      currentLinks.push({ label: '', url: '' });
-      renderLinkRows(currentLinks);
-    });
-
-    $('#links-container').addEventListener('click', e => {
-      const rem = e.target.closest('.remove-link-btn');
-      if (rem) {
-        currentLinks.splice(parseInt(rem.dataset.idx), 1);
-        renderLinkRows(currentLinks);
       }
-    });
 
-    $('#links-container').addEventListener('input', e => {
-      const row = e.target.closest('.link-row');
-      if (!row) return;
-      const idx = parseInt(row.dataset.idx);
-      const field = e.target.dataset.field;
-      if (field && currentLinks[idx] !== undefined) currentLinks[idx][field] = e.target.value;
-    });
+      let currentLinks = [...links];
+      renderLinkRows(currentLinks);
 
-    $('#save-profile-btn').addEventListener('click', async () => {
-      const titleVal = ($('#s-title').value || '').trim();
-      if (!titleVal) { $('#profile-msg').textContent = 'Ünvan zorunlu'; return; }
-      const fd = new FormData();
-      fd.append('bio', $('#s-bio').value);
-      fd.append('title', titleVal);
-      fd.append('location', $('#s-location').value || '');
-      const validLinks = currentLinks.filter(l => l.url && l.url.trim());
-      fd.append('links', JSON.stringify(validLinks));
-      const avatarFile = $('#avatar-file').files[0];
-      if (avatarFile) fd.append('avatar', avatarFile);
-      try {
-        const updated = await apiForm('/profile', fd, 'PUT');
-        currentUser = updated;
-        updateNavUI();
-        toast('Profil güncellendi');
-        $('#profile-msg').style.color = 'var(--accent-red2)';
-        $('#profile-msg').textContent = '';
-      } catch (e) { $('#profile-msg').textContent = e.message; }
-    });
+      $('#add-link-btn').addEventListener('click', () => {
+        currentLinks.push({ label: '', url: '' });
+        renderLinkRows(currentLinks);
+      });
 
-  } else if (section === 'password') {
-    el.innerHTML = `
+      $('#links-container').addEventListener('click', e => {
+        const rem = e.target.closest('.remove-link-btn');
+        if (rem) {
+          currentLinks.splice(parseInt(rem.dataset.idx), 1);
+          renderLinkRows(currentLinks);
+        }
+      });
+
+      $('#links-container').addEventListener('input', e => {
+        const row = e.target.closest('.link-row');
+        if (!row) return;
+        const idx = parseInt(row.dataset.idx);
+        const field = e.target.dataset.field;
+        if (field && currentLinks[idx] !== undefined) currentLinks[idx][field] = e.target.value;
+      });
+
+      $('#save-profile-btn').addEventListener('click', async () => {
+        const titleVal = ($('#s-title').value || '').trim();
+        if (!titleVal) { $('#profile-msg').textContent = 'Ünvan zorunlu'; return; }
+        const fd = new FormData();
+        fd.append('bio', $('#s-bio').value);
+        fd.append('title', titleVal);
+        fd.append('location', $('#s-location').value || '');
+        const validLinks = currentLinks.filter(l => l.url && l.url.trim());
+        fd.append('links', JSON.stringify(validLinks));
+        const avatarFile = $('#avatar-file').files[0];
+        if (avatarFile) fd.append('avatar', avatarFile);
+        try {
+          const updated = await apiForm('/profile', fd, 'PUT');
+          currentUser = updated;
+          updateNavUI();
+          toast('Profil güncellendi');
+          $('#profile-msg').style.color = 'var(--accent-red2)';
+          $('#profile-msg').textContent = '';
+        } catch (e) { $('#profile-msg').textContent = e.message; }
+      });
+
+    } else if (section === 'password') {
+      el.innerHTML = `
       <div class="card">
         <div class="card-header"><span>Şifre Değiştir</span></div>
         <div class="card-body">
@@ -2636,18 +2637,18 @@ function renderSettingsSection(section) {
           <div id="pw-msg" class="form-error mt-4"></div>
         </div>
       </div>`;
-    $('#save-pw-btn').addEventListener('click', async () => {
-      const old_password = $('#old-pw').value;
-      const new_password = $('#new-pw').value;
-      if (new_password !== $('#new-pw2').value) { $('#pw-msg').textContent = 'Şifreler uyuşmuyor'; return; }
-      try {
-        await api('/profile/password', { method: 'PUT', body: JSON.stringify({ old_password, new_password }) });
-        toast('Şifre değiştirildi'); $('#old-pw').value = ''; $('#new-pw').value = ''; $('#new-pw2').value = '';
-      } catch (e) { $('#pw-msg').textContent = e.message; }
-    });
+      $('#save-pw-btn').addEventListener('click', async () => {
+        const old_password = $('#old-pw').value;
+        const new_password = $('#new-pw').value;
+        if (new_password !== $('#new-pw2').value) { $('#pw-msg').textContent = 'Şifreler uyuşmuyor'; return; }
+        try {
+          await api('/profile/password', { method: 'PUT', body: JSON.stringify({ old_password, new_password }) });
+          toast('Şifre değiştirildi'); $('#old-pw').value = ''; $('#new-pw').value = ''; $('#new-pw2').value = '';
+        } catch (e) { $('#pw-msg').textContent = e.message; }
+      });
 
-  } else if (section === 'appearance') {
-    el.innerHTML = `
+    } else if (section === 'appearance') {
+      el.innerHTML = `
       <div class="card">
         <div class="card-header"><span>Görünüm</span></div>
         <div class="card-body">
@@ -2658,14 +2659,14 @@ function renderSettingsSection(section) {
           </div>
           <div class="form-group"><label>Gösterilecek rozet</label>
             <select id="s-badge-display" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text)">
-              <option value="level"${!currentUser.badge_display || currentUser.badge_display==='level' ? ' selected' : ''}>Seviye rozeti</option>
-              ${currentUser.is_vip ? `<option value="vip"${currentUser.badge_display==='vip' ? ' selected' : ''}>VIP rozeti</option>` : ''}
-              ${currentUser.is_plus ? `<option value="plus"${currentUser.badge_display==='plus' ? ' selected' : ''}>Plus rozeti</option>` : ''}
-              ${currentUser.is_vip || currentUser.is_plus ? `<option value="custom"${currentUser.badge_display==='custom' ? ' selected' : ''}>Özel rozet</option>` : ''}
-              <option value="none"${currentUser.badge_display==='none' ? ' selected' : ''}>Rozet göstermeyi kapat</option>
+              <option value="level"${!currentUser.badge_display || currentUser.badge_display === 'level' ? ' selected' : ''}>Seviye rozeti</option>
+              ${currentUser.is_vip ? `<option value="vip"${currentUser.badge_display === 'vip' ? ' selected' : ''}>VIP rozeti</option>` : ''}
+              ${currentUser.is_plus ? `<option value="plus"${currentUser.badge_display === 'plus' ? ' selected' : ''}>Plus rozeti</option>` : ''}
+              ${currentUser.is_vip || currentUser.is_plus ? `<option value="custom"${currentUser.badge_display === 'custom' ? ' selected' : ''}>Özel rozet</option>` : ''}
+              <option value="none"${currentUser.badge_display === 'none' ? ' selected' : ''}>Rozet göstermeyi kapat</option>
             </select>
           </div>
-          ${(currentUser.is_vip || currentUser.is_plus) ? `<div id="custom-badge-controls" style="display:${currentUser.badge_display==='custom' ? 'block' : 'none'}">
+          ${(currentUser.is_vip || currentUser.is_plus) ? `<div id="custom-badge-controls" style="display:${currentUser.badge_display === 'custom' ? 'block' : 'none'}">
             <div class="form-group"><label>Rozet Adı</label><input type="text" id="s-badge-name" value="${escHtml(currentUser.badge_name || '')}" placeholder="Örn: VIP, Plus, Sanatçı..." /></div>
             <div class="form-group"><label>Rozet İkonu</label><input type="text" id="s-badge-icon" value="${escHtml(currentUser.badge_icon || 'fas fa-award')}" placeholder="fas fa-award veya ⭐" /></div>
             <div class="form-group"><label>Rozet Rengi</label><input type="color" id="s-badge-color" value="${currentUser.badge_color || '#6b7280'}" style="width:60px;height:36px;padding:2px;cursor:pointer" /></div>
@@ -2674,39 +2675,39 @@ function renderSettingsSection(section) {
           <div id="appear-msg" class="form-error mt-4"></div>
         </div>
       </div>`;
-    const badgeDisplaySelect = $('#s-badge-display');
-    if (badgeDisplaySelect) {
-      badgeDisplaySelect.addEventListener('change', () => {
-        const customControls = $('#custom-badge-controls');
-        if (customControls) customControls.style.display = badgeDisplaySelect.value === 'custom' ? 'block' : 'none';
-      });
-    }
+      const badgeDisplaySelect = $('#s-badge-display');
+      if (badgeDisplaySelect) {
+        badgeDisplaySelect.addEventListener('change', () => {
+          const customControls = $('#custom-badge-controls');
+          if (customControls) customControls.style.display = badgeDisplaySelect.value === 'custom' ? 'block' : 'none';
+        });
+      }
 
-    $('#save-appearance-btn').addEventListener('click', async () => {
-      const body = {
-        show_level_badge: $('#s-show-badge').checked,
-        show_level_color: $('#s-show-color').checked,
-      };
-      if (currentUser.is_vip) {
-        body.name_color = $('#s-name-color')?.value || '';
-      }
-      body.badge_display = $('#s-badge-display')?.value || 'level';
-      if (currentUser.is_vip || currentUser.is_plus) {
-        body.badge_name = $('#s-badge-name')?.value.trim() || '';
-        body.badge_icon = $('#s-badge-icon')?.value.trim() || '';
-        body.badge_color = $('#s-badge-color')?.value || '#6b7280';
-      }
-      try {
-        const fd = new FormData();
-        Object.entries(body).forEach(([k, v]) => fd.append(k, v));
-        const updated = await apiForm('/profile', fd, 'PUT');
-        currentUser = updated; updateNavUI();
-        toast('Görünüm güncellendi');
-      } catch (e) { $('#appear-msg').textContent = e.message; }
-    });
-    // VIP satın alma butonu: non-VIP kullanıcıları VIP sayfasına yönlendir
-    $('#buy-vip-btn')?.addEventListener('click', () => {
-      showModal('VIP Ol', `
+      $('#save-appearance-btn').addEventListener('click', async () => {
+        const body = {
+          show_level_badge: $('#s-show-badge').checked,
+          show_level_color: $('#s-show-color').checked,
+        };
+        if (currentUser.is_vip) {
+          body.name_color = $('#s-name-color')?.value || '';
+        }
+        body.badge_display = $('#s-badge-display')?.value || 'level';
+        if (currentUser.is_vip || currentUser.is_plus) {
+          body.badge_name = $('#s-badge-name')?.value.trim() || '';
+          body.badge_icon = $('#s-badge-icon')?.value.trim() || '';
+          body.badge_color = $('#s-badge-color')?.value || '#6b7280';
+        }
+        try {
+          const fd = new FormData();
+          Object.entries(body).forEach(([k, v]) => fd.append(k, v));
+          const updated = await apiForm('/profile', fd, 'PUT');
+          currentUser = updated; updateNavUI();
+          toast('Görünüm güncellendi');
+        } catch (e) { $('#appear-msg').textContent = e.message; }
+      });
+      // VIP satın alma butonu: non-VIP kullanıcıları VIP sayfasına yönlendir
+      $('#buy-vip-btn')?.addEventListener('click', () => {
+        showModal('VIP Ol', `
         <div style="padding:12px">
           <p style="margin-bottom:12px">İsim rengini değiştirmek için VIP olmanız gerekiyor. VIP ile profil renkleri, özel rozet ve daha fazlasına erişim sağlarsınız.</p>
           <div style="display:flex;gap:8px">
@@ -2715,11 +2716,11 @@ function renderSettingsSection(section) {
           </div>
         </div>
       `);
-      $('#vip-close')?.addEventListener('click', hideModal);
-      $('#vip-go')?.addEventListener('click', () => { hideModal(); navigate('/vip'); });
-    });
-  } else if (section === 'notifications') {
-    el.innerHTML = `
+        $('#vip-close')?.addEventListener('click', hideModal);
+        $('#vip-go')?.addEventListener('click', () => { hideModal(); navigate('/vip'); });
+      });
+    } else if (section === 'notifications') {
+      el.innerHTML = `
       <div class="card">
         <div class="card-header"><span><i class="fas fa-bell" style="color:var(--accent-red2);margin-right:6px"></i>Bildirim Ayarları</span></div>
         <div class="card-body">
@@ -2738,18 +2739,18 @@ function renderSettingsSection(section) {
           <div id="notif-settings-msg" class="form-error mt-4"></div>
         </div>
       </div>`;
-    $('#save-notif-btn').addEventListener('click', async () => {
-      const fd = new FormData();
-      fd.append('allow_mentions', $('#s-allow-mentions').checked ? '1' : '0');
-      try {
-        const updated = await apiForm('/profile', fd, 'PUT');
-        currentUser = updated; updateNavUI();
-        toast('Bildirim ayarları kaydedildi');
-      } catch(e) { $('#notif-settings-msg').textContent = e.message; }
-    });
-  } else if (section === 'spotify') {
-    const hasSpotify = !!(currentUser.spotify_token || currentUser.spotify_expires > 0);
-    el.innerHTML = `
+      $('#save-notif-btn').addEventListener('click', async () => {
+        const fd = new FormData();
+        fd.append('allow_mentions', $('#s-allow-mentions').checked ? '1' : '0');
+        try {
+          const updated = await apiForm('/profile', fd, 'PUT');
+          currentUser = updated; updateNavUI();
+          toast('Bildirim ayarları kaydedildi');
+        } catch (e) { $('#notif-settings-msg').textContent = e.message; }
+      });
+    } else if (section === 'spotify') {
+      const hasSpotify = !!(currentUser.spotify_token || currentUser.spotify_expires > 0);
+      el.innerHTML = `
       <div class="card">
         <div class="card-header">
           <span><i class="fab fa-spotify" style="color:#1ED760;margin-right:6px"></i>Spotify Entegrasyonu</span>
@@ -2786,14 +2787,14 @@ function renderSettingsSection(section) {
           <div id="spotify-msg" class="form-error mt-4"></div>
         </div>
       </div>`;
-    // Şu an çalan önizleme
-    if (hasSpotify) {
-      fetch('/api/spotify/now-playing/' + encodeURIComponent(currentUser.username))
-        .then(r => r.json()).then(data => {
-          const pre = document.getElementById('spotify-now-preview');
-          if (!pre) return;
-          if (data.playing) {
-            pre.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(30,215,96,0.06);border:1px solid rgba(30,215,96,0.15);border-radius:8px">
+      // Şu an çalan önizleme
+      if (hasSpotify) {
+        fetch('/api/spotify/now-playing/' + encodeURIComponent(currentUser.username))
+          .then(r => r.json()).then(data => {
+            const pre = document.getElementById('spotify-now-preview');
+            if (!pre) return;
+            if (data.playing) {
+              pre.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(30,215,96,0.06);border:1px solid rgba(30,215,96,0.15);border-radius:8px">
               ${data.album_art ? `<img src="${data.album_art}" style="width:40px;height:40px;border-radius:6px;object-fit:cover" />` : ''}
               <div style="flex:1;min-width:0">
                 <div style="font-size:10px;color:#1ED760;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Şu an çalıyor</div>
@@ -2802,33 +2803,33 @@ function renderSettingsSection(section) {
               </div>
               <i class="fab fa-spotify" style="color:#1ED760;font-size:18px;flex-shrink:0"></i>
             </div>`;
-          } else {
-            pre.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Şu an bir şey çalmıyor.</div>`;
-          }
-        }).catch(() => {});
-    }
-    $('#spotify-save-vis')?.addEventListener('click', async () => {
-      try {
-        await api('/spotify/visibility', { method: 'PUT', body: JSON.stringify({ show: $('#spotify-show-cb').checked }) });
-        currentUser.spotify_show = $('#spotify-show-cb').checked ? 1 : 0;
-        toast('Kaydedildi');
-      } catch (e) { $('#spotify-msg').textContent = e.message; }
-    });
-    $('#spotify-connect-btn')?.addEventListener('click', e => {
-      e.preventDefault();
-      const token = localStorage.getItem('token');
-      if (token) window.location.href = '/api/spotify/connect-redirect?token=' + encodeURIComponent(token);
-    });
-    $('#spotify-disconnect')?.addEventListener('click', async () => {
-      try {
-        await api('/spotify/disconnect', { method: 'POST' });
-        currentUser.spotify_token = ''; currentUser.spotify_expires = 0;
-        toast('Spotify bağlantısı kesildi');
-        renderSettingsSection('spotify');
-      } catch (e) { $('#spotify-msg').textContent = e.message; }
-    });
-  } else if (section === 'account') {
-    el.innerHTML = `
+            } else {
+              pre.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Şu an bir şey çalmıyor.</div>`;
+            }
+          }).catch(() => { });
+      }
+      $('#spotify-save-vis')?.addEventListener('click', async () => {
+        try {
+          await api('/spotify/visibility', { method: 'PUT', body: JSON.stringify({ show: $('#spotify-show-cb').checked }) });
+          currentUser.spotify_show = $('#spotify-show-cb').checked ? 1 : 0;
+          toast('Kaydedildi');
+        } catch (e) { $('#spotify-msg').textContent = e.message; }
+      });
+      $('#spotify-connect-btn')?.addEventListener('click', e => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (token) window.location.href = '/api/spotify/connect-redirect?token=' + encodeURIComponent(token);
+      });
+      $('#spotify-disconnect')?.addEventListener('click', async () => {
+        try {
+          await api('/spotify/disconnect', { method: 'POST' });
+          currentUser.spotify_token = ''; currentUser.spotify_expires = 0;
+          toast('Spotify bağlantısı kesildi');
+          renderSettingsSection('spotify');
+        } catch (e) { $('#spotify-msg').textContent = e.message; }
+      });
+    } else if (section === 'account') {
+      el.innerHTML = `
       <div class="card" style="border-color:rgba(220,38,38,0.3)">
         <div class="card-header" style="background:rgba(220,38,38,0.06)">
           <span style="color:var(--accent-red2)"><i class="fas fa-exclamation-triangle"></i> Tehlikeli Bölge</span>
@@ -2863,43 +2864,43 @@ function renderSettingsSection(section) {
         </div>
       </div>`;
 
-    $('#delete-pw-toggle').addEventListener('click', () => {
-      const pw = $('#delete-pw');
-      const icon = $('#delete-pw-icon');
-      if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
-      else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
-    });
+      $('#delete-pw-toggle').addEventListener('click', () => {
+        const pw = $('#delete-pw');
+        const icon = $('#delete-pw-icon');
+        if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+        else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+      });
 
-    $('#delete-account-btn').addEventListener('click', async () => {
-      const msg = $('#delete-msg');
-      const pw = $('#delete-pw').value;
-      const confirmed = $('#delete-confirm-cb').checked;
-      if (!pw) { msg.textContent = 'Şifrenizi girin'; return; }
-      if (!confirmed) { msg.textContent = 'Onay kutusunu işaretleyin'; return; }
-      if (!confirm('Emin misiniz? Hesabınız ve içerikleriniz gizlenecek, 10 gün içinde kalıcı silinecek.')) return;
-      const btn = $('#delete-account-btn');
-      btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div>';
-      try {
-        await api('/auth/request-delete', { method: 'POST', body: JSON.stringify({ password: pw }) });
-        // Oturumu kapat
-        currentToken = ''; currentUser = null;
-        localStorage.removeItem('token');
-        updateNavUI();
-        navigate('/');
-        toast('Hesap silme talebiniz alındı. 10 gün içinde giriş yaparak iptal edebilirsiniz.');
-      } catch(e) {
-        msg.textContent = e.message;
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-trash-alt"></i> Hesabımı Silmek İstiyorum';
-      }
-    });
+      $('#delete-account-btn').addEventListener('click', async () => {
+        const msg = $('#delete-msg');
+        const pw = $('#delete-pw').value;
+        const confirmed = $('#delete-confirm-cb').checked;
+        if (!pw) { msg.textContent = 'Şifrenizi girin'; return; }
+        if (!confirmed) { msg.textContent = 'Onay kutusunu işaretleyin'; return; }
+        if (!confirm('Emin misiniz? Hesabınız ve içerikleriniz gizlenecek, 10 gün içinde kalıcı silinecek.')) return;
+        const btn = $('#delete-account-btn');
+        btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div>';
+        try {
+          await api('/auth/request-delete', { method: 'POST', body: JSON.stringify({ password: pw }) });
+          // Oturumu kapat
+          currentToken = ''; currentUser = null;
+          localStorage.removeItem('token');
+          updateNavUI();
+          navigate('/');
+          toast('Hesap silme talebiniz alındı. 10 gün içinde giriş yaparak iptal edebilirsiniz.');
+        } catch (e) {
+          msg.textContent = e.message;
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-trash-alt"></i> Hesabımı Silmek İstiyorum';
+        }
+      });
+    }
   }
-}
 
-function renderLogin(app) {
-  if (currentUser) { navigate('/'); return; }
-  document.title = 'Giriş Yap - TeaTube';
-  app.innerHTML = `<div class="auth-page">
+  function renderLogin(app) {
+    if (currentUser) { navigate('/'); return; }
+    document.title = 'Giriş Yap - TeaTube';
+    app.innerHTML = `<div class="auth-page">
     <div class="auth-card card card-body">
       <div class="auth-title">Giriş Yap</div>
       <p class="auth-subtitle">Hesabınıza erişin</p>
@@ -2919,31 +2920,31 @@ function renderLogin(app) {
     </div>
   </div>`;
 
-  $('#login-pw-toggle').addEventListener('click', () => {
-    const pw = $('#login-pw');
-    const icon = $('#login-pw-icon');
-    if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
-    else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
-  });
+    $('#login-pw-toggle').addEventListener('click', () => {
+      const pw = $('#login-pw');
+      const icon = $('#login-pw-icon');
+      if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+      else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+    });
 
-  const doLogin = async () => {
-    const login = $('#login-id').value.trim();
-    const password = $('#login-pw').value;
-    if (!login || !password) { $('#login-error').textContent = 'Tüm alanları doldurun'; return; }
-    try {
-      const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) });
-      // Silinme talebi verilmiş hesap
-      if (data.pending_delete) {
-        const deleteAt = new Date(data.delete_at);
-        const daysLeft = Math.ceil((deleteAt - Date.now()) / 86400000);
-        app.innerHTML = `<div class="auth-page">
+    const doLogin = async () => {
+      const login = $('#login-id').value.trim();
+      const password = $('#login-pw').value;
+      if (!login || !password) { $('#login-error').textContent = 'Tüm alanları doldurun'; return; }
+      try {
+        const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) });
+        // Silinme talebi verilmiş hesap
+        if (data.pending_delete) {
+          const deleteAt = new Date(data.delete_at);
+          const daysLeft = Math.ceil((deleteAt - Date.now()) / 86400000);
+          app.innerHTML = `<div class="auth-page">
           <div class="auth-card card card-body" style="border-color:rgba(220,38,38,0.4)">
             <div style="text-align:center;margin-bottom:20px">
               <div style="font-size:40px;margin-bottom:8px">⚠️</div>
               <div style="font-size:18px;font-weight:700;color:var(--accent-red2)">Hesabınızın Silinmesi İstendi</div>
               <p style="font-size:13px;color:var(--text-secondary);margin-top:8px">
                 Hesabınız <strong>${daysLeft} gün</strong> içinde kalıcı olarak silinecek.
-                (${deleteAt.toLocaleDateString('tr-TR', {day:'2-digit',month:'long',year:'numeric'})})
+                (${deleteAt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' })})
               </p>
             </div>
             <button class="btn btn-primary" id="cancel-delete-btn" style="width:100%;justify-content:center;margin-bottom:10px">
@@ -2954,43 +2955,43 @@ function renderLogin(app) {
             </button>
           </div>
         </div>`;
-        $('#cancel-delete-btn').addEventListener('click', async () => {
-          try {
-            // Geçici tokenla cancel-delete çağır
-            const r = await fetch('/api/auth/cancel-delete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.temp_token }
-            });
-            const d = await r.json();
-            if (!r.ok) throw new Error(d.error);
-            // Şimdi normal giriş yap
-            const loginData = await api('/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) });
-            currentToken = loginData.token; currentUser = loginData.user;
-            localStorage.setItem('token', currentToken);
-            updateNavUI(); toast('Hesabın geri alındı, hoş geldin ' + currentUser.username + '!');
+          $('#cancel-delete-btn').addEventListener('click', async () => {
+            try {
+              // Geçici tokenla cancel-delete çağır
+              const r = await fetch('/api/auth/cancel-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.temp_token }
+              });
+              const d = await r.json();
+              if (!r.ok) throw new Error(d.error);
+              // Şimdi normal giriş yap
+              const loginData = await api('/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) });
+              currentToken = loginData.token; currentUser = loginData.user;
+              localStorage.setItem('token', currentToken);
+              updateNavUI(); toast('Hesabın geri alındı, hoş geldin ' + currentUser.username + '!');
+              navigate('/');
+            } catch (e) { toast(e.message, 'error'); }
+          });
+          $('#keep-delete-btn').addEventListener('click', () => {
             navigate('/');
-          } catch(e) { toast(e.message, 'error'); }
-        });
-        $('#keep-delete-btn').addEventListener('click', () => {
-          navigate('/');
-        });
-        return;
-      }
-      currentToken = data.token; currentUser = data.user;
-      localStorage.setItem('token', currentToken);
-      updateNavUI(); toast('Hoş geldiniz, ' + currentUser.username + '!');
-      navigate('/');
-    } catch (e) { $('#login-error').textContent = e.message; }
-  };
+          });
+          return;
+        }
+        currentToken = data.token; currentUser = data.user;
+        localStorage.setItem('token', currentToken);
+        updateNavUI(); toast('Hoş geldiniz, ' + currentUser.username + '!');
+        navigate('/');
+      } catch (e) { $('#login-error').textContent = e.message; }
+    };
 
-  $('#login-btn').addEventListener('click', doLogin);
-  $('#login-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-}
+    $('#login-btn').addEventListener('click', doLogin);
+    $('#login-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  }
 
-function renderRegister(app) {
-  if (currentUser) { navigate('/'); return; }
-  document.title = 'Kayıt Ol - TeaTube';
-  app.innerHTML = `<div class="auth-page">
+  function renderRegister(app) {
+    if (currentUser) { navigate('/'); return; }
+    document.title = 'Kayıt Ol - TeaTube';
+    app.innerHTML = `<div class="auth-page">
     <div class="auth-card card card-body">
       <div class="auth-title">Kayıt Ol</div>
       <p class="auth-subtitle">Topluluğa katıl</p>
@@ -3023,116 +3024,116 @@ function renderRegister(app) {
     </div>
   </div>`;
 
-  $('#reg-pw-toggle').addEventListener('click', () => {
-    const pw = $('#reg-pw');
-    const icon = $('#reg-pw-icon');
-    if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
-    else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
-  });
+    $('#reg-pw-toggle').addEventListener('click', () => {
+      const pw = $('#reg-pw');
+      const icon = $('#reg-pw-icon');
+      if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+      else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+    });
 
-  $('#kvkk-btn').addEventListener('click', async () => {
-    try {
-      const r = await api('/kvkk');
-      showModal('KVKK Aydınlatma Metni', `<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--text-secondary);max-height:400px;overflow-y:auto">${escHtml(r.text)}</div>`);
-    } catch {}
-  });
+    $('#kvkk-btn').addEventListener('click', async () => {
+      try {
+        const r = await api('/kvkk');
+        showModal('KVKK Aydınlatma Metni', `<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--text-secondary);max-height:400px;overflow-y:auto">${escHtml(r.text)}</div>`);
+      } catch { }
+    });
 
-  const doRegister = async () => {
-    const username = $('#reg-username').value.trim();
-    const email = $('#reg-email').value.trim();
-    const password = $('#reg-pw').value;
-    const kvkk_accepted = $('#reg-kvkk').checked;
-    if (!username || !email || !password) { $('#reg-error').textContent = 'Tüm alanları doldurun'; return; }
-    if (!kvkk_accepted) { $('#reg-error').textContent = 'KVKK onayı zorunludur'; return; }
-    try {
-      const data = await api('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password, kvkk_accepted }) });
-      currentToken = data.token; currentUser = data.user;
-      localStorage.setItem('token', currentToken);
-      updateNavUI(); toast('Hoş geldiniz, ' + currentUser.username + '!');
-      navigate('/');
-    } catch (e) { $('#reg-error').textContent = e.message; }
-  };
+    const doRegister = async () => {
+      const username = $('#reg-username').value.trim();
+      const email = $('#reg-email').value.trim();
+      const password = $('#reg-pw').value;
+      const kvkk_accepted = $('#reg-kvkk').checked;
+      if (!username || !email || !password) { $('#reg-error').textContent = 'Tüm alanları doldurun'; return; }
+      if (!kvkk_accepted) { $('#reg-error').textContent = 'KVKK onayı zorunludur'; return; }
+      try {
+        const data = await api('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password, kvkk_accepted }) });
+        currentToken = data.token; currentUser = data.user;
+        localStorage.setItem('token', currentToken);
+        updateNavUI(); toast('Hoş geldiniz, ' + currentUser.username + '!');
+        navigate('/');
+      } catch (e) { $('#reg-error').textContent = e.message; }
+    };
 
-  $('#reg-btn').addEventListener('click', doRegister);
-  $('#reg-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
-}
+    $('#reg-btn').addEventListener('click', doRegister);
+    $('#reg-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+  }
 
-function renderNotFound(app) {
-  document.title = 'Sayfa Bulunamadı - TeaTube';
-  app.innerHTML = `<div class="container page" style="text-align:center;padding:80px 20px">
+  function renderNotFound(app) {
+    document.title = 'Sayfa Bulunamadı - TeaTube';
+    app.innerHTML = `<div class="container page" style="text-align:center;padding:80px 20px">
     <div style="font-size:72px;font-weight:900;color:var(--accent-red);opacity:0.3">404</div>
     <div style="font-size:24px;font-weight:700;margin-bottom:12px">Sayfa Bulunamadı</div>
     <p style="color:var(--text-secondary);margin-bottom:24px">O sayfa taze bitti abim, veremmi başkasını?</p>
     <a href="/" data-link class="btn btn-primary">Ana Sayfaya Dön</a>
   </div>`;
-}
-
-async function checkUnreadMessages() {
-  try {
-    const data = await api('/conversations/unread-count');
-    const count = data.count || 0;
-    const badge = $('#nav-msg-badge');
-    const mobBadge = $('#mob-msg-badge');
-    if (badge) { badge.textContent = count > 9 ? '9+' : count; badge.style.display = count > 0 ? 'inline' : 'none'; }
-    if (mobBadge) { mobBadge.textContent = count > 9 ? '9+' : count; mobBadge.style.display = count > 0 ? 'inline' : 'none'; }
-  } catch {}
-}
-
-async function init() {
-  await initAuth();
-  try {
-    const ps = await fetch('/api/public-settings').then(r => r.json());
-    const footer = document.getElementById('site-footer');
-    if (footer) {
-      const createdVisible = ps.footer_created_visible !== '0';
-      const copyrightText = ps.footer_copyright_text || '©&nbsp;Copyright 2026';
-      footer.innerHTML = createdVisible ? `Created By. İsmail DEMİRCAN &nbsp;${copyrightText}` : copyrightText;
-    }
-  } catch {}
-  loadAnnouncements();
-  renderRoute(location.pathname + location.search);
-  showEntryAuthPopup();
-  if (currentUser) {
-    checkUnreadMessages();
-    setInterval(() => { if (currentUser) checkUnreadMessages(); }, 15000);
-    loadNotifCount();
-    setInterval(() => { if (currentUser) loadNotifCount(); }, 30000);
   }
-}
 
-async function loadAnnouncements() {
-  try {
-    const rows = await fetch('/api/announcements').then(r => r.json());
-    const container = document.getElementById('announcements-container');
-    if (!container) return;
-    container.innerHTML = '';
-    rows.forEach(ann => {
-      const div = document.createElement('div');
-      div.className = `announcement-banner ann-${ann.position || 'top'} ann-size-${ann.size || 'normal'}`;
-      div.style.cssText = `background:${ann.bg_color};color:${ann.text_color};border-color:${ann.border_color};`;
-      div.innerHTML = `
+  async function checkUnreadMessages() {
+    try {
+      const data = await api('/conversations/unread-count');
+      const count = data.count || 0;
+      const badge = $('#nav-msg-badge');
+      const mobBadge = $('#mob-msg-badge');
+      if (badge) { badge.textContent = count > 9 ? '9+' : count; badge.style.display = count > 0 ? 'inline' : 'none'; }
+      if (mobBadge) { mobBadge.textContent = count > 9 ? '9+' : count; mobBadge.style.display = count > 0 ? 'inline' : 'none'; }
+    } catch { }
+  }
+
+  async function init() {
+    await initAuth();
+    try {
+      const ps = await fetch('/api/public-settings').then(r => r.json());
+      const footer = document.getElementById('site-footer');
+      if (footer) {
+        const createdVisible = ps.footer_created_visible !== '0';
+        const copyrightText = ps.footer_copyright_text || '©&nbsp;Copyright 2026';
+        footer.innerHTML = createdVisible ? `Created By. İsmail DEMİRCAN &nbsp;${copyrightText}` : copyrightText;
+      }
+    } catch { }
+    loadAnnouncements();
+    renderRoute(location.pathname + location.search);
+    showEntryAuthPopup();
+    if (currentUser) {
+      checkUnreadMessages();
+      setInterval(() => { if (currentUser) checkUnreadMessages(); }, 15000);
+      loadNotifCount();
+      setInterval(() => { if (currentUser) loadNotifCount(); }, 30000);
+    }
+  }
+
+  async function loadAnnouncements() {
+    try {
+      const rows = await fetch('/api/announcements').then(r => r.json());
+      const container = document.getElementById('announcements-container');
+      if (!container) return;
+      container.innerHTML = '';
+      rows.forEach(ann => {
+        const div = document.createElement('div');
+        div.className = `announcement-banner ann-${ann.position || 'top'} ann-size-${ann.size || 'normal'}`;
+        div.style.cssText = `background:${ann.bg_color};color:${ann.text_color};border-color:${ann.border_color};`;
+        div.innerHTML = `
         <div class="ann-inner">
           <div class="ann-text"><strong>${escHtml(ann.title)}</strong> <span>${escHtml(ann.content)}</span></div>
           <button class="ann-close" onclick="this.closest('.announcement-banner').remove()" aria-label="Kapat"><i class="fas fa-times"></i></button>
         </div>`;
-      container.appendChild(div);
-    });
-  } catch {}
-}
+        container.appendChild(div);
+      });
+    } catch { }
+  }
 
-init();
+  init();
 
-// ===== FORUM İLET MODAL =====
-async function showForwardForumModal(forum) {
-  let convs = [];
-  try { convs = await api('/conversations'); } catch {}
-  const listHTML = convs.length === 0
-    ? `<div class="empty-state" style="padding:20px"><p>Henüz mesajlaşma yok. Bir kullanıcıya mesaj gönderin.</p></div>`
-    : convs.map(c => `<div class="forward-item" data-username="${escHtml(c.other_username)}" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+  // ===== FORUM İLET MODAL =====
+  async function showForwardForumModal(forum) {
+    let convs = [];
+    try { convs = await api('/conversations'); } catch { }
+    const listHTML = convs.length === 0
+      ? `<div class="empty-state" style="padding:20px"><p>Henüz mesajlaşma yok. Bir kullanıcıya mesaj gönderin.</p></div>`
+      : convs.map(c => `<div class="forward-item" data-username="${escHtml(c.other_username)}" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
       ${c.other_avatar ? `<img src="${escHtml(c.other_avatar)}" class="avatar-sm" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
       <span style="color:var(--text-primary);font-size:14px">${escHtml(c.other_username)}</span>
     </div>`).join('');
-  showModal('Forumu İlet', `
+    showModal('Forumu İlet', `
     <div style="margin-bottom:12px">
       <input id="fwd-search" type="text" placeholder="Kullanıcı adı ara..." style="width:100%;padding:8px 12px;background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px" />
     </div>
@@ -3143,32 +3144,32 @@ async function showForwardForumModal(forum) {
     </div>
     <div id="fwd-error" style="color:var(--accent-red2);font-size:12px;margin-top:6px"></div>
   `);
-  $('#fwd-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    $$('#fwd-list .forward-item').forEach(el => { el.style.display = el.dataset.username.toLowerCase().includes(q) ? '' : 'none'; });
-  });
-  $$('#fwd-list .forward-item').forEach(el => {
-    el.addEventListener('click', () => { $('#fwd-username').value = el.dataset.username; });
-  });
-  $('#fwd-send-btn').addEventListener('click', async () => {
-    const username = $('#fwd-username').value.trim();
-    if (!username) { $('#fwd-error').textContent = 'Kullanıcı adı girin'; return; }
-    try {
-      await api(`/conversation/${encodeURIComponent(username)}/messages`, { method: 'POST', body: JSON.stringify({ shared_forum_id: forum.id }) });
-      hideModal(); toast('Forum iletildi!');
-      navigate('/mesajlar/' + username);
-    } catch (e) { $('#fwd-error').textContent = e.message; }
-  });
-}
+    $('#fwd-search')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      $$('#fwd-list .forward-item').forEach(el => { el.style.display = el.dataset.username.toLowerCase().includes(q) ? '' : 'none'; });
+    });
+    $$('#fwd-list .forward-item').forEach(el => {
+      el.addEventListener('click', () => { $('#fwd-username').value = el.dataset.username; });
+    });
+    $('#fwd-send-btn').addEventListener('click', async () => {
+      const username = $('#fwd-username').value.trim();
+      if (!username) { $('#fwd-error').textContent = 'Kullanıcı adı girin'; return; }
+      try {
+        await api(`/conversation/${encodeURIComponent(username)}/messages`, { method: 'POST', body: JSON.stringify({ shared_forum_id: forum.id }) });
+        hideModal(); toast('Forum iletildi!');
+        navigate('/mesajlar/' + username);
+      } catch (e) { $('#fwd-error').textContent = e.message; }
+    });
+  }
 
-// ===== MESAJLAR SAYFASI =====
-async function renderMessages(app, targetUsername) {
-  if (!currentUser) { navigate('/giris'); return; }
-  document.title = 'Mesajlar - TeaTube';
-  let convs = [];
-  try { convs = await api('/conversations'); } catch {}
+  // ===== MESAJLAR SAYFASI =====
+  async function renderMessages(app, targetUsername) {
+    if (!currentUser) { navigate('/giris'); return; }
+    document.title = 'Mesajlar - TeaTube';
+    let convs = [];
+    try { convs = await api('/conversations'); } catch { }
 
-  const sidebarHTML = `
+    const sidebarHTML = `
     <div class="dm-sidebar">
       <div class="dm-sidebar-header">
         <span style="font-size:13px;font-weight:700">Mesajlar</span>
@@ -3180,7 +3181,7 @@ async function renderMessages(app, targetUsername) {
       </div>
     </div>`;
 
-  app.innerHTML = `<div class="dm-layout">
+    app.innerHTML = `<div class="dm-layout">
     <div class="dm-sidebar">
       <div class="dm-sidebar-header" style="flex-direction:column;align-items:flex-start;gap:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px">
@@ -3211,15 +3212,15 @@ async function renderMessages(app, targetUsername) {
     </div>
   </div>`;
 
-  const dmTabs = $$('.dm-tab');
-  function setDmTab(tab) {
-    dmTabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
-    const convList = $('#dm-conv-list');
-    if (!convList) return;
-    if (tab === 'groups') {
-      convList.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-      api('/groups').then(groups => {
-        convList.innerHTML = groups.length ? groups.map(g => `
+    const dmTabs = $$('.dm-tab');
+    function setDmTab(tab) {
+      dmTabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      const convList = $('#dm-conv-list');
+      if (!convList) return;
+      if (tab === 'groups') {
+        convList.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+        api('/groups').then(groups => {
+          convList.innerHTML = groups.length ? groups.map(g => `
           <div class="dm-group-item" onclick="navigate('/grup/${escHtml(g.slug)}')">
             ${g.cover_image ? `<img src="${escHtml(g.cover_image)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-users"></i></div>`}
             <div style="flex:1;min-width:0">
@@ -3227,38 +3228,38 @@ async function renderMessages(app, targetUsername) {
               <div class="dm-conv-last">${escHtml(g.description || 'Grup sohbetine git')}</div>
             </div>
           </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Henüz grup yok</div>';
-      }).catch(() => {
-        convList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--accent-red2);font-size:13px">Gruplar yüklenemedi</div>';
-      });
-    } else {
-      convList.innerHTML = convs.map(c => dmConvItemHTML(c)).join('') || `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Henüz mesaj yok</div>`;
-      bindConvItems();
+        }).catch(() => {
+          convList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--accent-red2);font-size:13px">Gruplar yüklenemedi</div>';
+        });
+      } else {
+        convList.innerHTML = convs.map(c => dmConvItemHTML(c)).join('') || `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Henüz mesaj yok</div>`;
+        bindConvItems();
+      }
     }
-  }
 
-  function bindConvItems() {
-    $$('.dm-conv-item').forEach(el => {
-      el.addEventListener('click', () => {
-        $$('.dm-conv-item').forEach(x => x.classList.remove('active'));
-        el.classList.add('active');
-        renderDMChat(el.dataset.username);
+    function bindConvItems() {
+      $$('.dm-conv-item').forEach(el => {
+        el.addEventListener('click', () => {
+          $$('.dm-conv-item').forEach(x => x.classList.remove('active'));
+          el.classList.add('active');
+          renderDMChat(el.dataset.username);
+        });
       });
-    });
-  }
-  dmTabs.forEach(btn => btn.addEventListener('click', () => setDmTab(btn.dataset.tab)));
-  bindConvItems();
+    }
+    dmTabs.forEach(btn => btn.addEventListener('click', () => setDmTab(btn.dataset.tab)));
+    bindConvItems();
 
-  // Load compact friends widget for DM sidebar
-  async function loadDmFriends() {
-    const widget = $('#dm-friends-widget');
-    if (!widget) return;
-    try {
-      const friends = await api('/friends');
-      const blocks = await api('/blocks');
-      const pending_in = friends.filter(f => f.status === 'pending' && f.addressee_id == currentUser.id);
-      const pending_out = friends.filter(f => f.status === 'pending' && f.requester_id == currentUser.id);
-      const accepted = friends.filter(f => f.status === 'accepted');
-      widget.innerHTML = `
+    // Load compact friends widget for DM sidebar
+    async function loadDmFriends() {
+      const widget = $('#dm-friends-widget');
+      if (!widget) return;
+      try {
+        const friends = await api('/friends');
+        const blocks = await api('/blocks');
+        const pending_in = friends.filter(f => f.status === 'pending' && f.addressee_id == currentUser.id);
+        const pending_out = friends.filter(f => f.status === 'pending' && f.requester_id == currentUser.id);
+        const accepted = friends.filter(f => f.status === 'accepted');
+        widget.innerHTML = `
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
           <button class="btn btn-ghost btn-sm" id="dm-friends-tab-friends">Arkadaşlar (${accepted.length})</button>
           <button class="btn btn-ghost btn-sm" id="dm-friends-tab-req">İstekler (${pending_in.length})</button>
@@ -3267,121 +3268,121 @@ async function renderMessages(app, targetUsername) {
         <div id="dm-friends-list" style="max-height:220px;overflow:auto"></div>
         <div style="margin-top:8px"><input id="dm-friend-search" type="text" placeholder="Kullanıcı ara..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card2);color:var(--text-primary)" /></div>
       `;
-      const list = $('#dm-friends-list');
-      function renderTab(tab) {
-        if (tab === 'friends') {
-          list.innerHTML = accepted.length ? accepted.slice(0,8).map(f => `
+        const list = $('#dm-friends-list');
+        function renderTab(tab) {
+          if (tab === 'friends') {
+            list.innerHTML = accepted.length ? accepted.slice(0, 8).map(f => `
             <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">
-              ${f.other_avatar?`<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>`:`<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+              ${f.other_avatar ? `<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
               <div style="flex:1"><div style="font-weight:600">${escHtml(f.other_username)}</div></div>
               <button class="btn btn-ghost btn-sm dm-friend-msg" data-username="${escHtml(f.other_username)}">Mesaj</button>
             </div>
           `).join('') : '<div style="color:var(--text-muted);padding:8px;text-align:center">Arkadaş yok</div>';
-        } else if (tab === 'req') {
-          list.innerHTML = pending_in.length ? pending_in.map(f => `
+          } else if (tab === 'req') {
+            list.innerHTML = pending_in.length ? pending_in.map(f => `
             <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">
-              ${f.other_avatar?`<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>`:`<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+              ${f.other_avatar ? `<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
               <div style="flex:1"><div style="font-weight:600">${escHtml(f.other_username)}</div></div>
               <button class="btn btn-primary btn-sm friend-accept" data-id="${escHtml(f.id)}">✓</button>
               <button class="btn btn-danger btn-sm friend-reject" data-id="${escHtml(f.id)}">✕</button>
             </div>
           `).join('') : '<div style="color:var(--text-muted);padding:8px;text-align:center">İstek yok</div>';
-        } else {
-          list.innerHTML = pending_out.length ? pending_out.map(f => `
+          } else {
+            list.innerHTML = pending_out.length ? pending_out.map(f => `
             <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">
-              ${f.other_avatar?`<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>`:`<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
+              ${f.other_avatar ? `<img src="${escHtml(f.other_avatar)}" class="avatar-sm"/>` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
               <div style="flex:1"><div style="font-weight:600">${escHtml(f.other_username)}</div></div>
               <button class="btn btn-ghost btn-sm" disabled>Beklemede</button>
             </div>
           `).join('') : '<div style="color:var(--text-muted);padding:8px;text-align:center">Gönderilen isteği yok</div>';
+          }
         }
-      }
-      renderTab('friends');
-      $('#dm-friends-tab-friends')?.addEventListener('click', () => renderTab('friends'));
-      $('#dm-friends-tab-req')?.addEventListener('click', () => renderTab('req'));
-      $('#dm-friends-tab-sent')?.addEventListener('click', () => renderTab('sent'));
-      $('#dm-friend-search')?.addEventListener('keydown', e => { if (e.key==='Enter') doDmFriendSearch(); });
-      $('#dm-friend-search')?.addEventListener('input', e => { const q=e.target.value.toLowerCase(); list.querySelectorAll('div').forEach(el=>{ el.style.display = el.textContent.toLowerCase().includes(q)?'':'none'; }); });
-      // actions
-      list.addEventListener('click', async e => {
-        const accept = e.target.closest('.friend-accept');
-        const reject = e.target.closest('.friend-reject');
-        const msgBtn = e.target.closest('.dm-friend-msg');
-        if (accept) { try { await api(`/friends/respond/${accept.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'accept' }) }); loadDmFriends(); } catch (err){ toast(err.message,'error'); } }
-        if (reject) { try { await api(`/friends/respond/${reject.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'reject' }) }); loadDmFriends(); } catch (err){ toast(err.message,'error'); } }
-        if (msgBtn) { navigate('/mesajlar/' + msgBtn.dataset.username); }
+        renderTab('friends');
+        $('#dm-friends-tab-friends')?.addEventListener('click', () => renderTab('friends'));
+        $('#dm-friends-tab-req')?.addEventListener('click', () => renderTab('req'));
+        $('#dm-friends-tab-sent')?.addEventListener('click', () => renderTab('sent'));
+        $('#dm-friend-search')?.addEventListener('keydown', e => { if (e.key === 'Enter') doDmFriendSearch(); });
+        $('#dm-friend-search')?.addEventListener('input', e => { const q = e.target.value.toLowerCase(); list.querySelectorAll('div').forEach(el => { el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none'; }); });
+        // actions
+        list.addEventListener('click', async e => {
+          const accept = e.target.closest('.friend-accept');
+          const reject = e.target.closest('.friend-reject');
+          const msgBtn = e.target.closest('.dm-friend-msg');
+          if (accept) { try { await api(`/friends/respond/${accept.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'accept' }) }); loadDmFriends(); } catch (err) { toast(err.message, 'error'); } }
+          if (reject) { try { await api(`/friends/respond/${reject.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'reject' }) }); loadDmFriends(); } catch (err) { toast(err.message, 'error'); } }
+          if (msgBtn) { navigate('/mesajlar/' + msgBtn.dataset.username); }
+        });
+
+        async function doDmFriendSearch() {
+          const q = $('#dm-friend-search').value.trim();
+          if (!q) return;
+          try {
+            const users = await api(`/search/users?q=${encodeURIComponent(q)}`);
+            list.innerHTML = users.map(u => `<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">${u.avatar ? `<img src="${escHtml(u.avatar)}" class="avatar-sm"/>` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}<div style="flex:1"><a href="/profil/${escHtml(u.username)}" data-link>${escHtml(u.username)}</a></div><button class="btn btn-primary btn-sm dm-friend-msg" data-username="${escHtml(u.username)}">Mesaj</button><button class="btn btn-primary btn-sm send-req-btn" data-username="${escHtml(u.username)}">+ Arkadaş</button></div>`).join('');
+            list.querySelectorAll('.send-req-btn').forEach(btn => btn.addEventListener('click', async () => { try { await api(`/friends/request/${encodeURIComponent(btn.dataset.username)}`, { method: 'POST' }); btn.textContent = '✓ Gönderildi'; btn.disabled = true; } catch (e) { toast(e.message, 'error') } }));
+          } catch (e) { toast(e.message, 'error'); }
+        }
+
+      } catch (e) { widget.innerHTML = `<div style="color:var(--accent-red2)">${escHtml(e.message)}</div>`; }
+    }
+    if (currentUser) loadDmFriends();
+    $('#dm-friends-toggle')?.addEventListener('click', () => { $('#dm-friends-widget').classList.toggle('hidden'); });
+
+    $('#new-dm-btn')?.addEventListener('click', () => {
+      showModal('Yeni Mesaj', `
+      <div class="form-group"><label>Kullanıcı adı</label><input id="new-dm-username" type="text" placeholder="kullanici_adi" /></div>
+      <button class="btn btn-primary" style="width:100%" id="new-dm-go">Mesaja Git</button>
+    `);
+      $('#new-dm-go').addEventListener('click', () => {
+        const u = $('#new-dm-username').value.trim();
+        if (!u) return;
+        hideModal();
+        navigate('/mesajlar/' + u);
       });
+    });
 
-      async function doDmFriendSearch() {
-        const q = $('#dm-friend-search').value.trim();
-        if (!q) return;
-        try {
-          const users = await api(`/search/users?q=${encodeURIComponent(q)}`);
-          list.innerHTML = users.map(u=>`<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border)">${u.avatar?`<img src="${escHtml(u.avatar)}" class="avatar-sm"/>`:`<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}<div style="flex:1"><a href="/profil/${escHtml(u.username)}" data-link>${escHtml(u.username)}</a></div><button class="btn btn-primary btn-sm dm-friend-msg" data-username="${escHtml(u.username)}">Mesaj</button><button class="btn btn-primary btn-sm send-req-btn" data-username="${escHtml(u.username)}">+ Arkadaş</button></div>`).join('');
-          list.querySelectorAll('.send-req-btn').forEach(btn=>btn.addEventListener('click', async ()=>{ try{ await api(`/friends/request/${encodeURIComponent(btn.dataset.username)}`, { method: 'POST' }); btn.textContent='✓ Gönderildi'; btn.disabled=true;}catch(e){toast(e.message,'error')} }));
-        } catch(e){ toast(e.message,'error'); }
-      }
+    if (targetUsername) {
+      const activeEl = $(`.dm-conv-item[data-username="${CSS.escape(targetUsername)}"]`);
+      if (activeEl) { activeEl.classList.add('active'); }
+      await renderDMChat(targetUsername);
+    }
 
-    } catch (e) { widget.innerHTML = `<div style="color:var(--accent-red2)">${escHtml(e.message)}</div>`; }
-  }
-  if (currentUser) loadDmFriends();
-  $('#dm-friends-toggle')?.addEventListener('click', () => { $('#dm-friends-widget').classList.toggle('hidden'); });
+    $('#dm-search')?.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      $$('#dm-conv-list .dm-conv-item').forEach(el => { el.style.display = el.dataset.username.toLowerCase().includes(q) ? '' : 'none'; });
+    });
 
-  $('#new-dm-btn')?.addEventListener('click', () => {
-    showModal('Yeni Mesaj', `
+    $$('.dm-conv-item').forEach(el => {
+      el.addEventListener('click', () => {
+        $$('.dm-conv-item').forEach(x => x.classList.remove('active'));
+        el.classList.add('active');
+        renderDMChat(el.dataset.username);
+      });
+    });
+
+    $('#new-dm-btn')?.addEventListener('click', () => {
+      showModal('Yeni Mesaj', `
       <div class="form-group"><label>Kullanıcı adı</label><input id="new-dm-username" type="text" placeholder="kullanici_adi" /></div>
       <button class="btn btn-primary" style="width:100%" id="new-dm-go">Mesaja Git</button>
     `);
-    $('#new-dm-go').addEventListener('click', () => {
-      const u = $('#new-dm-username').value.trim();
-      if (!u) return;
-      hideModal();
-      navigate('/mesajlar/' + u);
+      $('#new-dm-go').addEventListener('click', () => {
+        const u = $('#new-dm-username').value.trim();
+        if (!u) return;
+        hideModal();
+        navigate('/mesajlar/' + u);
+      });
     });
-  });
 
-  if (targetUsername) {
-    const activeEl = $(`.dm-conv-item[data-username="${CSS.escape(targetUsername)}"]`);
-    if (activeEl) { activeEl.classList.add('active'); }
-    await renderDMChat(targetUsername);
+    if (targetUsername) {
+      const activeEl = $(`.dm-conv-item[data-username="${CSS.escape(targetUsername)}"]`);
+      if (activeEl) { activeEl.classList.add('active'); }
+      await renderDMChat(targetUsername);
+    }
   }
 
-  $('#dm-search')?.addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    $$('#dm-conv-list .dm-conv-item').forEach(el => { el.style.display = el.dataset.username.toLowerCase().includes(q) ? '' : 'none'; });
-  });
-
-  $$('.dm-conv-item').forEach(el => {
-    el.addEventListener('click', () => {
-      $$('.dm-conv-item').forEach(x => x.classList.remove('active'));
-      el.classList.add('active');
-      renderDMChat(el.dataset.username);
-    });
-  });
-
-  $('#new-dm-btn')?.addEventListener('click', () => {
-    showModal('Yeni Mesaj', `
-      <div class="form-group"><label>Kullanıcı adı</label><input id="new-dm-username" type="text" placeholder="kullanici_adi" /></div>
-      <button class="btn btn-primary" style="width:100%" id="new-dm-go">Mesaja Git</button>
-    `);
-    $('#new-dm-go').addEventListener('click', () => {
-      const u = $('#new-dm-username').value.trim();
-      if (!u) return;
-      hideModal();
-      navigate('/mesajlar/' + u);
-    });
-  });
-
-  if (targetUsername) {
-    const activeEl = $(`.dm-conv-item[data-username="${CSS.escape(targetUsername)}"]`);
-    if (activeEl) { activeEl.classList.add('active'); }
-    await renderDMChat(targetUsername);
-  }
-}
-
-function dmConvItemHTML(c) {
-  const unread = parseInt(c.unread_count) || 0;
-  return `<div class="dm-conv-item${unread > 0 ? ' dm-unread' : ''}" data-username="${escHtml(c.other_username)}">
+  function dmConvItemHTML(c) {
+    const unread = parseInt(c.unread_count) || 0;
+    return `<div class="dm-conv-item${unread > 0 ? ' dm-unread' : ''}" data-username="${escHtml(c.other_username)}">
     ${c.other_avatar ? `<img src="${escHtml(c.other_avatar)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-user"></i></div>`}
     <div class="dm-conv-info">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -3391,35 +3392,35 @@ function dmConvItemHTML(c) {
       <div class="dm-conv-last">${escHtml((c.last_message || '').substring(0, 40))}</div>
     </div>
   </div>`;
-}
-
-let dmSelectedIds = new Set();
-let dmSelectionMode = false;
-
-async function renderDMChat(username) {
-  const mainEl = $('#dm-main');
-  if (!mainEl) return;
-  mainEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div>`;
-  let data;
-  try { data = await api(`/conversation/${encodeURIComponent(username)}`); }
-  catch (e) { mainEl.innerHTML = `<div class="dm-empty"><p style="color:var(--accent-red2)">${e.message}</p></div>`; return; }
-
-  // Mesajlar okundu → badge'i hemen güncelle
-  setTimeout(() => checkUnreadMessages(), 300);
-  // Karşı tarafın mesajlarını okundu işaretle
-  try { api(`/conversation/${encodeURIComponent(username)}/mark-read`, { method: 'POST' }); } catch {}
-
-  // Sidebar'daki bu konuşmanın unread badge'ini kaldır
-  const convItem = $(`.dm-conv-item[data-username="${CSS.escape(username)}"]`);
-  if (convItem) {
-    convItem.classList.remove('dm-unread');
-    const badge = convItem.querySelector('.dm-unread-badge');
-    if (badge) badge.remove();
   }
 
-  const { conv, other, messages, isHidden, hasPassword } = data;
-  if (isHidden) {
-    mainEl.innerHTML = `<div class="dm-chat" style="display:flex;flex-direction:column;height:100%">
+  let dmSelectedIds = new Set();
+  let dmSelectionMode = false;
+
+  async function renderDMChat(username) {
+    const mainEl = $('#dm-main');
+    if (!mainEl) return;
+    mainEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%"><div class="spinner"></div></div>`;
+    let data;
+    try { data = await api(`/conversation/${encodeURIComponent(username)}`); }
+    catch (e) { mainEl.innerHTML = `<div class="dm-empty"><p style="color:var(--accent-red2)">${e.message}</p></div>`; return; }
+
+    // Mesajlar okundu → badge'i hemen güncelle
+    setTimeout(() => checkUnreadMessages(), 300);
+    // Karşı tarafın mesajlarını okundu işaretle
+    try { api(`/conversation/${encodeURIComponent(username)}/mark-read`, { method: 'POST' }); } catch { }
+
+    // Sidebar'daki bu konuşmanın unread badge'ini kaldır
+    const convItem = $(`.dm-conv-item[data-username="${CSS.escape(username)}"]`);
+    if (convItem) {
+      convItem.classList.remove('dm-unread');
+      const badge = convItem.querySelector('.dm-unread-badge');
+      if (badge) badge.remove();
+    }
+
+    const { conv, other, messages, isHidden, hasPassword } = data;
+    if (isHidden) {
+      mainEl.innerHTML = `<div class="dm-chat" style="display:flex;flex-direction:column;height:100%">
       <div class="dm-chat-header">
         <div style="display:flex;align-items:center;gap:10px">
           <i class="fas fa-lock" style="color:var(--accent-red2)"></i>
@@ -3436,21 +3437,21 @@ async function renderDMChat(username) {
         <div id="dm-unlock-err" style="color:var(--accent-red2);font-size:12px;margin-top:6px"></div>
       </div>
     </div>`;
-    $('#dm-unlock-btn')?.addEventListener('click', async () => {
-      const pass = $('#dm-unlock-pass')?.value || '';
-      try {
-        await api(`/conversation/${encodeURIComponent(username)}/unhide`, { method: 'POST', body: JSON.stringify({ password: pass }) });
-        sessionStorage.setItem('dm_unlocked_' + username, '1');
-        renderDMChat(username);
-      } catch (e) { $('#dm-unlock-err').textContent = e.message; }
-    });
-    return;
-  }
+      $('#dm-unlock-btn')?.addEventListener('click', async () => {
+        const pass = $('#dm-unlock-pass')?.value || '';
+        try {
+          await api(`/conversation/${encodeURIComponent(username)}/unhide`, { method: 'POST', body: JSON.stringify({ password: pass }) });
+          sessionStorage.setItem('dm_unlocked_' + username, '1');
+          renderDMChat(username);
+        } catch (e) { $('#dm-unlock-err').textContent = e.message; }
+      });
+      return;
+    }
 
-  dmSelectedIds = new Set();
-  dmSelectionMode = false;
+    dmSelectedIds = new Set();
+    dmSelectionMode = false;
 
-  mainEl.innerHTML = `<div class="dm-chat">
+    mainEl.innerHTML = `<div class="dm-chat">
     <div class="dm-chat-header">
       <div style="display:flex;align-items:center;gap:10px">
         ${other.avatar ? `<img src="${escHtml(other.avatar)}" class="avatar-sm" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
@@ -3484,149 +3485,149 @@ async function renderDMChat(username) {
     </div>
   </div>`;
 
-  // Scroll to bottom
-  const msgsEl = $('#dm-messages');
-  if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+    // Scroll to bottom
+    const msgsEl = $('#dm-messages');
+    if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
 
-  let replyToId = null;
-  let pendingImg = null;
+    let replyToId = null;
+    let pendingImg = null;
 
-  window.clearReply = () => {
-    replyToId = null;
-    const rb = $('#dm-reply-bar');
-    if (rb) { rb.style.display = 'none'; $('#dm-reply-text').textContent = ''; }
-  };
-
-  window.clearDmImg = () => {
-    pendingImg = null;
-    const preview = $('#dm-img-preview');
-    if (preview) preview.style.display = 'none';
-    const input = $('#dm-img-input');
-    if (input) input.value = '';
-  };
-
-  $('#dm-img-input')?.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    pendingImg = file;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const thumb = $('#dm-img-thumb');
-      const preview = $('#dm-img-preview');
-      if (thumb) thumb.src = ev.target.result;
-      if (preview) preview.style.display = 'flex';
+    window.clearReply = () => {
+      replyToId = null;
+      const rb = $('#dm-reply-bar');
+      if (rb) { rb.style.display = 'none'; $('#dm-reply-text').textContent = ''; }
     };
-    reader.readAsDataURL(file);
-  });
 
-  let sending = false;
-  async function sendDmMessage() {
-    if (sending) return;
-    const content = $('#dm-input')?.value.trim();
-    if (!content && !pendingImg) return;
-    sending = true;
-    const sendBtn = $('#dm-send-btn');
-    if (sendBtn) sendBtn.disabled = true;
-    const fd = new FormData();
-    if (content) fd.append('content', content);
-    if (replyToId) fd.append('reply_to_id', replyToId);
-    if (pendingImg) fd.append('image', pendingImg);
-    if ($('#dm-input')) $('#dm-input').value = '';
-    clearReply();
-    clearDmImg();
-    try {
-      const msg = await apiForm(`/conversation/${encodeURIComponent(username)}/messages`, fd);
-      const msgsEl = $('#dm-messages');
-      if (msgsEl) {
-        msgsEl.insertAdjacentHTML('beforeend', dmMessageHTML(msg, currentUser.id, false));
-        msgsEl.scrollTop = msgsEl.scrollHeight;
+    window.clearDmImg = () => {
+      pendingImg = null;
+      const preview = $('#dm-img-preview');
+      if (preview) preview.style.display = 'none';
+      const input = $('#dm-img-input');
+      if (input) input.value = '';
+    };
+
+    $('#dm-img-input')?.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      pendingImg = file;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const thumb = $('#dm-img-thumb');
+        const preview = $('#dm-img-preview');
+        if (thumb) thumb.src = ev.target.result;
+        if (preview) preview.style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    let sending = false;
+    async function sendDmMessage() {
+      if (sending) return;
+      const content = $('#dm-input')?.value.trim();
+      if (!content && !pendingImg) return;
+      sending = true;
+      const sendBtn = $('#dm-send-btn');
+      if (sendBtn) sendBtn.disabled = true;
+      const fd = new FormData();
+      if (content) fd.append('content', content);
+      if (replyToId) fd.append('reply_to_id', replyToId);
+      if (pendingImg) fd.append('image', pendingImg);
+      if ($('#dm-input')) $('#dm-input').value = '';
+      clearReply();
+      clearDmImg();
+      try {
+        const msg = await apiForm(`/conversation/${encodeURIComponent(username)}/messages`, fd);
+        const msgsEl = $('#dm-messages');
+        if (msgsEl) {
+          msgsEl.insertAdjacentHTML('beforeend', dmMessageHTML(msg, currentUser.id, false));
+          msgsEl.scrollTop = msgsEl.scrollHeight;
+        }
+        const convItem = $(`.dm-conv-item[data-username="${CSS.escape(username)}"]`);
+        if (convItem) convItem.querySelector('.dm-conv-last').textContent = content || '📷 Fotoğraf';
+      } catch (e) { toast(e.message, 'error'); }
+      finally { sending = false; if (sendBtn) sendBtn.disabled = false; }
+    }
+
+    $('#dm-send-btn')?.addEventListener('click', sendDmMessage);
+    $('#dm-input')?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDmMessage(); } });
+
+    // Otomatik büyüyen textarea
+    $('#dm-input')?.addEventListener('input', e => {
+      e.target.style.height = 'auto';
+      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+    });
+
+    // Mesaj aksiyonları (üç nokta, seç, yanıtla, sil)
+    msgsEl?.addEventListener('click', e => {
+      const btn = e.target.closest('.dm-msg-menu-btn');
+      if (btn) { showDmMsgMenu(btn, btn.dataset.id, btn.dataset.own === '1', username, replyToId, (id) => { replyToId = id; }); return; }
+      const cb = e.target.closest('.dm-msg-cb');
+      if (cb) {
+        const id = cb.dataset.id;
+        if (cb.checked) dmSelectedIds.add(id); else dmSelectedIds.delete(id);
+        updateDmSelActions();
       }
-      const convItem = $(`.dm-conv-item[data-username="${CSS.escape(username)}"]`);
-      if (convItem) convItem.querySelector('.dm-conv-last').textContent = content || '📷 Fotoğraf';
-    } catch (e) { toast(e.message, 'error'); }
-    finally { sending = false; if (sendBtn) sendBtn.disabled = false; }
+    });
+
+    // Options menu
+    $('#dm-options-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      showDmOptionsMenu(username, conv.id);
+    });
+
+    // Seçim aksiyonları
+    $('#dm-sel-cancel')?.addEventListener('click', exitDmSelection);
+    $('#dm-sel-delete-me')?.addEventListener('click', async () => {
+      if (!dmSelectedIds.size) return;
+      try {
+        await api('/messages/delete-bulk', { method: 'POST', body: JSON.stringify({ ids: [...dmSelectedIds], mode: 'me' }) });
+        exitDmSelection();
+        renderDMChat(username);
+      } catch (e) { toast(e.message, 'error'); }
+    });
+    $('#dm-sel-delete-all')?.addEventListener('click', async () => {
+      if (!dmSelectedIds.size) return;
+      try {
+        await api('/messages/delete-bulk', { method: 'POST', body: JSON.stringify({ ids: [...dmSelectedIds], mode: 'all' }) });
+        exitDmSelection();
+        renderDMChat(username);
+      } catch (e) { toast(e.message, 'error'); }
+    });
   }
 
-  $('#dm-send-btn')?.addEventListener('click', sendDmMessage);
-  $('#dm-input')?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDmMessage(); } });
+  function exitDmSelection() {
+    dmSelectionMode = false;
+    dmSelectedIds = new Set();
+    $$('.dm-msg-cb-wrap').forEach(el => el.style.display = 'none');
+    $$('.dm-msg-cb').forEach(el => el.checked = false);
+    const sa = $('#dm-sel-actions');
+    if (sa) sa.style.display = 'none';
+  }
 
-  // Otomatik büyüyen textarea
-  $('#dm-input')?.addEventListener('input', e => {
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-  });
+  function updateDmSelActions() {
+    const sa = $('#dm-sel-actions');
+    if (sa) sa.style.display = dmSelectedIds.size > 0 ? 'flex' : 'none';
+  }
 
-  // Mesaj aksiyonları (üç nokta, seç, yanıtla, sil)
-  msgsEl?.addEventListener('click', e => {
-    const btn = e.target.closest('.dm-msg-menu-btn');
-    if (btn) { showDmMsgMenu(btn, btn.dataset.id, btn.dataset.own === '1', username, replyToId, (id) => { replyToId = id; }); return; }
-    const cb = e.target.closest('.dm-msg-cb');
-    if (cb) {
-      const id = cb.dataset.id;
-      if (cb.checked) dmSelectedIds.add(id); else dmSelectedIds.delete(id);
-      updateDmSelActions();
-    }
-  });
+  function dmMessageHTML(m, myId, selMode) {
+    const isOwn = m.sender_id == myId;
+    const deleted = m.deleted_for_all;
+    const hiddenForMe = isOwn ? m.deleted_by_sender : m.deleted_by_receiver;
+    if (hiddenForMe && !deleted) return '';
 
-  // Options menu
-  $('#dm-options-btn')?.addEventListener('click', e => {
-    e.stopPropagation();
-    showDmOptionsMenu(username, conv.id);
-  });
-
-  // Seçim aksiyonları
-  $('#dm-sel-cancel')?.addEventListener('click', exitDmSelection);
-  $('#dm-sel-delete-me')?.addEventListener('click', async () => {
-    if (!dmSelectedIds.size) return;
-    try {
-      await api('/messages/delete-bulk', { method: 'POST', body: JSON.stringify({ ids: [...dmSelectedIds], mode: 'me' }) });
-      exitDmSelection();
-      renderDMChat(username);
-    } catch (e) { toast(e.message, 'error'); }
-  });
-  $('#dm-sel-delete-all')?.addEventListener('click', async () => {
-    if (!dmSelectedIds.size) return;
-    try {
-      await api('/messages/delete-bulk', { method: 'POST', body: JSON.stringify({ ids: [...dmSelectedIds], mode: 'all' }) });
-      exitDmSelection();
-      renderDMChat(username);
-    } catch (e) { toast(e.message, 'error'); }
-  });
-}
-
-function exitDmSelection() {
-  dmSelectionMode = false;
-  dmSelectedIds = new Set();
-  $$('.dm-msg-cb-wrap').forEach(el => el.style.display = 'none');
-  $$('.dm-msg-cb').forEach(el => el.checked = false);
-  const sa = $('#dm-sel-actions');
-  if (sa) sa.style.display = 'none';
-}
-
-function updateDmSelActions() {
-  const sa = $('#dm-sel-actions');
-  if (sa) sa.style.display = dmSelectedIds.size > 0 ? 'flex' : 'none';
-}
-
-function dmMessageHTML(m, myId, selMode) {
-  const isOwn = m.sender_id == myId;
-  const deleted = m.deleted_for_all;
-  const hiddenForMe = isOwn ? m.deleted_by_sender : m.deleted_by_receiver;
-  if (hiddenForMe && !deleted) return '';
-
-  return `<div class="dm-msg-wrap ${isOwn ? 'dm-own' : ''}" data-id="${m.id}">
+    return `<div class="dm-msg-wrap ${isOwn ? 'dm-own' : ''}" data-id="${m.id}">
     <div class="dm-msg-cb-wrap" style="display:${selMode ? 'flex' : 'none'};align-items:center">
       <input type="checkbox" class="dm-msg-cb" data-id="${m.id}" ${dmSelectedIds.has(String(m.id)) ? 'checked' : ''} />
     </div>
     ${!isOwn ? (m.sender_avatar ? `<img src="${escHtml(m.sender_avatar)}" class="avatar-sm" style="flex-shrink:0" />` : `<div class="avatar-sm avatar-placeholder" style="flex-shrink:0"><i class="fas fa-user"></i></div>`) : ''}
     <div class="dm-msg-content">
-      ${m.reply_to_id && m.reply_content ? `<div class="dm-reply-preview"><span style="color:var(--text-muted);font-size:11px">${escHtml(m.reply_username || '')}</span><div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml((m.reply_content||'').substring(0,60))}</div></div>` : ''}
+      ${m.reply_to_id && m.reply_content ? `<div class="dm-reply-preview"><span style="color:var(--text-muted);font-size:11px">${escHtml(m.reply_username || '')}</span><div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml((m.reply_content || '').substring(0, 60))}</div></div>` : ''}
       ${deleted ? `<div class="dm-msg-bubble dm-deleted"><i class="fas fa-ban" style="font-size:11px"></i> !!! Mesaj silindi</div>`
         : `<div class="dm-msg-bubble">
             ${m.image_url ? `<img src="${escHtml(m.image_url)}" style="max-width:220px;border-radius:8px;display:block;margin-bottom:6px;cursor:pointer" onclick="window.open('${escHtml(m.image_url)}','_blank')" />` : ''}
             ${m.shared_forum_id ? `<div class="dm-shared-forum" onclick="navigate('/forum/${escHtml(m.forum_slug)}')">
               ${m.forum_banner ? `<img src="${escHtml(m.forum_banner)}" style="width:100%;height:80px;object-fit:cover;border-radius:6px 6px 0 0" />` : ''}
-              <div style="padding:8px"><div style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(m.forum_title||'')}</div><div style="font-size:11px;color:var(--accent-red2)">Forum →</div></div>
+              <div style="padding:8px"><div style="font-size:12px;font-weight:600;color:var(--text-primary)">${escHtml(m.forum_title || '')}</div><div style="font-size:11px;color:var(--accent-red2)">Forum →</div></div>
             </div>` : ''}
             ${m.content ? `<span>${escHtml(m.content)}</span>` : ''}
           </div>`}
@@ -3637,76 +3638,76 @@ function dmMessageHTML(m, myId, selMode) {
       </div>
     </div>
   </div>`;
-}
+  }
 
-function showDmMsgMenu(btn, msgId, isOwn, username, replyToId, setReply) {
-  const existing = $('#dm-msg-ctx');
-  if (existing) existing.remove();
-  const rect = btn.getBoundingClientRect();
-  const menu = document.createElement('div');
-  menu.id = 'dm-msg-ctx';
-  menu.style.cssText = `position:fixed;left:${rect.left - 120}px;top:${rect.bottom + 4}px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;z-index:9999;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,0.5);overflow:hidden`;
-  const items = [
-    { label: '<i class="fas fa-reply"></i> Yanıtla', action: 'reply' },
-    { label: '<i class="fas fa-check-square"></i> Seç', action: 'select' },
-    { label: '<i class="fas fa-trash"></i> Benden Sil', action: 'delete-me' },
-    ...(isOwn ? [{ label: '<i class="fas fa-trash-alt"></i> Herkesten Sil', action: 'delete-all', danger: true }] : []),
-  ];
-  items.forEach(item => {
-    const el = document.createElement('div');
-    el.innerHTML = item.label;
-    el.style.cssText = `padding:8px 14px;font-size:13px;cursor:pointer;color:${item.danger ? 'var(--accent-red2)' : 'var(--text-secondary)'};display:flex;align-items:center;gap:8px`;
-    el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover)');
-    el.addEventListener('mouseleave', () => el.style.background = '');
-    el.addEventListener('click', async () => {
-      menu.remove();
-      if (item.action === 'reply') {
-        const msgEl = $(`.dm-msg-wrap[data-id="${msgId}"]`);
-        const content = msgEl?.querySelector('.dm-msg-bubble span')?.textContent || '';
-        setReply(msgId);
-        const rb = $('#dm-reply-bar');
-        const rt = $('#dm-reply-text');
-        if (rb && rt) { rb.style.display = 'flex'; rt.textContent = content.substring(0, 60); }
-      } else if (item.action === 'select') {
-        dmSelectionMode = true;
-        dmSelectedIds.add(String(msgId));
-        $$('.dm-msg-cb-wrap').forEach(el => el.style.display = 'flex');
-        const cb = $(`.dm-msg-cb[data-id="${msgId}"]`);
-        if (cb) cb.checked = true;
-        updateDmSelActions();
-      } else if (item.action === 'delete-me') {
-        try { await api(`/messages/${msgId}`, { method: 'DELETE', body: JSON.stringify({ mode: 'me' }) }); renderDMChat(username); } catch (e) { toast(e.message, 'error'); }
-      } else if (item.action === 'delete-all') {
-        try { await api(`/messages/${msgId}`, { method: 'DELETE', body: JSON.stringify({ mode: 'all' }) }); renderDMChat(username); } catch (e) { toast(e.message, 'error'); }
-      }
+  function showDmMsgMenu(btn, msgId, isOwn, username, replyToId, setReply) {
+    const existing = $('#dm-msg-ctx');
+    if (existing) existing.remove();
+    const rect = btn.getBoundingClientRect();
+    const menu = document.createElement('div');
+    menu.id = 'dm-msg-ctx';
+    menu.style.cssText = `position:fixed;left:${rect.left - 120}px;top:${rect.bottom + 4}px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;z-index:9999;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,0.5);overflow:hidden`;
+    const items = [
+      { label: '<i class="fas fa-reply"></i> Yanıtla', action: 'reply' },
+      { label: '<i class="fas fa-check-square"></i> Seç', action: 'select' },
+      { label: '<i class="fas fa-trash"></i> Benden Sil', action: 'delete-me' },
+      ...(isOwn ? [{ label: '<i class="fas fa-trash-alt"></i> Herkesten Sil', action: 'delete-all', danger: true }] : []),
+    ];
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.innerHTML = item.label;
+      el.style.cssText = `padding:8px 14px;font-size:13px;cursor:pointer;color:${item.danger ? 'var(--accent-red2)' : 'var(--text-secondary)'};display:flex;align-items:center;gap:8px`;
+      el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover)');
+      el.addEventListener('mouseleave', () => el.style.background = '');
+      el.addEventListener('click', async () => {
+        menu.remove();
+        if (item.action === 'reply') {
+          const msgEl = $(`.dm-msg-wrap[data-id="${msgId}"]`);
+          const content = msgEl?.querySelector('.dm-msg-bubble span')?.textContent || '';
+          setReply(msgId);
+          const rb = $('#dm-reply-bar');
+          const rt = $('#dm-reply-text');
+          if (rb && rt) { rb.style.display = 'flex'; rt.textContent = content.substring(0, 60); }
+        } else if (item.action === 'select') {
+          dmSelectionMode = true;
+          dmSelectedIds.add(String(msgId));
+          $$('.dm-msg-cb-wrap').forEach(el => el.style.display = 'flex');
+          const cb = $(`.dm-msg-cb[data-id="${msgId}"]`);
+          if (cb) cb.checked = true;
+          updateDmSelActions();
+        } else if (item.action === 'delete-me') {
+          try { await api(`/messages/${msgId}`, { method: 'DELETE', body: JSON.stringify({ mode: 'me' }) }); renderDMChat(username); } catch (e) { toast(e.message, 'error'); }
+        } else if (item.action === 'delete-all') {
+          try { await api(`/messages/${msgId}`, { method: 'DELETE', body: JSON.stringify({ mode: 'all' }) }); renderDMChat(username); } catch (e) { toast(e.message, 'error'); }
+        }
+      });
+      menu.appendChild(el);
     });
-    menu.appendChild(el);
+    document.body.appendChild(menu);
+    setTimeout(() => document.addEventListener('click', function rm() { menu.remove(); document.removeEventListener('click', rm); }), 0);
+  }
+
+  // Mesaj üç noktası hover göster
+  document.addEventListener('mouseover', e => {
+    const wrap = e.target.closest('.dm-msg-wrap');
+    if (wrap) { const btn = wrap.querySelector('.dm-msg-menu-btn'); if (btn) btn.style.opacity = '1'; }
   });
-  document.body.appendChild(menu);
-  setTimeout(() => document.addEventListener('click', function rm() { menu.remove(); document.removeEventListener('click', rm); }), 0);
-}
+  document.addEventListener('mouseout', e => {
+    const wrap = e.target.closest('.dm-msg-wrap');
+    if (wrap) { const btn = wrap.querySelector('.dm-msg-menu-btn'); if (btn) btn.style.opacity = '0'; }
+  });
 
-// Mesaj üç noktası hover göster
-document.addEventListener('mouseover', e => {
-  const wrap = e.target.closest('.dm-msg-wrap');
-  if (wrap) { const btn = wrap.querySelector('.dm-msg-menu-btn'); if (btn) btn.style.opacity = '1'; }
-});
-document.addEventListener('mouseout', e => {
-  const wrap = e.target.closest('.dm-msg-wrap');
-  if (wrap) { const btn = wrap.querySelector('.dm-msg-menu-btn'); if (btn) btn.style.opacity = '0'; }
-});
-
-function showDmOptionsMenu(username, convId) {
-  showModal('Konuşma Seçenekleri', `
+  function showDmOptionsMenu(username, convId) {
+    showModal('Konuşma Seçenekleri', `
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn btn-outline" id="dm-opt-hide"><i class="fas fa-lock"></i> Gizle / Kilitle</button>
       <button class="btn btn-outline" id="dm-opt-setpass"><i class="fas fa-key"></i> Şifre Değiştir</button>
       <button class="btn btn-danger" id="dm-opt-delete"><i class="fas fa-trash"></i> Konuşmayı Sil</button>
     </div>
   `);
-  $('#dm-opt-hide').addEventListener('click', () => {
-    hideModal();
-    showModal('Konuşmayı Gizle', `
+    $('#dm-opt-hide').addEventListener('click', () => {
+      hideModal();
+      showModal('Konuşmayı Gizle', `
       <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Şifre koyarsanız açmak için şifre gerekecek.</p>
       <div class="form-group"><label>Şifre (opsiyonel)</label><input id="dm-hide-pass" type="password" placeholder="Şifresiz bırakmak için boş bırakın" /></div>
       <div style="display:flex;gap:8px">
@@ -3714,42 +3715,42 @@ function showDmOptionsMenu(username, convId) {
         <button class="btn btn-outline" onclick="hideModal()" style="flex:1">İptal</button>
       </div>
     `);
-    $('#dm-hide-confirm').addEventListener('click', async () => {
-      const pass = $('#dm-hide-pass').value;
-      try { await api(`/conversation/${encodeURIComponent(username)}/hide`, { method: 'POST', body: JSON.stringify({ password: pass }) }); hideModal(); navigate('/mesajlar'); toast('Konuşma gizlendi'); } catch (e) { toast(e.message, 'error'); }
+      $('#dm-hide-confirm').addEventListener('click', async () => {
+        const pass = $('#dm-hide-pass').value;
+        try { await api(`/conversation/${encodeURIComponent(username)}/hide`, { method: 'POST', body: JSON.stringify({ password: pass }) }); hideModal(); navigate('/mesajlar'); toast('Konuşma gizlendi'); } catch (e) { toast(e.message, 'error'); }
+      });
     });
-  });
-  $('#dm-opt-setpass').addEventListener('click', () => {
-    hideModal();
-    showModal('Şifre Değiştir', `
+    $('#dm-opt-setpass').addEventListener('click', () => {
+      hideModal();
+      showModal('Şifre Değiştir', `
       <div class="form-group"><label>Yeni Şifre (boş = şifresiz)</label><input id="dm-newpass" type="password" /></div>
       <button class="btn btn-primary" style="width:100%" id="dm-setpass-confirm">Kaydet</button>
     `);
-    $('#dm-setpass-confirm').addEventListener('click', async () => {
-      const pass = $('#dm-newpass').value;
-      try { await api(`/conversation/${encodeURIComponent(username)}/set-password`, { method: 'POST', body: JSON.stringify({ password: pass }) }); hideModal(); toast('Şifre güncellendi'); } catch (e) { toast(e.message, 'error'); }
+      $('#dm-setpass-confirm').addEventListener('click', async () => {
+        const pass = $('#dm-newpass').value;
+        try { await api(`/conversation/${encodeURIComponent(username)}/set-password`, { method: 'POST', body: JSON.stringify({ password: pass }) }); hideModal(); toast('Şifre güncellendi'); } catch (e) { toast(e.message, 'error'); }
+      });
     });
-  });
-  $('#dm-opt-delete').addEventListener('click', async () => {
-    if (!confirm('Konuşma silinsin mi?')) return;
-    try { await api(`/conversation/${encodeURIComponent(username)}`, { method: 'DELETE' }); hideModal(); navigate('/mesajlar'); toast('Konuşma silindi'); } catch (e) { toast(e.message, 'error'); }
-  });
-}
+    $('#dm-opt-delete').addEventListener('click', async () => {
+      if (!confirm('Konuşma silinsin mi?')) return;
+      try { await api(`/conversation/${encodeURIComponent(username)}`, { method: 'DELETE' }); hideModal(); navigate('/mesajlar'); toast('Konuşma silindi'); } catch (e) { toast(e.message, 'error'); }
+    });
+  }
 
-// ===== ARKADAŞLAR SAYFASI =====
-async function renderFriends(app) {
-  if (!currentUser) { navigate('/giris'); return; }
-  document.title = 'Arkadaşlar - TeaTube';
-  let friends = [];
-  try { friends = await api('/friends'); } catch {}
-  let blocks = [];
-  try { blocks = await api('/blocks'); } catch {}
+  // ===== ARKADAŞLAR SAYFASI =====
+  async function renderFriends(app) {
+    if (!currentUser) { navigate('/giris'); return; }
+    document.title = 'Arkadaşlar - TeaTube';
+    let friends = [];
+    try { friends = await api('/friends'); } catch { }
+    let blocks = [];
+    try { blocks = await api('/blocks'); } catch { }
 
-  const pending_in = friends.filter(f => f.status === 'pending' && f.addressee_id == currentUser.id);
-  const pending_out = friends.filter(f => f.status === 'pending' && f.requester_id == currentUser.id);
-  const accepted = friends.filter(f => f.status === 'accepted');
+    const pending_in = friends.filter(f => f.status === 'pending' && f.addressee_id == currentUser.id);
+    const pending_out = friends.filter(f => f.status === 'pending' && f.requester_id == currentUser.id);
+    const accepted = friends.filter(f => f.status === 'accepted');
 
-  app.innerHTML = `<div class="container page">
+    app.innerHTML = `<div class="container page">
     <div class="page-header"><div class="page-title"><i class="fas fa-user-friends" style="color:var(--accent-red)"></i> Arkadaşlar</div></div>
     <div class="friends-layout">
       <div>
@@ -3762,19 +3763,19 @@ async function renderFriends(app) {
         <div id="friends-content">
           <div id="tab-content-friends">
             ${accepted.length === 0 ? '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Henüz arkadaşın yok</p></div>'
-              : accepted.map(f => friendItemHTML(f, 'accepted', currentUser.id)).join('')}
+        : accepted.map(f => friendItemHTML(f, 'accepted', currentUser.id)).join('')}
           </div>
           <div id="tab-content-requests" style="display:none">
             ${pending_in.length === 0 ? '<div class="empty-state"><i class="fas fa-inbox"></i><p>Gelen istek yok</p></div>'
-              : pending_in.map(f => friendItemHTML(f, 'incoming', currentUser.id)).join('')}
+        : pending_in.map(f => friendItemHTML(f, 'incoming', currentUser.id)).join('')}
           </div>
           <div id="tab-content-sent" style="display:none">
             ${pending_out.length === 0 ? '<div class="empty-state"><i class="fas fa-paper-plane"></i><p>Gönderilen istek yok</p></div>'
-              : pending_out.map(f => friendItemHTML(f, 'outgoing', currentUser.id)).join('')}
+        : pending_out.map(f => friendItemHTML(f, 'outgoing', currentUser.id)).join('')}
           </div>
           <div id="tab-content-blocked" style="display:none">
             ${blocks.length === 0 ? '<div class="empty-state"><i class="fas fa-ban"></i><p>Engellenen yok</p></div>'
-              : blocks.map(b => blockItemHTML(b)).join('')}
+        : blocks.map(b => blockItemHTML(b)).join('')}
           </div>
         </div>
       </div>
@@ -3791,60 +3792,60 @@ async function renderFriends(app) {
     </div>
   </div>`;
 
-  window.showFriendsTab = (tab) => {
-    $$('.tab').forEach(t => t.classList.remove('active'));
-    $(`#tab-${tab}`)?.classList.add('active');
-    ['friends','requests','sent','blocked'].forEach(t => {
-      const el = $(`#tab-content-${t}`);
-      if (el) el.style.display = t === tab ? '' : 'none';
-    });
-  };
+    window.showFriendsTab = (tab) => {
+      $$('.tab').forEach(t => t.classList.remove('active'));
+      $(`#tab-${tab}`)?.classList.add('active');
+      ['friends', 'requests', 'sent', 'blocked'].forEach(t => {
+        const el = $(`#tab-content-${t}`);
+        if (el) el.style.display = t === tab ? '' : 'none';
+      });
+    };
 
-  $('#friend-search-btn')?.addEventListener('click', () => doFriendSearch());
-  $('#friend-search-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') doFriendSearch(); });
+    $('#friend-search-btn')?.addEventListener('click', () => doFriendSearch());
+    $('#friend-search-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') doFriendSearch(); });
 
-  async function doFriendSearch() {
-    const q = $('#friend-search-input').value.trim();
-    if (!q) return;
-    const res = $('#friend-search-results');
-    res.innerHTML = '<div class="spinner" style="margin:12px auto"></div>';
-    try {
-      const users = await api(`/search/users?q=${encodeURIComponent(q)}`);
-      if (!users.length) { res.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center">Sonuç bulunamadı</p>'; return; }
-      res.innerHTML = users.map(u => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+    async function doFriendSearch() {
+      const q = $('#friend-search-input').value.trim();
+      if (!q) return;
+      const res = $('#friend-search-results');
+      res.innerHTML = '<div class="spinner" style="margin:12px auto"></div>';
+      try {
+        const users = await api(`/search/users?q=${encodeURIComponent(q)}`);
+        if (!users.length) { res.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center">Sonuç bulunamadı</p>'; return; }
+        res.innerHTML = users.map(u => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
         ${u.avatar ? `<img src="${escHtml(u.avatar)}" class="avatar-sm" />` : `<div class="avatar-sm avatar-placeholder"><i class="fas fa-user"></i></div>`}
         <a href="/profil/${escHtml(u.username)}" data-link style="flex:1;color:var(--text-primary);font-size:14px">${escHtml(u.username)}</a>
         <button class="btn btn-primary btn-sm send-req-btn" data-username="${escHtml(u.username)}"><i class="fas fa-user-plus"></i></button>
       </div>`).join('');
-      $$('.send-req-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          try { await api(`/friends/request/${encodeURIComponent(btn.dataset.username)}`, { method: 'POST' }); btn.textContent = '✓ Gönderildi'; btn.disabled = true; btn.classList.remove('btn-primary'); } catch (e) { toast(e.message, 'error'); }
+        $$('.send-req-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            try { await api(`/friends/request/${encodeURIComponent(btn.dataset.username)}`, { method: 'POST' }); btn.textContent = '✓ Gönderildi'; btn.disabled = true; btn.classList.remove('btn-primary'); } catch (e) { toast(e.message, 'error'); }
+          });
         });
-      });
-    } catch (e) { res.innerHTML = `<p style="color:var(--accent-red2);font-size:13px">${e.message}</p>`; }
+      } catch (e) { res.innerHTML = `<p style="color:var(--accent-red2);font-size:13px">${e.message}</p>`; }
+    }
+
+    // Arkadaş aksiyonları
+    app.addEventListener('click', async e => {
+      const accept = e.target.closest('.friend-accept');
+      const reject = e.target.closest('.friend-reject');
+      const remove = e.target.closest('.friend-remove');
+      const unblock = e.target.closest('.friend-unblock');
+      const msgBtn = e.target.closest('.friend-msg');
+      if (accept) { try { await api(`/friends/respond/${accept.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'accept' }) }); renderFriends(app); } catch (e) { toast(e.message, 'error'); } }
+      if (reject) { try { await api(`/friends/respond/${reject.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'reject' }) }); renderFriends(app); } catch (e) { toast(e.message, 'error'); } }
+      if (remove) { if (!confirm('Arkadaşlıktan çıkart?')) return; try { await api(`/friends/${remove.dataset.id}`, { method: 'DELETE' }); renderFriends(app); } catch (e) { toast(e.message, 'error'); } }
+      if (unblock) { try { await api(`/block/${unblock.dataset.username}`, { method: 'DELETE' }); renderFriends(app); } catch (e) { toast(e.message, 'error'); } }
+      if (msgBtn) { navigate('/mesajlar/' + msgBtn.dataset.username); }
+    });
   }
 
-  // Arkadaş aksiyonları
-  app.addEventListener('click', async e => {
-    const accept = e.target.closest('.friend-accept');
-    const reject = e.target.closest('.friend-reject');
-    const remove = e.target.closest('.friend-remove');
-    const unblock = e.target.closest('.friend-unblock');
-    const msgBtn = e.target.closest('.friend-msg');
-    if (accept) { try { await api(`/friends/respond/${accept.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'accept' }) }); renderFriends(app); } catch (e) { toast(e.message,'error'); } }
-    if (reject) { try { await api(`/friends/respond/${reject.dataset.id}`, { method: 'POST', body: JSON.stringify({ action: 'reject' }) }); renderFriends(app); } catch (e) { toast(e.message,'error'); } }
-    if (remove) { if (!confirm('Arkadaşlıktan çıkart?')) return; try { await api(`/friends/${remove.dataset.id}`, { method: 'DELETE' }); renderFriends(app); } catch (e) { toast(e.message,'error'); } }
-    if (unblock) { try { await api(`/block/${unblock.dataset.username}`, { method: 'DELETE' }); renderFriends(app); } catch (e) { toast(e.message,'error'); } }
-    if (msgBtn) { navigate('/mesajlar/' + msgBtn.dataset.username); }
-  });
-}
-
-function friendItemHTML(f, type, myId) {
-  const other_username = f.other_username;
-  const other_avatar = f.other_avatar;
-  const isDeleted = f.other_is_deleted == 1 || f.other_is_deleted === true;
-  if (isDeleted) {
-    return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:0.55">
+  function friendItemHTML(f, type, myId) {
+    const other_username = f.other_username;
+    const other_avatar = f.other_avatar;
+    const isDeleted = f.other_is_deleted == 1 || f.other_is_deleted === true;
+    if (isDeleted) {
+      return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:0.55">
       <div class="avatar-md avatar-placeholder"><i class="fas fa-user-slash"></i></div>
       <div style="flex:1">
         <div style="font-size:14px;color:var(--text-muted);font-style:italic">hesap_yok</div>
@@ -3852,8 +3853,8 @@ function friendItemHTML(f, type, myId) {
       </div>
       ${type === 'accepted' || type === 'outgoing' ? `<button class="btn btn-ghost btn-sm friend-remove" data-id="${f.id}" title="Sil"><i class="fas fa-user-minus"></i></button>` : ''}
     </div>`;
-  }
-  return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
+    }
+    return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
     ${other_avatar ? `<img src="${escHtml(other_avatar)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-user"></i></div>`}
     <div style="flex:1">
       <a href="/profil/${escHtml(other_username)}" data-link style="font-weight:600;font-size:14px;color:var(--text-primary)">${escHtml(other_username)}</a>
@@ -3866,11 +3867,11 @@ function friendItemHTML(f, type, myId) {
       ${type === 'accepted' || type === 'outgoing' ? `<button class="btn btn-ghost btn-sm friend-remove" data-id="${f.id}" title="${type === 'outgoing' ? 'İptal' : 'Sil'}"><i class="fas fa-user-minus"></i></button>` : ''}
     </div>
   </div>`;
-}
+  }
 
-function blockItemHTML(b) {
-  const isDeleted = b.is_deleted == 1 || b.is_deleted === true;
-  return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px${isDeleted ? ';opacity:0.55' : ''}">
+  function blockItemHTML(b) {
+    const isDeleted = b.is_deleted == 1 || b.is_deleted === true;
+    return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px${isDeleted ? ';opacity:0.55' : ''}">
     ${!isDeleted && b.avatar ? `<img src="${escHtml(b.avatar)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-${isDeleted ? 'user-slash' : 'user'}"></i></div>`}
     <div style="flex:1">
       <div style="font-weight:600;font-size:14px${isDeleted ? ';color:var(--text-muted);font-style:italic' : ''}">
@@ -3883,56 +3884,56 @@ function blockItemHTML(b) {
     </div>
     ${!isDeleted ? `<button class="btn btn-outline btn-sm friend-unblock" data-username="${escHtml(b.username)}">Engeli Kaldır</button>` : ''}
   </div>`;
-}
+  }
 
-// ===== FLOATING DM WIDGET =====
-(function() {
-  let fdmOpen = false;
-  let fdmUsername = null;
-  let fdmMinimized = false;
-  let fdmSending = false;
-  let fdmReplyId = null;
-  let fdmPendingImg = null;
+  // ===== FLOATING DM WIDGET =====
+  (function () {
+    let fdmOpen = false;
+    let fdmUsername = null;
+    let fdmMinimized = false;
+    let fdmSending = false;
+    let fdmReplyId = null;
+    let fdmPendingImg = null;
 
-  function fdm$$(sel) { return document.querySelectorAll(sel); }
-  function fdm$(sel) { return document.querySelector(sel); }
+    function fdm$$(sel) { return document.querySelectorAll(sel); }
+    function fdm$(sel) { return document.querySelector(sel); }
 
-  function getContainer() { return fdm$('#floating-dm'); }
+    function getContainer() { return fdm$('#floating-dm'); }
 
-  function renderToggleBtn() {
-    const container = getContainer();
-    if (!container) return;
-    if (!currentUser) { container.style.display = 'none'; return; }
-    container.style.display = 'flex';
-    if (!fdm$('#fdm-toggle')) {
-      const btn = document.createElement('button');
-      btn.id = 'fdm-toggle';
-      btn.className = 'fdm-toggle-btn';
-      btn.innerHTML = '<i class="fas fa-comments"></i>';
-      btn.title = 'Mesajlar';
-      btn.addEventListener('click', () => {
-        if (fdmOpen) closeFdm();
-        else openFdmList();
-      });
-      document.body.appendChild(btn);
+    function renderToggleBtn() {
+      const container = getContainer();
+      if (!container) return;
+      if (!currentUser) { container.style.display = 'none'; return; }
+      container.style.display = 'flex';
+      if (!fdm$('#fdm-toggle')) {
+        const btn = document.createElement('button');
+        btn.id = 'fdm-toggle';
+        btn.className = 'fdm-toggle-btn';
+        btn.innerHTML = '<i class="fas fa-comments"></i>';
+        btn.title = 'Mesajlar';
+        btn.addEventListener('click', () => {
+          if (fdmOpen) closeFdm();
+          else openFdmList();
+        });
+        document.body.appendChild(btn);
+      }
     }
-  }
 
-  function closeFdm() {
-    fdmOpen = false;
-    fdmUsername = null;
-    const container = getContainer();
-    if (container) container.innerHTML = '';
-  }
+    function closeFdm() {
+      fdmOpen = false;
+      fdmUsername = null;
+      const container = getContainer();
+      if (container) container.innerHTML = '';
+    }
 
-  async function openFdmList() {
-    fdmOpen = true;
-    fdmUsername = null;
-    const container = getContainer();
-    if (!container) return;
-    let convs = [];
-    try { convs = await api('/conversations'); } catch {}
-    container.innerHTML = `<div class="fdm-bubble">
+    async function openFdmList() {
+      fdmOpen = true;
+      fdmUsername = null;
+      const container = getContainer();
+      if (!container) return;
+      let convs = [];
+      try { convs = await api('/conversations'); } catch { }
+      container.innerHTML = `<div class="fdm-bubble">
       <div class="fdm-header" id="fdm-header-list">
         <i class="fas fa-comments" style="color:var(--accent-red);font-size:14px"></i>
         <span class="fdm-name">Mesajlar</span>
@@ -3948,29 +3949,29 @@ function blockItemHTML(b) {
             ${c.other_avatar ? `<img src="${escHtml(c.other_avatar)}" class="fdm-avatar" />` : `<div class="fdm-avatar avatar-placeholder"><i class="fas fa-user" style="font-size:11px"></i></div>`}
             <div style="flex:1;min-width:0">
               <div style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.other_username)}</div>
-              <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((c.last_message||'').substring(0,30))}</div>
+              <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((c.last_message || '').substring(0, 30))}</div>
             </div>
             ${parseInt(c.unread_count) > 0 ? `<span style="background:var(--accent-red);color:#fff;font-size:10px;padding:1px 5px;border-radius:10px">${c.unread_count}</span>` : ''}
           </div>`).join('')}
       </div>
     </div>`;
 
-    fdm$('#fdm-close')?.addEventListener('click', closeFdm);
-    fdm$('#fdm-new')?.addEventListener('click', () => {
-      const u = prompt('Kullanıcı adı:');
-      if (u) openFdmChat(u.trim());
-    });
-    fdm$$('.fdm-conv-row').forEach(el => {
-      el.addEventListener('click', () => openFdmChat(el.dataset.username));
-    });
-  }
+      fdm$('#fdm-close')?.addEventListener('click', closeFdm);
+      fdm$('#fdm-new')?.addEventListener('click', () => {
+        const u = prompt('Kullanıcı adı:');
+        if (u) openFdmChat(u.trim());
+      });
+      fdm$$('.fdm-conv-row').forEach(el => {
+        el.addEventListener('click', () => openFdmChat(el.dataset.username));
+      });
+    }
 
-  async function openFdmChat(username) {
-    fdmUsername = username;
-    fdmMinimized = false;
-    const container = getContainer();
-    if (!container) return;
-    container.innerHTML = `<div class="fdm-bubble" id="fdm-bubble">
+    async function openFdmChat(username) {
+      fdmUsername = username;
+      fdmMinimized = false;
+      const container = getContainer();
+      if (!container) return;
+      container.innerHTML = `<div class="fdm-bubble" id="fdm-bubble">
       <div class="fdm-header" id="fdm-header-chat">
         <div class="fdm-avatar avatar-placeholder" id="fdm-other-avatar"><i class="fas fa-user" style="font-size:11px"></i></div>
         <span class="fdm-name" id="fdm-other-name">${escHtml(username)}</span>
@@ -3988,141 +3989,141 @@ function blockItemHTML(b) {
       </div>
     </div>`;
 
-    fdm$('#fdm-close')?.addEventListener('click', closeFdm);
-    fdm$('#fdm-back')?.addEventListener('click', openFdmList);
-    fdm$('#fdm-fullscreen')?.addEventListener('click', () => { navigate('/mesajlar/' + username); closeFdm(); });
-    fdm$('#fdm-minimize')?.addEventListener('click', () => {
-      fdmMinimized = !fdmMinimized;
-      const bubble = fdm$('#fdm-bubble');
-      if (bubble) bubble.classList.toggle('minimized', fdmMinimized);
-      const icon = fdm$('#fdm-minimize i');
-      if (icon) icon.className = fdmMinimized ? 'fas fa-chevron-up' : 'fas fa-minus';
-    });
-    fdm$('#fdm-header-chat')?.addEventListener('click', e => {
-      if (e.target.closest('.fdm-actions')) return;
-      fdmMinimized = !fdmMinimized;
-      const bubble = fdm$('#fdm-bubble');
-      if (bubble) bubble.classList.toggle('minimized', fdmMinimized);
-    });
+      fdm$('#fdm-close')?.addEventListener('click', closeFdm);
+      fdm$('#fdm-back')?.addEventListener('click', openFdmList);
+      fdm$('#fdm-fullscreen')?.addEventListener('click', () => { navigate('/mesajlar/' + username); closeFdm(); });
+      fdm$('#fdm-minimize')?.addEventListener('click', () => {
+        fdmMinimized = !fdmMinimized;
+        const bubble = fdm$('#fdm-bubble');
+        if (bubble) bubble.classList.toggle('minimized', fdmMinimized);
+        const icon = fdm$('#fdm-minimize i');
+        if (icon) icon.className = fdmMinimized ? 'fas fa-chevron-up' : 'fas fa-minus';
+      });
+      fdm$('#fdm-header-chat')?.addEventListener('click', e => {
+        if (e.target.closest('.fdm-actions')) return;
+        fdmMinimized = !fdmMinimized;
+        const bubble = fdm$('#fdm-bubble');
+        if (bubble) bubble.classList.toggle('minimized', fdmMinimized);
+      });
 
-    // Mesajları yükle
-    try {
-      const data = await api(`/conversation/${encodeURIComponent(username)}`);
-      const { other, messages } = data;
-      if (other.avatar) {
-        const av = fdm$('#fdm-other-avatar');
-        if (av) av.outerHTML = `<img src="${escHtml(other.avatar)}" class="fdm-avatar" id="fdm-other-avatar" />`;
-      }
-      const msgsEl = fdm$('#fdm-msgs');
-      if (msgsEl) {
-        msgsEl.innerHTML = messages.map(m => fdmMsgHTML(m)).join('');
-        msgsEl.scrollTop = msgsEl.scrollHeight;
-      }
-    } catch (e) {
-      const msgsEl = fdm$('#fdm-msgs');
-      if (msgsEl) msgsEl.innerHTML = `<div style="color:var(--accent-red2);font-size:12px;padding:12px">${e.message}</div>`;
-    }
-
-    async function fdmSendMsg() {
-      if (fdmSending) return;
-      const input = fdm$('#fdm-input');
-      const content = input?.value.trim();
-      if (!content) return;
-      fdmSending = true;
-      input.value = '';
+      // Mesajları yükle
       try {
-        const fd = new FormData();
-        fd.append('content', content);
-        const msg = await apiForm(`/conversation/${encodeURIComponent(username)}/messages`, fd);
+        const data = await api(`/conversation/${encodeURIComponent(username)}`);
+        const { other, messages } = data;
+        if (other.avatar) {
+          const av = fdm$('#fdm-other-avatar');
+          if (av) av.outerHTML = `<img src="${escHtml(other.avatar)}" class="fdm-avatar" id="fdm-other-avatar" />`;
+        }
         const msgsEl = fdm$('#fdm-msgs');
         if (msgsEl) {
-          msgsEl.insertAdjacentHTML('beforeend', fdmMsgHTML(msg));
+          msgsEl.innerHTML = messages.map(m => fdmMsgHTML(m)).join('');
           msgsEl.scrollTop = msgsEl.scrollHeight;
         }
-      } catch (e) { toast(e.message, 'error'); }
-      finally { fdmSending = false; }
+      } catch (e) {
+        const msgsEl = fdm$('#fdm-msgs');
+        if (msgsEl) msgsEl.innerHTML = `<div style="color:var(--accent-red2);font-size:12px;padding:12px">${e.message}</div>`;
+      }
+
+      async function fdmSendMsg() {
+        if (fdmSending) return;
+        const input = fdm$('#fdm-input');
+        const content = input?.value.trim();
+        if (!content) return;
+        fdmSending = true;
+        input.value = '';
+        try {
+          const fd = new FormData();
+          fd.append('content', content);
+          const msg = await apiForm(`/conversation/${encodeURIComponent(username)}/messages`, fd);
+          const msgsEl = fdm$('#fdm-msgs');
+          if (msgsEl) {
+            msgsEl.insertAdjacentHTML('beforeend', fdmMsgHTML(msg));
+            msgsEl.scrollTop = msgsEl.scrollHeight;
+          }
+        } catch (e) { toast(e.message, 'error'); }
+        finally { fdmSending = false; }
+      }
+
+      fdm$('#fdm-send')?.addEventListener('click', fdmSendMsg);
+      fdm$('#fdm-input')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fdmSendMsg(); }
+      });
+      fdm$('#fdm-input')?.addEventListener('input', e => {
+        e.target.style.height = 'auto';
+        e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
+      });
     }
 
-    fdm$('#fdm-send')?.addEventListener('click', fdmSendMsg);
-    fdm$('#fdm-input')?.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fdmSendMsg(); }
-    });
-    fdm$('#fdm-input')?.addEventListener('input', e => {
-      e.target.style.height = 'auto';
-      e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
-    });
-  }
-
-  function fdmMsgHTML(m) {
-    const isOwn = currentUser && m.sender_id == currentUser.id;
-    const deleted = m.deleted_for_all;
-    if (!deleted && ((isOwn && m.deleted_by_sender) || (!isOwn && m.deleted_by_receiver))) return '';
-    return `<div style="display:flex;flex-direction:column;align-items:${isOwn ? 'flex-end' : 'flex-start'};gap:2px;margin-bottom:4px">
+    function fdmMsgHTML(m) {
+      const isOwn = currentUser && m.sender_id == currentUser.id;
+      const deleted = m.deleted_for_all;
+      if (!deleted && ((isOwn && m.deleted_by_sender) || (!isOwn && m.deleted_by_receiver))) return '';
+      return `<div style="display:flex;flex-direction:column;align-items:${isOwn ? 'flex-end' : 'flex-start'};gap:2px;margin-bottom:4px">
       <div style="max-width:80%;padding:7px 11px;border-radius:${isOwn ? '12px 4px 12px 12px' : '4px 12px 12px 12px'};font-size:13px;word-break:break-word;
         background:${isOwn ? 'rgba(220,38,38,0.15)' : 'var(--bg-card2)'};
         border:1px solid ${isOwn ? 'rgba(220,38,38,0.3)' : 'var(--border)'};
         color:${deleted ? 'var(--text-muted)' : 'var(--text-primary)'}">
-        ${deleted ? '<i>Mesaj silindi</i>' : (m.shared_forum_id ? `<span style="color:var(--accent-red2);cursor:pointer" onclick="navigate('/forum/${escHtml(m.forum_slug||'')}');closeFdm()">📎 ${escHtml(m.forum_title||'Forum')}</span>` : escHtml(m.content || ''))}
+        ${deleted ? '<i>Mesaj silindi</i>' : (m.shared_forum_id ? `<span style="color:var(--accent-red2);cursor:pointer" onclick="navigate('/forum/${escHtml(m.forum_slug || '')}');closeFdm()">📎 ${escHtml(m.forum_title || 'Forum')}</span>` : escHtml(m.content || ''))}
       </div>
       <span style="font-size:10px;color:var(--text-muted)">${timeAgo(m.created_at)}</span>
     </div>`;
-  }
+    }
 
-  // Auth değişince toggle butonunu güncelle
-  const origUpdateNav = window.updateNavUI;
-  window.updateNavUI = function() {
-    if (origUpdateNav) origUpdateNav.apply(this, arguments);
-    setTimeout(renderToggleBtn, 100);
-  };
-
-  // İlk yüklemede
-  setTimeout(renderToggleBtn, 500);
-
-  // Dışarıya aç
-  window.openFdmChat = openFdmChat;
-  window.closeFdm = closeFdm;
-})();
-
-// ===== ADMİN KALKAN POPUP =====
-document.addEventListener('click', e => {
-  const shield = e.target.closest('.user-admin');
-  if (!shield) { const p = document.getElementById('admin-shield-popup'); if (p) p.remove(); return; }
-  e.stopPropagation();
-  const existing = document.getElementById('admin-shield-popup');
-  if (existing) { existing.remove(); return; }
-  const since = shield.dataset.adminSince;
-  const sinceText = since ? new Date(since).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'bilinmiyor';
-  const popup = document.createElement('div');
-  popup.id = 'admin-shield-popup';
-  popup.style.cssText = `position:fixed;z-index:99999;background:#1a1a2e;border:1px solid #5865F2;border-radius:10px;padding:12px 16px;max-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.6);animation:fadeIn 0.15s ease`;
-  popup.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><i class="fas fa-shield" style="color:#5865F2;font-size:16px"></i><span style="font-weight:700;color:#e0e0ff;font-size:14px">TeaTube Yetkilisi</span></div><div style="font-size:13px;font-weight:600;color:#c0c8ff;margin-bottom:4px">TeaTube yetkili hesabı.</div><div style="font-size:12px;color:#8888aa">Bu kullanıcı ${sinceText} tarihinde yetkili oldu.</div>`;
-  const rect = shield.getBoundingClientRect();
-  document.body.appendChild(popup);
-  const pw = popup.offsetWidth, ph = popup.offsetHeight;
-  let left = rect.left, top = rect.bottom + 8;
-  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
-  if (top + ph > window.innerHeight - 8) top = rect.top - ph - 8;
-  popup.style.left = left + 'px';
-  popup.style.top = top + 'px';
-});
-
-// ===== SPOTİFY PROFİL WIDGET =====
-async function renderSpotifyWidget(username, containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  try {
-    const data = await fetch('/api/spotify/now-playing/' + encodeURIComponent(username)).then(r => r.json());
-    if (!data.playing) { container.innerHTML = ''; return; }
-
-    const fmtTime = ms => {
-      const s = Math.floor(ms / 1000);
-      return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    // Auth değişince toggle butonunu güncelle
+    const origUpdateNav = window.updateNavUI;
+    window.updateNavUI = function () {
+      if (origUpdateNav) origUpdateNav.apply(this, arguments);
+      setTimeout(renderToggleBtn, 100);
     };
-    const progress = data.duration_ms > 0 ? Math.min(100, (data.progress_ms / data.duration_ms) * 100) : 0;
-    const progressTime = fmtTime(data.progress_ms || 0);
-    const totalTime = fmtTime(data.duration_ms || 0);
 
-    container.innerHTML = `<div style="background:rgba(30,215,96,0.08);border:1px solid rgba(30,215,96,0.25);border-radius:10px;padding:10px 14px;margin-top:12px;cursor:pointer" onclick="window.open('${escHtml(data.url)}','_blank')">
+    // İlk yüklemede
+    setTimeout(renderToggleBtn, 500);
+
+    // Dışarıya aç
+    window.openFdmChat = openFdmChat;
+    window.closeFdm = closeFdm;
+  })();
+
+  // ===== ADMİN KALKAN POPUP =====
+  document.addEventListener('click', e => {
+    const shield = e.target.closest('.user-admin');
+    if (!shield) { const p = document.getElementById('admin-shield-popup'); if (p) p.remove(); return; }
+    e.stopPropagation();
+    const existing = document.getElementById('admin-shield-popup');
+    if (existing) { existing.remove(); return; }
+    const since = shield.dataset.adminSince;
+    const sinceText = since ? new Date(since).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'bilinmiyor';
+    const popup = document.createElement('div');
+    popup.id = 'admin-shield-popup';
+    popup.style.cssText = `position:fixed;z-index:99999;background:#1a1a2e;border:1px solid #5865F2;border-radius:10px;padding:12px 16px;max-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.6);animation:fadeIn 0.15s ease`;
+    popup.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><i class="fas fa-shield" style="color:#5865F2;font-size:16px"></i><span style="font-weight:700;color:#e0e0ff;font-size:14px">TeaTube Yetkilisi</span></div><div style="font-size:13px;font-weight:600;color:#c0c8ff;margin-bottom:4px">TeaTube yetkili hesabı.</div><div style="font-size:12px;color:#8888aa">Bu kullanıcı ${sinceText} tarihinde yetkili oldu.</div>`;
+    const rect = shield.getBoundingClientRect();
+    document.body.appendChild(popup);
+    const pw = popup.offsetWidth, ph = popup.offsetHeight;
+    let left = rect.left, top = rect.bottom + 8;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    if (top + ph > window.innerHeight - 8) top = rect.top - ph - 8;
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+  });
+
+  // ===== SPOTİFY PROFİL WIDGET =====
+  async function renderSpotifyWidget(username, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    try {
+      const data = await fetch('/api/spotify/now-playing/' + encodeURIComponent(username)).then(r => r.json());
+      if (!data.playing) { container.innerHTML = ''; return; }
+
+      const fmtTime = ms => {
+        const s = Math.floor(ms / 1000);
+        return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      };
+      const progress = data.duration_ms > 0 ? Math.min(100, (data.progress_ms / data.duration_ms) * 100) : 0;
+      const progressTime = fmtTime(data.progress_ms || 0);
+      const totalTime = fmtTime(data.duration_ms || 0);
+
+      container.innerHTML = `<div style="background:rgba(30,215,96,0.08);border:1px solid rgba(30,215,96,0.25);border-radius:10px;padding:10px 14px;margin-top:12px;cursor:pointer" onclick="window.open('${escHtml(data.url)}','_blank')">
       <div style="display:flex;align-items:center;gap:10px">
         <img src="${escHtml(data.album_art)}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0" />
         <div style="flex:1;min-width:0">
@@ -4145,13 +4146,13 @@ async function renderSpotifyWidget(username, containerId) {
         </div>
       </div>` : ''}
     </div>`;
-  } catch {}
-}
+    } catch { }
+  }
 
-// ===== MÜZİK LİSTESİ =====
-async function renderMusicList(app) {
-  document.title = 'Müzikler – TeaTube';
-  app.innerHTML = `<div class="container page">
+  // ===== MÜZİK LİSTESİ =====
+  async function renderMusicList(app) {
+    document.title = 'Müzikler – TeaTube';
+    app.innerHTML = `<div class="container page">
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
       <div class="page-title" style="display:flex;align-items:center;gap:10px">
         <i class="fas fa-music" style="color:var(--accent-red2)"></i> Müzikler
@@ -4171,16 +4172,16 @@ async function renderMusicList(app) {
     <div id="music-list"></div>
   </div>`;
 
-  let songs = [];
-  const loadSongs = async (q = '') => {
-    const el = document.getElementById('music-list');
-    if (!el) return;
-    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-    try {
-      const url = q ? `/songs?q=${encodeURIComponent(q)}` : '/songs';
-      songs = await api(url);
-      if (!songs.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-music"></i><p>Henüz şarkı yok.</p></div>'; return; }
-      el.innerHTML = `<div class="music-table">
+    let songs = [];
+    const loadSongs = async (q = '') => {
+      const el = document.getElementById('music-list');
+      if (!el) return;
+      el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+      try {
+        const url = q ? `/songs?q=${encodeURIComponent(q)}` : '/songs';
+        songs = await api(url);
+        if (!songs.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-music"></i><p>Henüz şarkı yok.</p></div>'; return; }
+        el.innerHTML = `<div class="music-table">
         <div class="music-table-header">
           <div style="width:40px">#</div>
           <div style="flex:1">Başlık</div>
@@ -4190,7 +4191,7 @@ async function renderMusicList(app) {
         </div>
         ${songs.map((s, i) => `
           <div class="music-row" data-slug="${escHtml(s.slug)}">
-            <div class="music-num">${i+1}</div>
+            <div class="music-num">${i + 1}</div>
             <div class="music-info">
               <div class="music-cover-wrap">
                 ${s.cover_url ? `<img src="${escHtml(s.cover_url)}" class="music-cover" />` : `<div class="music-cover music-cover-ph"><i class="fas fa-music"></i></div>`}
@@ -4201,52 +4202,52 @@ async function renderMusicList(app) {
                 <div class="music-artist">${escHtml(s.artist_name)}</div>
               </div>
             </div>
-            <div class="music-dist col-dist">${escHtml(s.distributor||'-')}</div>
+            <div class="music-dist col-dist">${escHtml(s.distributor || '-')}</div>
             <div class="music-date">${timeAgo(s.published_at)}</div>
             <div class="music-plays" style="text-align:right;font-size:12px;color:var(--text-muted)">${s.play_count} <i class="fas fa-headphones" style="font-size:10px"></i></div>
           </div>`).join('')}
       </div>`;
-      el.querySelectorAll('.music-row').forEach(row => {
-        row.addEventListener('click', e => {
-          if (!e.target.closest('.music-play-mini')) navigate('/muzik/' + row.dataset.slug);
+        el.querySelectorAll('.music-row').forEach(row => {
+          row.addEventListener('click', e => {
+            if (!e.target.closest('.music-play-mini')) navigate('/muzik/' + row.dataset.slug);
+          });
         });
-      });
-      el.querySelectorAll('.music-play-mini').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.stopPropagation();
-          openMiniPlayer(btn.dataset.audio, btn.dataset.slug, songs.find(s => s.slug === btn.dataset.slug));
+        el.querySelectorAll('.music-play-mini').forEach(btn => {
+          btn.addEventListener('click', e => {
+            e.stopPropagation();
+            openMiniPlayer(btn.dataset.audio, btn.dataset.slug, songs.find(s => s.slug === btn.dataset.slug));
+          });
         });
-      });
-    } catch(err) { el.innerHTML = `<div class="empty-state"><p>${escHtml(err.message)}</p></div>`; }
-  };
+      } catch (err) { el.innerHTML = `<div class="empty-state"><p>${escHtml(err.message)}</p></div>`; }
+    };
 
-  loadSongs();
-  let t; document.getElementById('music-search')?.addEventListener('input', e => {
-    clearTimeout(t); t = setTimeout(() => loadSongs(e.target.value.trim()), 400);
-  });
-}
-
-// ===== MÜZİK DETAY =====
-let currentAudio = null;
-let currentSlug = null;
-
-function openMiniPlayer(audioUrl, slug, song) {
-  // Global player
-  let player = document.getElementById('global-music-player');
-  if (!player) {
-    player = document.createElement('div');
-    player.id = 'global-music-player';
-    document.body.appendChild(player);
+    loadSongs();
+    let t; document.getElementById('music-search')?.addEventListener('input', e => {
+      clearTimeout(t); t = setTimeout(() => loadSongs(e.target.value.trim()), 400);
+    });
   }
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  // Update play buttons
-  document.querySelectorAll('.music-play-mini').forEach(b => b.innerHTML = '<i class="fas fa-play"></i>');
-  const audio = new Audio(audioUrl);
-  currentAudio = audio; currentSlug = slug;
-  fetch('/api/songs/' + slug + '/play', { method: 'POST' }).catch(() => {});
 
-  const title = song?.title || '', artist = song?.artist_name || '', cover = song?.cover_url || '';
-  player.innerHTML = `
+  // ===== MÜZİK DETAY =====
+  let currentAudio = null;
+  let currentSlug = null;
+
+  function openMiniPlayer(audioUrl, slug, song) {
+    // Global player
+    let player = document.getElementById('global-music-player');
+    if (!player) {
+      player = document.createElement('div');
+      player.id = 'global-music-player';
+      document.body.appendChild(player);
+    }
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    // Update play buttons
+    document.querySelectorAll('.music-play-mini').forEach(b => b.innerHTML = '<i class="fas fa-play"></i>');
+    const audio = new Audio(audioUrl);
+    currentAudio = audio; currentSlug = slug;
+    fetch('/api/songs/' + slug + '/play', { method: 'POST' }).catch(() => { });
+
+    const title = song?.title || '', artist = song?.artist_name || '', cover = song?.cover_url || '';
+    player.innerHTML = `
     <div class="gplayer-inner">
       <div class="gplayer-info">
         ${cover ? `<img src="${escHtml(cover)}" class="gplayer-cover" />` : `<div class="gplayer-cover gplayer-cover-ph"><i class="fas fa-music"></i></div>`}
@@ -4276,91 +4277,91 @@ function openMiniPlayer(audioUrl, slug, song) {
       </div>
       <button class="gplayer-close" id="gp-close"><i class="fas fa-times"></i></button>
     </div>`;
-  player.style.display = 'block';
-  // localStorage'dan ses seviyesini oku
-  const savedVol = parseFloat(localStorage.getItem('teatube_volume') ?? localStorage.getItem('demlik_volume') ?? '0.8');
-  audio.volume = savedVol;
+    player.style.display = 'block';
+    // localStorage'dan ses seviyesini oku
+    const savedVol = parseFloat(localStorage.getItem('teatube_volume') ?? localStorage.getItem('demlik_volume') ?? '0.8');
+    audio.volume = savedVol;
 
-  function fmtTime(s) { const m=Math.floor(s/60); return m+':'+(Math.floor(s%60)+'').padStart(2,'0'); }
+    function fmtTime(s) { const m = Math.floor(s / 60); return m + ':' + (Math.floor(s % 60) + '').padStart(2, '0'); }
 
-  audio.addEventListener('loadedmetadata', () => { document.getElementById('gp-dur').textContent = fmtTime(audio.duration); });
-  audio.addEventListener('timeupdate', () => {
-    const pct = audio.duration ? (audio.currentTime/audio.duration)*100 : 0;
-    const fill = document.getElementById('gp-fill'); if(fill) fill.style.width = pct+'%';
-    const seek = document.getElementById('gp-seek'); if(seek) seek.value = pct;
-    const cur = document.getElementById('gp-cur'); if(cur) cur.textContent = fmtTime(audio.currentTime);
-  });
-  audio.addEventListener('ended', () => { const pb=document.getElementById('gp-play'); if(pb) pb.innerHTML='<i class="fas fa-play"></i>'; });
-
-  document.getElementById('gp-play').addEventListener('click', () => {
-    if (audio.paused) { audio.play(); document.getElementById('gp-play').innerHTML='<i class="fas fa-pause"></i>'; }
-    else { audio.pause(); document.getElementById('gp-play').innerHTML='<i class="fas fa-play"></i>'; }
-  });
-  document.getElementById('gp-seek').addEventListener('input', e => {
-    if (audio.duration) audio.currentTime = (parseFloat(e.target.value)/100)*audio.duration;
-  });
-  document.getElementById('gp-close').addEventListener('click', () => {
-    audio.pause(); currentAudio=null; player.style.display='none';
-  });
-
-  // Ses kontrolü
-  const volSlider = document.getElementById('gp-vol');
-  const volBtn = document.getElementById('gp-vol-btn');
-  if (volSlider) {
-    volSlider.value = Math.round(savedVol * 100);
-    const updateVolIcon = (v) => {
-      if (!volBtn) return;
-      volBtn.innerHTML = v === 0 ? '<i class="fas fa-volume-mute"></i>' : v < 50 ? '<i class="fas fa-volume-down"></i>' : '<i class="fas fa-volume-up"></i>';
-    };
-    updateVolIcon(Math.round(savedVol * 100));
-    volSlider.addEventListener('input', e => {
-      const v = parseInt(e.target.value);
-      audio.volume = v / 100;
-      localStorage.setItem('teatube_volume', v / 100);
-      localStorage.setItem('demlik_volume', v / 100);
-      updateVolIcon(v);
+    audio.addEventListener('loadedmetadata', () => { document.getElementById('gp-dur').textContent = fmtTime(audio.duration); });
+    audio.addEventListener('timeupdate', () => {
+      const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+      const fill = document.getElementById('gp-fill'); if (fill) fill.style.width = pct + '%';
+      const seek = document.getElementById('gp-seek'); if (seek) seek.value = pct;
+      const cur = document.getElementById('gp-cur'); if (cur) cur.textContent = fmtTime(audio.currentTime);
     });
-  }
-  if (volBtn) {
-    volBtn.addEventListener('click', () => {
-      if (audio.volume > 0) {
-        audio.volume = 0; if(volSlider) volSlider.value = 0;
-        localStorage.setItem('teatube_volume', '0');
-        localStorage.setItem('demlik_volume', '0');
-        volBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
-      } else {
-        audio.volume = 0.8; if(volSlider) volSlider.value = 80;
-        localStorage.setItem('teatube_volume', '0.8');
-        localStorage.setItem('demlik_volume', '0.8');
-        volBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-      }
+    audio.addEventListener('ended', () => { const pb = document.getElementById('gp-play'); if (pb) pb.innerHTML = '<i class="fas fa-play"></i>'; });
+
+    document.getElementById('gp-play').addEventListener('click', () => {
+      if (audio.paused) { audio.play(); document.getElementById('gp-play').innerHTML = '<i class="fas fa-pause"></i>'; }
+      else { audio.pause(); document.getElementById('gp-play').innerHTML = '<i class="fas fa-play"></i>'; }
     });
+    document.getElementById('gp-seek').addEventListener('input', e => {
+      if (audio.duration) audio.currentTime = (parseFloat(e.target.value) / 100) * audio.duration;
+    });
+    document.getElementById('gp-close').addEventListener('click', () => {
+      audio.pause(); currentAudio = null; player.style.display = 'none';
+    });
+
+    // Ses kontrolü
+    const volSlider = document.getElementById('gp-vol');
+    const volBtn = document.getElementById('gp-vol-btn');
+    if (volSlider) {
+      volSlider.value = Math.round(savedVol * 100);
+      const updateVolIcon = (v) => {
+        if (!volBtn) return;
+        volBtn.innerHTML = v === 0 ? '<i class="fas fa-volume-mute"></i>' : v < 50 ? '<i class="fas fa-volume-down"></i>' : '<i class="fas fa-volume-up"></i>';
+      };
+      updateVolIcon(Math.round(savedVol * 100));
+      volSlider.addEventListener('input', e => {
+        const v = parseInt(e.target.value);
+        audio.volume = v / 100;
+        localStorage.setItem('teatube_volume', v / 100);
+        localStorage.setItem('demlik_volume', v / 100);
+        updateVolIcon(v);
+      });
+    }
+    if (volBtn) {
+      volBtn.addEventListener('click', () => {
+        if (audio.volume > 0) {
+          audio.volume = 0; if (volSlider) volSlider.value = 0;
+          localStorage.setItem('teatube_volume', '0');
+          localStorage.setItem('demlik_volume', '0');
+          volBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+        } else {
+          audio.volume = 0.8; if (volSlider) volSlider.value = 80;
+          localStorage.setItem('teatube_volume', '0.8');
+          localStorage.setItem('demlik_volume', '0.8');
+          volBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        }
+      });
+    }
+
+    // Sync play button on detail page
+    const detailPlay = document.getElementById('detail-play-btn');
+    if (detailPlay) detailPlay.innerHTML = '<i class="fas fa-pause"></i> Durdur';
+
+    audio.play().catch(() => { });
   }
 
-  // Sync play button on detail page
-  const detailPlay = document.getElementById('detail-play-btn');
-  if (detailPlay) detailPlay.innerHTML = '<i class="fas fa-pause"></i> Durdur';
+  async function renderMusicDetail(app, slug) {
+    app.innerHTML = '<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>';
+    let song;
+    try { song = await api('/songs/' + slug); } catch {
+      app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-music"></i><p>Şarkı bulunamadı.</p></div></div>'; return;
+    }
+    document.title = `${song.title} – ${song.artist_name} | TeaTube`;
+    const isOwn = song.song_type === 'own';
+    const hasLyrics = !!song.lyrics?.trim();
+    const isUploader = currentUser && currentUser.id === song.uploader_id;
 
-  audio.play().catch(() => {});
-}
-
-async function renderMusicDetail(app, slug) {
-  app.innerHTML = '<div class="container page"><div class="loading-center"><div class="spinner"></div></div></div>';
-  let song;
-  try { song = await api('/songs/' + slug); } catch {
-    app.innerHTML = '<div class="container page"><div class="empty-state"><i class="fas fa-music"></i><p>Şarkı bulunamadı.</p></div></div>'; return;
-  }
-  document.title = `${song.title} – ${song.artist_name} | TeaTube`;
-  const isOwn = song.song_type === 'own';
-  const hasLyrics = !!song.lyrics?.trim();
-  const isUploader = currentUser && currentUser.id === song.uploader_id;
-
-  app.innerHTML = `<div class="container page">
+    app.innerHTML = `<div class="container page">
     <div class="music-detail-header">
       <div class="music-detail-cover-wrap">
         ${song.cover_url
-          ? `<img src="${escHtml(song.cover_url)}" class="music-detail-cover" />`
-          : `<div class="music-detail-cover music-detail-cover-ph"><i class="fas fa-music"></i></div>`}
+        ? `<img src="${escHtml(song.cover_url)}" class="music-detail-cover" />`
+        : `<div class="music-detail-cover music-detail-cover-ph"><i class="fas fa-music"></i></div>`}
       </div>
       <div class="music-detail-info">
         <div class="music-detail-type-badge">${isOwn ? '<i class="fas fa-microphone"></i> Sanatçı Şarkısı' : '<i class="fas fa-share"></i> Paylaşılan Şarkı'}</div>
@@ -4405,93 +4406,93 @@ async function renderMusicDetail(app, slug) {
       </div>` : ''}
   </div>`;
 
-  const audio = document.getElementById('detail-audio');
-  const playBtn = document.getElementById('detail-play-btn');
-  const fill = document.getElementById('dp-fill');
-  const seek = document.getElementById('dp-seek');
-  const curEl = document.getElementById('dp-cur');
-  const durEl = document.getElementById('dp-dur');
+    const audio = document.getElementById('detail-audio');
+    const playBtn = document.getElementById('detail-play-btn');
+    const fill = document.getElementById('dp-fill');
+    const seek = document.getElementById('dp-seek');
+    const curEl = document.getElementById('dp-cur');
+    const durEl = document.getElementById('dp-dur');
 
-  function fmt(s) { const m=Math.floor(s/60); return m+':'+(Math.floor(s%60)+'').padStart(2,'0'); }
+    function fmt(s) { const m = Math.floor(s / 60); return m + ':' + (Math.floor(s % 60) + '').padStart(2, '0'); }
 
-  audio.addEventListener('loadedmetadata', () => { if(durEl) durEl.textContent = fmt(audio.duration); });
-  audio.addEventListener('timeupdate', () => {
-    const pct = audio.duration ? (audio.currentTime/audio.duration)*100 : 0;
-    if(fill) fill.style.width = pct + '%';
-    if(seek) seek.value = pct;
-    if(curEl) curEl.textContent = fmt(audio.currentTime);
-  });
-  audio.addEventListener('ended', () => { playBtn.innerHTML = '<i class="fas fa-play"></i> Oynat'; });
-
-  let halfCounted = false;
-  playBtn.addEventListener('click', () => {
-    if (audio.paused) {
-      audio.play();
-      playBtn.innerHTML = '<i class="fas fa-pause"></i> Durdur';
-    } else {
-      audio.pause();
-      playBtn.innerHTML = '<i class="fas fa-play"></i> Oynat';
-    }
-  });
-
-  audio.addEventListener('timeupdate', () => {
-    if (!halfCounted && audio.duration && (audio.currentTime / audio.duration) >= 0.5) {
-      halfCounted = true;
-      fetch('/api/songs/'+slug+'/play-half', {method:'POST'}).catch(()=>{});
-    }
-  });
-
-  seek?.addEventListener('input', e => { if(audio.duration) audio.currentTime=(parseFloat(e.target.value)/100)*audio.duration; });
-
-  // Detail page ses kontrolü (localStorage'dan başlat)
-  const savedVol = parseFloat(localStorage.getItem('teatube_volume') ?? localStorage.getItem('demlik_volume') ?? '0.8');
-  audio.volume = savedVol;
-  const detailVolSlider = document.getElementById('detail-vol');
-  const detailVolBtn = document.getElementById('detail-vol-btn');
-  if (detailVolSlider) {
-    detailVolSlider.value = Math.round(savedVol * 100);
-    const updateVolIcon = (v) => {
-      if (!detailVolBtn) return;
-      detailVolBtn.innerHTML = v === 0 ? '<i class="fas fa-volume-mute"></i>' : v < 50 ? '<i class="fas fa-volume-down"></i>' : '<i class="fas fa-volume-up"></i>';
-    };
-    updateVolIcon(Math.round(savedVol * 100));
-    detailVolSlider.addEventListener('input', e => {
-      const v = parseInt(e.target.value);
-      audio.volume = v / 100;
-      localStorage.setItem('teatube_volume', v / 100);
-      localStorage.setItem('demlik_volume', v / 100);
-      updateVolIcon(v);
+    audio.addEventListener('loadedmetadata', () => { if (durEl) durEl.textContent = fmt(audio.duration); });
+    audio.addEventListener('timeupdate', () => {
+      const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+      if (fill) fill.style.width = pct + '%';
+      if (seek) seek.value = pct;
+      if (curEl) curEl.textContent = fmt(audio.currentTime);
     });
-    detailVolBtn?.addEventListener('click', () => {
-      if (audio.volume > 0) {
-        audio.volume = 0; detailVolSlider.value = 0;
-        localStorage.setItem('teatube_volume', '0');
-        localStorage.setItem('demlik_volume', '0');
-        if (detailVolBtn) detailVolBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+    audio.addEventListener('ended', () => { playBtn.innerHTML = '<i class="fas fa-play"></i> Oynat'; });
+
+    let halfCounted = false;
+    playBtn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play();
+        playBtn.innerHTML = '<i class="fas fa-pause"></i> Durdur';
       } else {
-        audio.volume = 0.8; detailVolSlider.value = 80;
-        localStorage.setItem('teatube_volume', '0.8');
-        localStorage.setItem('demlik_volume', '0.8');
-        if (detailVolBtn) detailVolBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        audio.pause();
+        playBtn.innerHTML = '<i class="fas fa-play"></i> Oynat';
       }
     });
-  }
 
-  // Şarkı düzenleme butonu (sadece yükleyene gösterilir)
-  const editBtn = document.getElementById('song-edit-btn');
-  if (editBtn) {
-    editBtn.addEventListener('click', () => {
-      showModal(`✏️ Şarkıyı Düzenle — ${escHtml(song.title)}`, `
+    audio.addEventListener('timeupdate', () => {
+      if (!halfCounted && audio.duration && (audio.currentTime / audio.duration) >= 0.5) {
+        halfCounted = true;
+        fetch('/api/songs/' + slug + '/play-half', { method: 'POST' }).catch(() => { });
+      }
+    });
+
+    seek?.addEventListener('input', e => { if (audio.duration) audio.currentTime = (parseFloat(e.target.value) / 100) * audio.duration; });
+
+    // Detail page ses kontrolü (localStorage'dan başlat)
+    const savedVol = parseFloat(localStorage.getItem('teatube_volume') ?? localStorage.getItem('demlik_volume') ?? '0.8');
+    audio.volume = savedVol;
+    const detailVolSlider = document.getElementById('detail-vol');
+    const detailVolBtn = document.getElementById('detail-vol-btn');
+    if (detailVolSlider) {
+      detailVolSlider.value = Math.round(savedVol * 100);
+      const updateVolIcon = (v) => {
+        if (!detailVolBtn) return;
+        detailVolBtn.innerHTML = v === 0 ? '<i class="fas fa-volume-mute"></i>' : v < 50 ? '<i class="fas fa-volume-down"></i>' : '<i class="fas fa-volume-up"></i>';
+      };
+      updateVolIcon(Math.round(savedVol * 100));
+      detailVolSlider.addEventListener('input', e => {
+        const v = parseInt(e.target.value);
+        audio.volume = v / 100;
+        localStorage.setItem('teatube_volume', v / 100);
+        localStorage.setItem('demlik_volume', v / 100);
+        updateVolIcon(v);
+      });
+      detailVolBtn?.addEventListener('click', () => {
+        if (audio.volume > 0) {
+          audio.volume = 0; detailVolSlider.value = 0;
+          localStorage.setItem('teatube_volume', '0');
+          localStorage.setItem('demlik_volume', '0');
+          if (detailVolBtn) detailVolBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+        } else {
+          audio.volume = 0.8; detailVolSlider.value = 80;
+          localStorage.setItem('teatube_volume', '0.8');
+          localStorage.setItem('demlik_volume', '0.8');
+          if (detailVolBtn) detailVolBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        }
+      });
+    }
+
+    // Şarkı düzenleme butonu (sadece yükleyene gösterilir)
+    const editBtn = document.getElementById('song-edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        showModal(`✏️ Şarkıyı Düzenle — ${escHtml(song.title)}`, `
         <div class="form-group"><label>Şarkı Adı</label><input id="ue-title" value="${escHtml(song.title)}" /></div>
         ${song.song_type === 'own' ? `
         <div class="form-row">
           <div class="form-group"><label>Sanatçı Adı</label><input id="ue-artist" value="${escHtml(song.artist_name)}" /></div>
-          <div class="form-group"><label>Dağıtıcı</label><input id="ue-dist" value="${escHtml(song.distributor||'')}" /></div>
+          <div class="form-group"><label>Dağıtıcı</label><input id="ue-dist" value="${escHtml(song.distributor || '')}" /></div>
         </div>` : `
         <div class="form-group"><label>Sanatçı Adı</label><input id="ue-artist" value="${escHtml(song.artist_name)}" /></div>`}
-        <div class="form-group"><label>Müzik Türü</label><input id="ue-genre" value="${escHtml(song.genre||'')}" /></div>
-        <div class="form-group"><label>Şarkı Sözleri</label><textarea id="ue-lyrics" rows="5">${escHtml(song.lyrics||'')}</textarea></div>
-        ${song.song_type === 'other' ? `<div class="form-group"><label>Paylaşma Sebebi</label><textarea id="ue-reason" rows="2">${escHtml(song.share_reason||'')}</textarea></div>` : ''}
+        <div class="form-group"><label>Müzik Türü</label><input id="ue-genre" value="${escHtml(song.genre || '')}" /></div>
+        <div class="form-group"><label>Şarkı Sözleri</label><textarea id="ue-lyrics" rows="5">${escHtml(song.lyrics || '')}</textarea></div>
+        ${song.song_type === 'other' ? `<div class="form-group"><label>Paylaşma Sebebi</label><textarea id="ue-reason" rows="2">${escHtml(song.share_reason || '')}</textarea></div>` : ''}
         <div class="form-group"><label>Yeni Kapak Fotoğrafı <span style="font-size:11px;color:var(--text-muted)">(boş bırak = değişmez)</span></label>
           <input type="file" id="ue-cover" accept="image/*" style="background:var(--bg-card2);border:1px dashed var(--border);padding:8px;cursor:pointer;border-radius:8px" />
         </div>
@@ -4501,44 +4502,44 @@ async function renderMusicDetail(app, slug) {
         <button class="btn btn-primary" id="ue-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
         <div id="ue-msg" style="margin-top:8px;font-size:12px;color:var(--accent-red2);text-align:center"></div>
       `);
-      document.getElementById('ue-save').addEventListener('click', async () => {
-        const btn = document.getElementById('ue-save');
-        const msg = document.getElementById('ue-msg');
-        btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div>';
-        const fd = new FormData();
-        fd.append('title', document.getElementById('ue-title').value.trim());
-        fd.append('artist_name', document.getElementById('ue-artist').value.trim());
-        fd.append('genre', document.getElementById('ue-genre')?.value.trim() || '');
-        fd.append('lyrics', document.getElementById('ue-lyrics')?.value.trim() || '');
-        const dist = document.getElementById('ue-dist'); if (dist) fd.append('distributor', dist.value.trim());
-        const reason = document.getElementById('ue-reason'); if (reason) fd.append('share_reason', reason.value.trim());
-        const coverFile = document.getElementById('ue-cover')?.files[0]; if (coverFile) fd.append('cover', coverFile);
-        const audioFile = document.getElementById('ue-audio')?.files[0]; if (audioFile) fd.append('audio', audioFile);
-        try {
-          await apiForm('/songs/' + song.id, fd, 'PUT');
-          hideModal();
-          toast('Şarkı güncellendi!');
-          navigate('/muzik/' + slug);
-        } catch(e) {
-          msg.textContent = e.message;
-          btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Kaydet';
-        }
+        document.getElementById('ue-save').addEventListener('click', async () => {
+          const btn = document.getElementById('ue-save');
+          const msg = document.getElementById('ue-msg');
+          btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div>';
+          const fd = new FormData();
+          fd.append('title', document.getElementById('ue-title').value.trim());
+          fd.append('artist_name', document.getElementById('ue-artist').value.trim());
+          fd.append('genre', document.getElementById('ue-genre')?.value.trim() || '');
+          fd.append('lyrics', document.getElementById('ue-lyrics')?.value.trim() || '');
+          const dist = document.getElementById('ue-dist'); if (dist) fd.append('distributor', dist.value.trim());
+          const reason = document.getElementById('ue-reason'); if (reason) fd.append('share_reason', reason.value.trim());
+          const coverFile = document.getElementById('ue-cover')?.files[0]; if (coverFile) fd.append('cover', coverFile);
+          const audioFile = document.getElementById('ue-audio')?.files[0]; if (audioFile) fd.append('audio', audioFile);
+          try {
+            await apiForm('/songs/' + song.id, fd, 'PUT');
+            hideModal();
+            toast('Şarkı güncellendi!');
+            navigate('/muzik/' + slug);
+          } catch (e) {
+            msg.textContent = e.message;
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Kaydet';
+          }
+        });
       });
-    });
+    }
   }
-}
-async function renderArtistApply(app) {
-  if (!currentUser) { navigate('/giris'); return; }
-  document.title = 'Artist Başvurusu – TeaTube';
-  let existing = null;
-  try { existing = await api('/artist/my-application'); } catch {}
+  async function renderArtistApply(app) {
+    if (!currentUser) { navigate('/giris'); return; }
+    document.title = 'Artist Başvurusu – TeaTube';
+    let existing = null;
+    try { existing = await api('/artist/my-application'); } catch { }
 
-  const isPending = existing?.status === 'pending';
-  const isAccepted = existing?.status === 'accepted';
-  const isRejected = existing?.status === 'rejected';
+    const isPending = existing?.status === 'pending';
+    const isAccepted = existing?.status === 'accepted';
+    const isRejected = existing?.status === 'rejected';
 
-  if (isAccepted || currentUser.is_artist) {
-    app.innerHTML = `<div class="container page" style="max-width:600px;margin:0 auto">
+    if (isAccepted || currentUser.is_artist) {
+      app.innerHTML = `<div class="container page" style="max-width:600px;margin:0 auto">
       <div style="text-align:center;padding:60px 20px">
         <div style="font-size:48px;margin-bottom:16px">🎤</div>
         <div style="font-size:22px;font-weight:700;margin-bottom:8px">Artist Rozetiniz Var!</div>
@@ -4546,10 +4547,10 @@ async function renderArtistApply(app) {
         <a href="/artist-panel" data-link class="btn btn-primary"><i class="fas fa-music"></i> Artist Paneli</a>
       </div>
     </div>`;
-    return;
-  }
+      return;
+    }
 
-  app.innerHTML = `<div class="container page" style="max-width:600px;margin:0 auto">
+    app.innerHTML = `<div class="container page" style="max-width:600px;margin:0 auto">
     <div class="page-title"><i class="fas fa-microphone" style="color:var(--accent-red2);margin-right:8px"></i>Artist Rozeti Başvurusu</div>
     ${isPending ? `
       <div class="card" style="margin-bottom:20px">
@@ -4592,44 +4593,44 @@ async function renderArtistApply(app) {
     </div>` : ''}
   </div>`;
 
-  document.getElementById('apply-submit')?.addEventListener('click', async () => {
-    const genre = document.getElementById('apply-genre')?.value.trim();
-    const url = document.getElementById('apply-url')?.value.trim();
-    const file = document.getElementById('apply-file')?.files[0];
-    const note = document.getElementById('apply-note')?.value.trim();
-    const msg = document.getElementById('apply-msg');
-    if (!genre) { msg.style.color='var(--accent-red2)'; msg.textContent='Müzik türü zorunlu'; return; }
-    if (!url && !file) { msg.style.color='var(--accent-red2)'; msg.textContent='URL veya dosya gerekli'; return; }
-    const btn = document.getElementById('apply-submit');
-    btn.disabled=true; btn.textContent='Gönderiliyor...';
-    try {
-      const fd = new FormData();
-      fd.append('genre', genre);
-      fd.append('sample_song_url', url||'');
-      fd.append('note', note||'');
-      if (file) fd.append('sample_file', file);
-      await apiForm('/artist/apply', fd);
-      msg.style.color='var(--accent-red2)'; // green
-      app.innerHTML = `<div class="container page" style="max-width:600px;margin:0 auto;text-align:center;padding:60px 20px">
+    document.getElementById('apply-submit')?.addEventListener('click', async () => {
+      const genre = document.getElementById('apply-genre')?.value.trim();
+      const url = document.getElementById('apply-url')?.value.trim();
+      const file = document.getElementById('apply-file')?.files[0];
+      const note = document.getElementById('apply-note')?.value.trim();
+      const msg = document.getElementById('apply-msg');
+      if (!genre) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Müzik türü zorunlu'; return; }
+      if (!url && !file) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'URL veya dosya gerekli'; return; }
+      const btn = document.getElementById('apply-submit');
+      btn.disabled = true; btn.textContent = 'Gönderiliyor...';
+      try {
+        const fd = new FormData();
+        fd.append('genre', genre);
+        fd.append('sample_song_url', url || '');
+        fd.append('note', note || '');
+        if (file) fd.append('sample_file', file);
+        await apiForm('/artist/apply', fd);
+        msg.style.color = 'var(--accent-red2)'; // green
+        app.innerHTML = `<div class="container page" style="max-width:600px;margin:0 auto;text-align:center;padding:60px 20px">
         <div style="font-size:48px">⏳</div>
         <div style="font-size:22px;font-weight:700;margin-top:12px">Başvurunuz Alındı!</div>
         <p style="color:var(--text-secondary);margin-top:8px">Ekibimiz inceleyecek, onaylanınca bildirim alırsınız.</p>
         <a href="/" data-link class="btn btn-outline" style="margin-top:20px">Ana Sayfaya Dön</a>
       </div>`;
-    } catch(e) { msg.style.color='var(--accent-red2)'; msg.textContent=e.message; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Başvuruyu Gönder'; }
-  });
-}
+      } catch (e) { msg.style.color = 'var(--accent-red2)'; msg.textContent = e.message; btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Başvuruyu Gönder'; }
+    });
+  }
 
-// ===== ARTİST PANELİ =====
-async function renderArtistPanel(app) {
-  if (!currentUser) { navigate('/giris'); return; }
-  if (!currentUser.is_artist) { navigate('/artist-basvuru'); return; }
-  document.title = 'Artist Panel – TeaTube';
+  // ===== ARTİST PANELİ =====
+  async function renderArtistPanel(app) {
+    if (!currentUser) { navigate('/giris'); return; }
+    if (!currentUser.is_artist) { navigate('/artist-basvuru'); return; }
+    document.title = 'Artist Panel – TeaTube';
 
-  let rules = { own_rules: '', other_rules: '' };
-  try { rules = await api('/music-rules'); } catch {}
+    let rules = { own_rules: '', other_rules: '' };
+    try { rules = await api('/music-rules'); } catch { }
 
-  app.innerHTML = `<div class="container page" style="max-width:700px;margin:0 auto">
+    app.innerHTML = `<div class="container page" style="max-width:700px;margin:0 auto">
     <div class="page-title"><i class="fas fa-music" style="color:var(--accent-red2);margin-right:8px"></i>Artist Paneli</div>
     <div class="card">
       <div class="card-body">
@@ -4670,160 +4671,161 @@ async function renderArtistPanel(app) {
     </div>
   </div>`;
 
-  document.querySelectorAll('[name="song-type"]').forEach(r => r.addEventListener('change', () => {
-    const own = r.value === 'own';
-    document.getElementById('own-fields').style.display = own ? '' : 'none';
-    document.getElementById('other-fields').style.display = own ? 'none' : '';
-  }));
+    document.querySelectorAll('[name="song-type"]').forEach(r => r.addEventListener('change', () => {
+      const own = r.value === 'own';
+      document.getElementById('own-fields').style.display = own ? '' : 'none';
+      document.getElementById('other-fields').style.display = own ? 'none' : '';
+    }));
 
-  document.getElementById('song-upload-btn').addEventListener('click', async () => {
-    const isOwn = document.getElementById('st-own').checked;
-    const msg = document.getElementById('song-msg');
-    const btn = document.getElementById('song-upload-btn');
-    const rules_ok = isOwn ? document.getElementById('s-rules-own')?.checked : document.getElementById('s-rules-other')?.checked;
-    if (!rules_ok) { msg.style.color='var(--accent-red2)'; msg.textContent='Kuralları kabul etmelisiniz'; return; }
-    const fd = new FormData();
-    fd.append('song_type', isOwn ? 'own' : 'other');
-    fd.append('rules_accepted', '1');
-    if (isOwn) {
-      const title = document.getElementById('s-title')?.value.trim();
-      if (!title) { msg.style.color='var(--accent-red2)'; msg.textContent='Şarkı adı gerekli'; return; }
-      const audio = document.getElementById('s-audio')?.files[0];
-      if (!audio) { msg.style.color='var(--accent-red2)'; msg.textContent='Ses dosyası gerekli'; return; }
+    document.getElementById('song-upload-btn').addEventListener('click', async () => {
+      const isOwn = document.getElementById('st-own').checked;
+      const msg = document.getElementById('song-msg');
+      const btn = document.getElementById('song-upload-btn');
+      const rules_ok = isOwn ? document.getElementById('s-rules-own')?.checked : document.getElementById('s-rules-other')?.checked;
+      if (!rules_ok) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Kuralları kabul etmelisiniz'; return; }
+      const fd = new FormData();
+      fd.append('song_type', isOwn ? 'own' : 'other');
+      fd.append('rules_accepted', '1');
+      if (isOwn) {
+        const title = document.getElementById('s-title')?.value.trim();
+        if (!title) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Şarkı adı gerekli'; return; }
+        const audio = document.getElementById('s-audio')?.files[0];
+        if (!audio) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Ses dosyası gerekli'; return; }
+        fd.append('title', title);
+        fd.append('artist_name', currentUser.username);
+        fd.append('distributor', document.getElementById('s-distributor')?.value.trim() || '');
+        fd.append('genre', document.getElementById('s-genre')?.value.trim() || '');
+        fd.append('lyrics', document.getElementById('s-lyrics')?.value.trim() || '');
+        fd.append('audio', audio);
+        const cover = document.getElementById('s-cover')?.files[0]; if (cover) fd.append('cover', cover);
+      } else {
+        const title = document.getElementById('s-title-o')?.value.trim();
+        const artist = document.getElementById('s-artist-o')?.value.trim();
+        if (!title || !artist) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Başlık ve sanatçı adı gerekli'; return; }
+        const audio = document.getElementById('s-audio-o')?.files[0];
+        if (!audio) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Ses dosyası gerekli'; return; }
+        fd.append('title', title); fd.append('artist_name', artist);
+        fd.append('lyrics', document.getElementById('s-lyrics-o')?.value.trim() || '');
+        fd.append('share_reason', document.getElementById('s-reason')?.value.trim() || '');
+        fd.append('audio', audio);
+        const cover = document.getElementById('s-cover-o')?.files[0]; if (cover) fd.append('cover', cover);
+      }
+      btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div> Yükleniyor...';
+      try {
+        const data = await apiForm('/songs', fd);
+        navigate('/muzik/' + data.slug);
+      } catch (e) { msg.style.color = 'var(--accent-red2)'; msg.textContent = e.message; btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Şarkıyı Yayınla'; }
+    });
+  }
+
+  // ===== BAŞKASININ ŞARKISINI PAYLAŞ (artist rozeti gerekmez) =====
+  async function renderShareSong(app) {
+    if (!currentUser) { navigate('/giris'); return; }
+    if (currentUser.is_artist) { navigate('/artist-panel'); return; }
+    document.title = 'Şarkı Paylaş – TeaTube';
+
+    let rules = { other_rules: '' };
+    try { rules = await api('/music-rules'); } catch { }
+
+    const rulesHtml = rules.other_rules
+      ? `<div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;font-size:13px;color:var(--text-secondary);max-height:120px;overflow-y:auto">${escHtml(rules.other_rules)}</div>`
+      : '';
+
+    app.innerHTML = `<div class="container page" style="max-width:680px;margin:0 auto">
+      <div class="page-title"><i class="fas fa-share-alt" style="color:var(--accent-red2);margin-right:8px"></i>Şarkı Paylaş</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body" style="font-size:13px;color:var(--text-secondary);display:flex;align-items:flex-start;gap:10px">
+          <i class="fas fa-info-circle" style="color:var(--accent-red2);margin-top:2px;flex-shrink:0"></i>
+          <div>
+            Bu sayfa <strong>başkasına ait şarkıları</strong> topluluğa paylaşmak içindir.
+            Kendi şarkını yüklemek istiyorsan önce
+            <a href="/artist-basvuru" data-link style="color:var(--accent-red2)">artist başvurusu</a> yapman gerekir.
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="form-group">
+            <label>Şarkı Adı *</label>
+            <input id="ss-title" placeholder="Şarkının adı" />
+          </div>
+          <div class="form-group">
+            <label>Sanatçı (Şarkı Sahibi) *</label>
+            <input id="ss-artist" placeholder="Sanatçının adı" />
+          </div>
+          <div class="form-group">
+            <label>Müzik Türü</label>
+            <input id="ss-genre" placeholder="Pop, Rock, Hip-Hop..." />
+          </div>
+          <div class="form-group">
+            <label>Şarkı Dosyası * (MP3/WAV, max 50MB)</label>
+            <input type="file" id="ss-audio" accept="audio/*" style="background:var(--bg-card2);border:1px dashed var(--border);padding:10px;cursor:pointer;border-radius:8px" />
+          </div>
+          <div class="form-group">
+            <label>Kapak Fotoğrafı (isteğe bağlı)</label>
+            <input type="file" id="ss-cover" accept="image/*" style="background:var(--bg-card2);border:1px dashed var(--border);padding:10px;cursor:pointer;border-radius:8px" />
+          </div>
+          <div class="form-group">
+            <label>Şarkı Sözleri (isteğe bağlı)</label>
+            <textarea id="ss-lyrics" rows="5" placeholder="Şarkı sözlerini buraya yapıştırın..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Neden paylaşıyorsunuz? *</label>
+            <textarea id="ss-reason" rows="2" placeholder="Bu şarkıyı neden topluluğumuzla paylaşmak istediniz?"></textarea>
+          </div>
+          ${rulesHtml}
+          <label class="checkbox-label" style="margin-bottom:16px">
+            <input type="checkbox" id="ss-rules" style="width:auto" />
+            <span>Başkasının şarkısını paylaşma kurallarını okudum ve kabul ediyorum</span>
+          </label>
+          <button class="btn btn-primary" id="ss-submit" style="width:100%;justify-content:center">
+            <i class="fas fa-share"></i> Paylaş
+          </button>
+          <div id="ss-msg" style="margin-top:8px;font-size:12px;text-align:center"></div>
+        </div>
+      </div>
+    </div>`;
+
+    document.getElementById('ss-submit').addEventListener('click', async () => {
+      const msg = document.getElementById('ss-msg');
+      const btn = document.getElementById('ss-submit');
+      const title = document.getElementById('ss-title').value.trim();
+      const artist = document.getElementById('ss-artist').value.trim();
+      const genre = document.getElementById('ss-genre').value.trim();
+      const audio = document.getElementById('ss-audio').files[0];
+      const cover = document.getElementById('ss-cover').files[0];
+      const lyrics = document.getElementById('ss-lyrics').value.trim();
+      const reason = document.getElementById('ss-reason').value.trim();
+      const rules_ok = document.getElementById('ss-rules').checked;
+
+      if (!title) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Şarkı adı zorunlu'; return; }
+      if (!artist) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Sanatçı adı zorunlu'; return; }
+      if (!audio) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Ses dosyası zorunlu'; return; }
+      if (!reason) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Paylaşma sebebi zorunlu'; return; }
+      if (!rules_ok) { msg.style.color = 'var(--accent-red2)'; msg.textContent = 'Kuralları kabul etmelisiniz'; return; }
+
+      const fd = new FormData();
+      fd.append('song_type', 'other');
+      fd.append('rules_accepted', '1');
       fd.append('title', title);
-      fd.append('artist_name', currentUser.username);
-      fd.append('distributor', document.getElementById('s-distributor')?.value.trim()||'');
-      fd.append('genre', document.getElementById('s-genre')?.value.trim()||'');
-      fd.append('lyrics', document.getElementById('s-lyrics')?.value.trim()||'');
+      fd.append('artist_name', artist);
+      fd.append('genre', genre);
+      fd.append('lyrics', lyrics);
+      fd.append('share_reason', reason);
       fd.append('audio', audio);
-      const cover = document.getElementById('s-cover')?.files[0]; if(cover) fd.append('cover', cover);
-    } else {
-      const title = document.getElementById('s-title-o')?.value.trim();
-      const artist = document.getElementById('s-artist-o')?.value.trim();
-      if (!title||!artist) { msg.style.color='var(--accent-red2)'; msg.textContent='Başlık ve sanatçı adı gerekli'; return; }
-      const audio = document.getElementById('s-audio-o')?.files[0];
-      if (!audio) { msg.style.color='var(--accent-red2)'; msg.textContent='Ses dosyası gerekli'; return; }
-      fd.append('title', title); fd.append('artist_name', artist);
-      fd.append('lyrics', document.getElementById('s-lyrics-o')?.value.trim()||'');
-      fd.append('share_reason', document.getElementById('s-reason')?.value.trim()||'');
-      fd.append('audio', audio);
-      const cover = document.getElementById('s-cover-o')?.files[0]; if(cover) fd.append('cover', cover);
-    }
-    btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:14px;height:14px"></div> Yükleniyor...';
-    try {
-      const data = await apiForm('/songs', fd);
-      navigate('/muzik/' + data.slug);
-    } catch(e) { msg.style.color='var(--accent-red2)'; msg.textContent=e.message; btn.disabled=false; btn.innerHTML='<i class="fas fa-upload"></i> Şarkıyı Yayınla'; }
-  });
-}
+      if (cover) fd.append('cover', cover);
 
-// ===== BAŞKASININ ŞARKISINI PAYLAŞ (artist rozeti gerekmez) =====
-async function renderShareSong(app) {
-  if (!currentUser) { navigate('/giris'); return; }
-  // Artist olanlar kendi panelini kullansın
-  if (currentUser.is_artist) { navigate('/artist-panel'); return; }
-  document.title = 'Şarkı Paylaş – TeaTube';
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div> Yükleniyor...';
 
-  let rules = { other_rules: '' };
-  try { rules = await api('/music-rules'); } catch {}
-
-  app.innerHTML = `<div class="container page" style="max-width:680px;margin:0 auto">
-    <div class="page-title"><i class="fas fa-share-alt" style="color:var(--accent-red2);margin-right:8px"></i>Şarkı Paylaş</div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-body" style="font-size:13px;color:var(--text-secondary);display:flex;align-items:flex-start;gap:10px">
-        <i class="fas fa-info-circle" style="color:var(--accent-red2);margin-top:2px;flex-shrink:0"></i>
-        <div>
-          Bu sayfa <strong>başkasına ait şarkıları</strong> topluluğa paylaşmak içindir.
-          Kendi şarkını yüklemek istiyorsan önce
-          <a href="/artist-basvuru" data-link style="color:var(--accent-red2)">artist başvurusu</a> yapman gerekir.
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-body">
-        <div class="form-group">
-          <label>Şarkı Adı *</label>
-          <input id="ss-title" placeholder="Şarkının adı" />
-        </div>
-        <div class="form-group">
-          <label>Sanatçı (Şarkı Sahibi) *</label>
-          <input id="ss-artist" placeholder="Sanatçının adı" />
-        </div>
-        <div class="form-group">
-          <label>Müzik Türü</label>
-          <input id="ss-genre" placeholder="Pop, Rock, Hip-Hop..." />
-        </div>
-        <div class="form-group">
-          <label>Şarkı Dosyası * (MP3/WAV, max 50MB)</label>
-          <input type="file" id="ss-audio" accept="audio/*" style="background:var(--bg-card2);border:1px dashed var(--border);padding:10px;cursor:pointer;border-radius:8px" />
-        </div>
-        <div class="form-group">
-          <label>Kapak Fotoğrafı (isteğe bağlı)</label>
-          <input type="file" id="ss-cover" accept="image/*" style="background:var(--bg-card2);border:1px dashed var(--border);padding:10px;cursor:pointer;border-radius:8px" />
-        </div>
-        <div class="form-group">
-          <label>Şarkı Sözleri (isteğe bağlı)</label>
-          <textarea id="ss-lyrics" rows="5" placeholder="Şarkı sözlerini buraya yapıştırın..."></textarea>
-        </div>
-        <div class="form-group">
-          <label>Neden paylaşıyorsunuz? *</label>
-          <textarea id="ss-reason" rows="2" placeholder="Bu şarkıyı neden topluluğumuzla paylaşmak istediniz?"></textarea>
-        </div>
-        ${rules.other_rules ? `
-        <div style="background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;font-size:13px;color:var(--text-secondary);max-height:120px;overflow-y:auto">
-          ${escHtml(rules.other_rules)}
-        </div>` : ''}
-        <label class="checkbox-label" style="margin-bottom:16px">
-          <input type="checkbox" id="ss-rules" style="width:auto" />
-          <span>Başkasının şarkısını paylaşma kurallarını okudum ve kabul ediyorum</span>
-        </label>
-        <button class="btn btn-primary" id="ss-submit" style="width:100%;justify-content:center">
-          <i class="fas fa-share"></i> Paylaş
-        </button>
-        <div id="ss-msg" style="margin-top:8px;font-size:12px;text-align:center"></div>
-      </div>
-    </div>
-  </div>`;
-
-  document.getElementById('ss-submit').addEventListener('click', async () => {
-    const msg = document.getElementById('ss-msg');
-    const btn = document.getElementById('ss-submit');
-    const title  = document.getElementById('ss-title').value.trim();
-    const artist = document.getElementById('ss-artist').value.trim();
-    const genre  = document.getElementById('ss-genre').value.trim();
-    const audio  = document.getElementById('ss-audio').files[0];
-    const cover  = document.getElementById('ss-cover').files[0];
-    const lyrics = document.getElementById('ss-lyrics').value.trim();
-    const reason = document.getElementById('ss-reason').value.trim();
-    const rules_ok = document.getElementById('ss-rules').checked;
-
-    if (!title)    { msg.style.color='var(--accent-red2)'; msg.textContent='Şarkı adı zorunlu'; return; }
-    if (!artist)   { msg.style.color='var(--accent-red2)'; msg.textContent='Sanatçı adı zorunlu'; return; }
-    if (!audio)    { msg.style.color='var(--accent-red2)'; msg.textContent='Ses dosyası zorunlu'; return; }
-    if (!reason)   { msg.style.color='var(--accent-red2)'; msg.textContent='Paylaşma sebebi zorunlu'; return; }
-    if (!rules_ok) { msg.style.color='var(--accent-red2)'; msg.textContent='Kuralları kabul etmelisiniz'; return; }
-
-    const fd = new FormData();
-    fd.append('song_type', 'other');
-    fd.append('rules_accepted', '1');
-    fd.append('title', title);
-    fd.append('artist_name', artist);
-    fd.append('genre', genre);
-    fd.append('lyrics', lyrics);
-    fd.append('share_reason', reason);
-    fd.append('audio', audio);
-    if (cover) fd.append('cover', cover);
-
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div> Yükleniyor...';
-    try {
-      const data = await apiForm('/songs', fd);
-      navigate('/muzik/' + data.slug);
-    } catch(e) {
-      msg.style.color = 'var(--accent-red2)';
-      msg.textContent = e.message;
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-share"></i> Paylaş';
-    }
-  });
-}
+      try {
+        const data = await apiForm('/songs', fd);
+        navigate('/muzik/' + data.slug);
+      } catch (e) {
+        msg.style.color = 'var(--accent-red2)';
+        msg.textContent = e.message;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-share"></i> Paylaş';
+      }
+    });
+  }
