@@ -4806,4 +4806,5 @@ async function renderHome(app) {
       }
     });
   }
+}
 
