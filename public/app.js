@@ -470,6 +470,14 @@ async function renderHome(app) {
   updatePageMeta('Demlik – Topluluk Platformu', 'Çay kadar sıcak topluluk platformu.', '');
   app.innerHTML = `
     <div class="container page">
+      <div class="section" id="featured-section">
+        <div class="section-header">
+          <div class="section-title"><div class="section-title-bar"></div>Öne Çıkanlar</div>
+        </div>
+        <div id="featured-videos" style="margin-bottom:18px"><div class="loading-center"><div class="spinner"></div></div></div>
+        <div id="featured-photos" style="margin-bottom:18px" class="grid-3"></div>
+      </div>
+
       <div class="section">
         <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
           <div><div class="page-title">Son Konular</div></div>
@@ -481,6 +489,7 @@ async function renderHome(app) {
         </div>
         <div id="home-forums"><div class="loading-center"><div class="spinner"></div></div></div>
       </div>
+
       <div class="section">
         <div class="section-header">
           <div class="section-title"><div class="section-title-bar"></div>Öne Çıkan Kitaplar</div>
@@ -514,6 +523,37 @@ async function renderHome(app) {
     const el = $('#home-books');
     if (!books.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-book"></i><p>Henüz kitap yok.</p></div>'; }
     else el.innerHTML = books.slice(0, 6).map(b => bookCardHTML(b)).join('');
+  } catch {}
+
+  // Featured: videos then photos — fetch latest items
+  try {
+    const videos = await api('/media?type=video&limit=4');
+    const vEl = $('#featured-videos');
+    if (!videos.length) { vEl.innerHTML = '<div class="empty-state"><i class="fas fa-video"></i><p>Öne çıkan video yok.</p></div>'; }
+    else {
+      vEl.innerHTML = `<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:6px">${videos.map(v => `
+        <div style="min-width:360px;flex:0 0 360px" class="card clickable" onclick="navigate('/media/${v.id}')">
+          <div style="position:relative">
+            <img src="${escHtml(v.thumb_url || v.media_url)}" style="width:100%;height:210px;object-fit:cover" />
+            <div style="position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,0.5);color:#fff;padding:6px 8px;border-radius:6px;font-weight:700">${escHtml(v.title||'Video')}</div>
+          </div>
+          <div style="padding:10px"><div style="font-weight:700">${escHtml(v.title||'')}</div><div style="font-size:13px;color:var(--text-muted);margin-top:6px">${escHtml(v.username||'')}</div></div>
+        </div>`).join('')}</div>`;
+    }
+  } catch {}
+
+  try {
+    const photos = await api('/media?type=photo&limit=6');
+    const pEl = $('#featured-photos');
+    if (!photos.length) { pEl.innerHTML = '<div class="empty-state"><i class="fas fa-image"></i><p>Öne çıkan fotoğraf yok.</p></div>'; }
+    else {
+      pEl.innerHTML = photos.map(p => `
+        <div class="card clickable" style="padding:0" onclick="navigate('/media/${p.id}')">
+          <img src="${escHtml(p.media_url)}" style="width:100%;height:160px;object-fit:cover" />
+          <div style="padding:8px"><div style="font-weight:600">${escHtml(p.title||'')}</div></div>
+        </div>
+      `).join('');
+    }
   } catch {}
 }
 
@@ -2205,9 +2245,11 @@ function renderSettingsSection(section) {
     $('#save-profile-btn').addEventListener('click', async () => {
       const titleVal = ($('#s-title').value || '').trim();
       if (!titleVal) { $('#profile-msg').textContent = 'Ünvan zorunlu'; return; }
+      const newUsername = ($('#s-username').value || '').trim();
+      if (/\s/.test(newUsername)) { $('#profile-msg').textContent = 'Kullanıcı adında boşluk olamaz'; return; }
       const fd = new FormData();
       fd.append('bio', $('#s-bio').value);
-      fd.append('username', $('#s-username').value.trim());
+      fd.append('username', newUsername);
       fd.append('display_name', $('#s-display-name').value.trim() || '');
       fd.append('title', titleVal);
       fd.append('location', $('#s-location').value || '');
@@ -2637,6 +2679,7 @@ function renderRegister(app) {
     const password = $('#reg-pw').value;
     const kvkk_accepted = $('#reg-kvkk').checked;
     if (!username || !email || !password) { $('#reg-error').textContent = 'Tüm alanları doldurun'; return; }
+    if (/\s/.test(username)) { $('#reg-error').textContent = 'Kullanıcı adında boşluk olamaz'; return; }
     if (!kvkk_accepted) { $('#reg-error').textContent = 'KVKK onayı zorunludur'; return; }
     try {
       const data = await api('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password, kvkk_accepted }) });

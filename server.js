@@ -393,6 +393,7 @@ app.post('/api/auth/register', async (req, res) => {
     if (!username || !email || !password) return res.status(400).json({ error: 'Tüm alanlar zorunlu' });
     if (!kvkk_accepted) return res.status(400).json({ error: 'KVKK onayı zorunlu' });
     if (username.length < 3 || username.length > 30) return res.status(400).json({ error: 'Kullanıcı adı 3-30 karakter olmalı' });
+    if (/\s/.test(username)) return res.status(400).json({ error: 'Kullanıcı adında boşluk olamaz' });
     if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalı' });
     const ip = getIp(req);
     const { rows: ipBan } = await query("SELECT id FROM users WHERE banned_ip=$1 AND ban_type='ip'", [ip]);
@@ -1189,6 +1190,7 @@ app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res
   let finalUsername = req.user.username;
   if (username && username !== req.user.username) {
     if (typeof username !== 'string' || username.length < 3 || username.length > 30) return res.status(400).json({ error: 'Kullanıcı adı 3-30 karakter olmalı' });
+    if (/\s/.test(username)) return res.status(400).json({ error: 'Kullanıcı adında boşluk olamaz' });
     const { rows: exists } = await query('SELECT id FROM users WHERE username=$1', [username]);
     if (exists.length) return res.status(400).json({ error: 'Bu kullanıcı adı zaten alınmış' });
     finalUsername = username;
