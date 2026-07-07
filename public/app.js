@@ -213,8 +213,10 @@ function updateNavUI() {
     btn.innerHTML = `${nav}<i class="fas fa-chevron-down" style="font-size:10px;color:var(--text-muted)"></i>`;
     $('#dropdown-profile').setAttribute('href', '/profil/' + currentUser.username);
     const navBrand = document.querySelector('.nav-brand');
-    if (navBrand) navBrand.setAttribute('href', '/profil/' + currentUser.username);
-    if (navBrand) navBrand.style.cursor = 'pointer';
+    if (navBrand) {
+      navBrand.setAttribute('href', '/profil/' + currentUser.username);
+      navBrand.style.cursor = 'pointer';
+    }
 
     if (mobAuth) mobAuth.classList.add('hidden');
     if (mobNew) mobNew.classList.remove('hidden');
@@ -242,7 +244,10 @@ function updateNavUI() {
   } else {
     authEl.classList.remove('hidden');
     const navBrand = document.querySelector('.nav-brand');
-    if (navBrand) navBrand.setAttribute('href', '/');
+    if (navBrand) {
+      navBrand.setAttribute('href', '/');
+      navBrand.style.cursor = '';
+    }
     userEl.classList.add('hidden');
     if (mobAuth) mobAuth.classList.remove('hidden');
     if (mobNew) mobNew.classList.add('hidden');
@@ -1079,18 +1084,26 @@ async function renderBookDetail(app, slug) {
   updatePageMeta(book.title + ' – Demlik', book.preface ? book.preface.substring(0,155) : book.title + ' – Demlik\'te yayınlanan kitap.', book.cover_image || '');
   const isOwner = currentUser && currentUser.id === book.user_id;
 
-  const unassigned = pages.filter(p => !p.chapter_id);
+  const sortedPages = [...pages].sort((a,b) => (a.page_num || 0) - (b.page_num || 0));
+  const firstPage = sortedPages[0];
+  const unassigned = sortedPages.filter(p => !p.chapter_id);
   const chapPages = {};
-  chapters.forEach(c => { chapPages[c.id] = pages.filter(p => p.chapter_id === c.id); });
+  chapters.forEach(c => { chapPages[c.id] = sortedPages.filter(p => p.chapter_id === c.id); });
   const lastReadSlug = localStorage.getItem('demlik_book_last_page_' + slug);
-  const lastReadPage = pages.find(p => p.slug === lastReadSlug);
+  const lastReadPage = sortedPages.find(p => p.slug === lastReadSlug);
   const resumeHTML = lastReadPage ? `<div class="resume-card" style="margin-bottom:20px;padding:18px 20px;border:1px solid var(--border);border-radius:16px;background:rgba(59,130,246,0.05);display:flex;align-items:center;justify-content:space-between;gap:12px">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:700;color:var(--accent-red2)">Okuduğun yerde kaldın</div>
         <div style="font-size:14px;color:var(--text-primary);margin-top:6px">${escHtml(lastReadPage.page_num + '. ' + lastReadPage.title)}</div>
       </div>
       <a href="/kitap/${escHtml(slug)}/sayfa/${escHtml(lastReadPage.slug)}" data-link class="btn btn-primary btn-sm">Devam Et</a>
-    </div>` : '';
+    </div>` : (firstPage ? `<div class="resume-card" style="margin-bottom:20px;padding:18px 20px;border:1px solid var(--border);border-radius:16px;background:rgba(59,130,246,0.05);display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--accent-red2)">Okumaya başla</div>
+        <div style="font-size:14px;color:var(--text-primary);margin-top:6px">${escHtml(firstPage.page_num + '. ' + firstPage.title)}</div>
+      </div>
+      <a href="/kitap/${escHtml(slug)}/sayfa/${escHtml(firstPage.slug)}" data-link class="btn btn-primary btn-sm">Oku</a>
+    </div>` : '');
 
   const chapListHTML = chapters.map(c => `
     <div class="chapter-item">
@@ -1109,8 +1122,14 @@ async function renderBookDetail(app, slug) {
       </div>
       <div class="book-detail-info">
         <div class="book-detail-title">${escHtml(book.title)}</div>
-        <div class="book-detail-author">${avatarImg(book, 'avatar-sm')} ${userDisplayName(book)} &middot; ${book.page_count} sayfa</div>
+        <div class="book-detail-meta">
+          <span>${avatarImg(book, 'avatar-sm')} ${userDisplayName(book)}</span>
+          <span><i class="fas fa-file-alt"></i> ${book.page_count || 0} sayfa</span>
+          ${book.created_at ? `<span><i class="fas fa-calendar"></i> ${formatDate(book.created_at)}</span>` : ''}
+          ${book.updated_at ? `<span><i class="fas fa-edit"></i> Güncellendi ${formatDate(book.updated_at)}</span>` : ''}
+        </div>
         ${book.preface ? `<div class="book-preface">${escHtml(book.preface)}</div>` : ''}
+        ${firstPage ? `<div style="margin-top:16px"><a href="/kitap/${escHtml(slug)}/sayfa/${escHtml(firstPage.slug)}" data-link class="btn btn-primary btn-sm"><i class="fas fa-book-reader"></i> Oku</a></div>` : ''}
         ${isOwner ? `<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
           <button class="btn btn-outline btn-sm" id="edit-book-btn"><i class="fas fa-edit"></i> Düzenle</button>
           <button class="btn btn-primary btn-sm" id="add-page-btn"><i class="fas fa-plus"></i> Sayfa Ekle</button>
@@ -2606,6 +2625,8 @@ async function renderMessages(app, targetUsername) {
       $$('.dm-conv-item').forEach(x => x.classList.remove('active'));
       el.classList.add('active');
       renderDMChat(el.dataset.username);
+      const newPath = '/mesajlar/' + el.dataset.username;
+      if (location.pathname !== newPath) history.pushState({}, '', newPath);
     });
   });
 
@@ -2728,7 +2749,11 @@ async function renderDMChat(username) {
       <div id="dm-img-preview" style="display:none;position:relative">
         <img id="dm-img-thumb" style="height:48px;border-radius:6px;object-fit:cover" />
         <button onclick="clearDmImg()" style="position:absolute;top:-6px;right:-6px;background:var(--accent-red);color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center">✕</button>
-      </div>
+      </div>`
+  ;
+  const dmMessagesContainer = $('#dm-messages');
+  if (dmMessagesContainer) dmMessagesContainer.scrollTop = dmMessagesContainer.scrollHeight;
+
       <textarea id="dm-input" placeholder="Mesaj yaz..." rows="1" style="flex:1;background:transparent;border:none;resize:none;color:var(--text-primary);font-size:14px;padding:8px 0;outline:none;max-height:120px;overflow-y:auto"></textarea>
       <button class="btn btn-primary btn-sm" id="dm-send-btn"><i class="fas fa-paper-plane"></i></button>
     </div>
@@ -3103,7 +3128,7 @@ function friendItemHTML(f, type, myId) {
       ${type === 'accepted' || type === 'outgoing' ? `<button class="btn btn-ghost btn-sm friend-remove" data-id="${f.id}" title="Sil"><i class="fas fa-user-minus"></i></button>` : ''}
     </div>`;
   }
-  return `<div class="card card-body" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;${type === 'accepted' ? 'cursor:pointer;' : ''}" ${type === 'accepted' ? `onclick="navigate('/mesajlar/${escHtml(other_username)}')"` : ''}>
+  return `<div class="card card-body friend-card" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;${type === 'accepted' ? 'cursor:pointer;' : ''}" ${type === 'accepted' ? `onclick="navigate('/mesajlar/${escHtml(other_username)}')"` : ''}>
     ${other_avatar ? `<img src="${escHtml(other_avatar)}" class="avatar-md" />` : `<div class="avatar-md avatar-placeholder"><i class="fas fa-user"></i></div>`}
     <div style="flex:1">
       <a href="/profil/${escHtml(other_username)}" data-link style="font-weight:600;font-size:14px;color:var(--text-primary)">${escHtml(other_username)}</a>
@@ -3610,9 +3635,14 @@ async function renderMusicDetail(app, slug) {
           : `<div class="music-detail-cover music-detail-cover-ph"><i class="fas fa-music"></i></div>`}
       </div>
       <div class="music-detail-info">
-        <div class="music-detail-type-badge">${isOwn ? '<i class="fas fa-microphone"></i> Sanatçı Şarkısı' : '<i class="fas fa-share"></i> Paylaşılan Şarkı'}</div>
-        <div class="music-detail-title">${escHtml(song.title)}</div>
-        <div class="music-detail-artist">${escHtml(song.artist_name)}</div>
+        <div class="music-detail-top">
+          <div>
+            <div class="music-detail-type-badge">${isOwn ? '<i class="fas fa-microphone"></i> Sanatçı Şarkısı' : '<i class="fas fa-share"></i> Paylaşılan Şarkı'}</div>
+            <div class="music-detail-title">${escHtml(song.title)}</div>
+            <div class="music-detail-artist">${escHtml(song.artist_name)}</div>
+          </div>
+          ${isUploader ? `<div class="music-detail-actions"><button class="btn btn-outline btn-sm" id="song-edit-btn"><i class="fas fa-edit"></i> Düzenle</button></div>` : ''}
+        </div>
         <div class="music-detail-meta">
           ${song.genre ? `<span><i class="fas fa-tag"></i> ${escHtml(song.genre)}</span>` : ''}
           ${song.distributor ? `<span><i class="fas fa-building"></i> ${escHtml(song.distributor)}</span>` : ''}
@@ -3621,15 +3651,12 @@ async function renderMusicDetail(app, slug) {
         </div>
         <div class="music-player-box" id="music-player-box">
           <audio id="detail-audio" src="${escHtml(song.audio_url)}" preload="metadata"></audio>
-          <div class="music-player-controls" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div class="music-player-controls">
             <button class="music-play-btn" id="detail-play-btn"><i class="fas fa-play"></i> Oynat</button>
-            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary)">
-              <button id="detail-vol-btn" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:14px;padding:2px" title="Ses"><i class="fas fa-volume-up"></i></button>
-              <input type="range" id="detail-vol" min="0" max="100" value="80" step="1"
-                style="-webkit-appearance:none;appearance:none;width:80px;height:4px;border-radius:4px;background:var(--border);outline:none;cursor:pointer"
-                title="Ses seviyesi" />
+            <div class="music-vol-wrap">
+              <button id="detail-vol-btn" class="music-vol-btn" title="Ses"><i class="fas fa-volume-up"></i></button>
+              <input type="range" id="detail-vol" min="0" max="100" value="80" step="1" class="music-vol-slider" title="Ses seviyesi" />
             </div>
-            ${isUploader ? `<button class="btn btn-outline btn-sm" id="song-edit-btn" style="margin-left:auto"><i class="fas fa-edit"></i> Düzenle</button>` : ''}
           </div>
           <div class="music-progress-wrap">
             <span class="music-time" id="dp-cur">0:00</span>
