@@ -282,8 +282,9 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB (audio için)
   fileFilter: (req, file, cb) => {
     const allowedImages = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
-    const allowedAudio = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/flac', 'audio/aac', 'audio/x-wav', 'audio/wave'];
-    if (allowedImages.includes(file.mimetype) || allowedAudio.includes(file.mimetype) || file.mimetype.startsWith('audio/')) cb(null, true);
+      const allowedAudio = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/flac', 'audio/aac', 'audio/x-wav', 'audio/wave'];
+      const allowedVideo = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-matroska'];
+      if (allowedImages.includes(file.mimetype) || allowedAudio.includes(file.mimetype) || file.mimetype.startsWith('audio/') || allowedVideo.includes(file.mimetype) || file.mimetype.startsWith('video/')) cb(null, true);
     else cb(new Error('Sadece resim veya ses dosyaları kabul edilir'));
   }
 });
@@ -1201,6 +1202,186 @@ app.put('/api/profile/password', authMiddleware, async (req, res) => {
   if (req.user.password_hash !== hashPassword(old_password)) return res.status(401).json({ error: 'Eski şifre yanlış' });
   if (new_password.length < 6) return res.status(400).json({ error: 'Yeni şifre en az 6 karakter' });
   await query('UPDATE users SET password_hash=$1 WHERE id=$2', [hashPassword(new_password), req.user.id]);
+  res.json({ ok: true });
+});
+
+// ===== MEDIA / ADS / CENSOR HELPERS & ROUTES =====
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function getCensorLevel() {
+  const { rows } = await query('SELECT value FROM settings WHERE key=$1', ['censor_level']);
+  return (rows[0] && rows[0].value) || 'medium';
+}
+
+async function applyCensor(text, level) {
+  if (!text) return { blocked: false, text: '' };
+  const rulesRes = await query('SELECT phrase, level, action, replacement FROM censor_rules');
+  const rules = rulesRes.rows || [];
+  const order = { low: 1, medium: 2, high: 3 };
+  const currentLevel = level || await getCensorLevel();
+  let out = text;
+  for (const r of rules) {
+    try {
+      const ruleLevel = r.level || 'medium';
+      if ((order[ruleLevel] || 1) > (order[currentLevel] || 2)) continue;
+      const re = new RegExp(escapeRegExp(r.phrase), 'ig');
+      if (r.action === 'block') {
+        if (re.test(out)) return { blocked: true, text: '' };
+      } else {
+        out = out.replace(re, r.replacement || '***');
+      }
+    } catch (e) { continue; }
+  }
+  return { blocked: false, text: out };
+}
+
+// List media (videos/photos)
+app.get('/api/media', async (req, res) => {
+  try {
+    const type = req.query.type || 'all';
+    const page = Math.max(1, parseInt(req.query.page || '1'));
+    const limit = Math.min(50, parseInt(req.query.limit || '20'));
+    const offset = (page - 1) * limit;
+    let q = 'SELECT m.*, u.username, u.avatar, u.display_name FROM media m LEFT JOIN users u ON u.id=m.user_id';
+    const params = [];
+    if (type !== 'all') { params.push(type); q += ' WHERE m.type=$' + params.length; }
+    params.push(limit, offset);
+    q += ' ORDER BY m.created_at DESC LIMIT $' + (params.length - 1) + ' OFFSET $' + params.length;
+    const { rows } = await query(q, params);
+    res.json(rows.map(r => ({ ...r, user: { username: r.username, avatar: r.avatar, display_name: r.display_name } }))); 
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get one media item with comments
+app.get('/api/media/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { rows } = await query('SELECT m.*, u.username, u.avatar, u.display_name FROM media m LEFT JOIN users u ON u.id=m.user_id WHERE m.id=$1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Media bulunamadı' });
+    const media = rows[0];
+    const comments = (await query('SELECT mc.*, u.username, u.avatar, u.display_name FROM media_comments mc LEFT JOIN users u ON u.id=mc.user_id WHERE mc.media_id=$1 ORDER BY mc.created_at ASC', [id])).rows;
+    res.json({ media, comments });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Upload media
+app.post('/api/media', authMiddleware, upload.single('file'), async (req, res) => {
+  try {
+    const { title = '', description = '', type = 'video' } = req.body;
+    if (!req.file) return res.status(400).json({ error: 'Dosya gerekli' });
+    const url = await handleUpload(req.file);
+    // thumbnail can be provided by client or left empty
+    const thumb = req.body.thumb_url || '';
+    const censTitle = await applyCensor(title);
+    if (censTitle.blocked) return res.status(400).json({ error: 'İçerik yasaklı kelime içeriyor' });
+    const censDesc = await applyCensor(description);
+    if (censDesc.blocked) return res.status(400).json({ error: 'İçerik yasaklı kelime içeriyor' });
+    const { rows } = await query('INSERT INTO media (user_id,type,title,description,media_url,thumb_url,metadata) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+      [req.user.id, type, censTitle.text, censDesc.text, url, thumb, JSON.stringify({ uploaded_at: new Date().toISOString() })]);
+    const m = rows[0];
+    res.json(m);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Comment on media
+app.post('/api/media/:id/comments', authMiddleware, async (req, res) => {
+  try {
+    const mediaId = parseInt(req.params.id);
+    const content = (req.body.content || '').trim();
+    if (!content) return res.status(400).json({ error: 'Yorum boş olamaz' });
+    const cens = await applyCensor(content);
+    if (cens.blocked) return res.status(400).json({ error: 'Yorum yasaklı kelime içeriyor' });
+    const { rows } = await query('INSERT INTO media_comments (media_id,user_id,content) VALUES ($1,$2,$3) RETURNING *', [mediaId, req.user.id, cens.text]);
+    const comment = rows[0];
+    const joined = (await query('SELECT mc.*, u.username, u.avatar, u.display_name FROM media_comments mc LEFT JOIN users u ON u.id=mc.user_id WHERE mc.id=$1', [comment.id])).rows[0];
+    res.json(joined);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Public ads
+app.get('/api/ads', async (req, res) => {
+  try {
+    const { rows } = await query("SELECT * FROM ads WHERE active=1 AND (start_at IS NULL OR start_at<=NOW()) AND (end_at IS NULL OR end_at>=NOW()) ORDER BY created_at DESC LIMIT 20");
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/ads/:id/impression', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await query('UPDATE ads SET impressions=impressions+1 WHERE id=$1', [id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/ads/:id/click', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await query('UPDATE ads SET clicks=clicks+1 WHERE id=$1', [id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin ad management
+app.get('/api/admin/ads', authMiddleware, async (req, res) => {
+  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+  const { rows } = await query('SELECT * FROM ads ORDER BY created_at DESC');
+  res.json(rows);
+});
+
+app.post('/api/admin/ads', authMiddleware, async (req, res) => {
+  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+  const { image_url, title, description, target_url, start_at, end_at, active } = req.body;
+  const { rows } = await query('INSERT INTO ads (image_url,title,description,target_url,start_at,end_at,active) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *', [image_url, title||'', description||'', target_url||'', start_at||null, end_at||null, active?1:0]);
+  res.json(rows[0]);
+});
+
+app.put('/api/admin/ads/:id', authMiddleware, async (req, res) => {
+  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+  const id = parseInt(req.params.id);
+  const { image_url, title, description, target_url, start_at, end_at, active } = req.body;
+  await query('UPDATE ads SET image_url=$1,title=$2,description=$3,target_url=$4,start_at=$5,end_at=$6,active=$7 WHERE id=$8', [image_url, title||'', description||'', target_url||'', start_at||null, end_at||null, active?1:0, id]);
+  const updated = (await query('SELECT * FROM ads WHERE id=$1', [id])).rows[0];
+  res.json(updated);
+});
+
+app.delete('/api/admin/ads/:id', authMiddleware, async (req, res) => {
+  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+  const id = parseInt(req.params.id);
+  await query('DELETE FROM ads WHERE id=$1', [id]);
+  res.json({ ok: true });
+});
+
+// Admin censor rules
+app.get('/api/admin/censor', authMiddleware, async (req, res) => {
+  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+  const { rows } = await query('SELECT * FROM censor_rules ORDER BY created_at DESC');
+  res.json(rows);
+});
+
+app.post('/api/admin/censor', authMiddleware, async (req, res) => {
+  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+  const { phrase, level, action, replacement } = req.body;
+  const { rows } = await query('INSERT INTO censor_rules (phrase,level,action,replacement) VALUES ($1,$2,$3,$4) RETURNING *', [phrase, level||'medium', action||'replace', replacement||'***']);
+  res.json(rows[0]);
+});
+
+app.put('/api/admin/censor/:id', authMiddleware, async (req, res) => {
+  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+  const id = parseInt(req.params.id);
+  const { phrase, level, action, replacement } = req.body;
+  await query('UPDATE censor_rules SET phrase=$1,level=$2,action=$3,replacement=$4 WHERE id=$5', [phrase, level||'medium', action||'replace', replacement||'***', id]);
+  const updated = (await query('SELECT * FROM censor_rules WHERE id=$1', [id])).rows[0];
+  res.json(updated);
+});
+
+app.delete('/api/admin/censor/:id', authMiddleware, async (req, res) => {
+  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+  const id = parseInt(req.params.id);
+  await query('DELETE FROM censor_rules WHERE id=$1', [id]);
   res.json({ ok: true });
 });
 

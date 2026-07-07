@@ -74,6 +74,68 @@ async function initDb() {
       daily_book_pages_plus INTEGER DEFAULT -1
     );
 
+    -- Media (videos/photos)
+    CREATE TABLE IF NOT EXISTS media (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      type TEXT NOT NULL, -- 'video' or 'photo' or 'reel'
+      title TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      media_url TEXT DEFAULT '',
+      thumb_url TEXT DEFAULT '',
+      metadata JSONB DEFAULT '{}',
+      views BIGINT DEFAULT 0,
+      likes BIGINT DEFAULT 0,
+      is_private INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS media_comments (
+      id BIGSERIAL PRIMARY KEY,
+      media_id BIGINT NOT NULL,
+      user_id BIGINT,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      FOREIGN KEY(media_id) REFERENCES media(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS media_likes (
+      id BIGSERIAL PRIMARY KEY,
+      media_id BIGINT NOT NULL,
+      user_id BIGINT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(media_id, user_id),
+      FOREIGN KEY(media_id) REFERENCES media(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    -- Ads managed by admin
+    CREATE TABLE IF NOT EXISTS ads (
+      id BIGSERIAL PRIMARY KEY,
+      image_url TEXT NOT NULL,
+      title TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      target_url TEXT DEFAULT '',
+      impressions BIGINT DEFAULT 0,
+      clicks BIGINT DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      start_at TIMESTAMP,
+      end_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Censorship rules
+    CREATE TABLE IF NOT EXISTS censor_rules (
+      id BIGSERIAL PRIMARY KEY,
+      phrase TEXT NOT NULL,
+      level TEXT DEFAULT 'medium', -- low|medium|high
+      action TEXT DEFAULT 'replace', -- replace|block
+      replacement TEXT DEFAULT '***',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT
