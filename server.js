@@ -412,6 +412,24 @@ async function handleUpload(file) {
   return '/uploads/' + file.filename;
 }
 
+function normalizeMediaUrl(url) {
+  if (!url) return url;
+  if (typeof url !== 'string') return url;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+  if (url.startsWith('/uploads/')) return url;
+  try { return '/uploads/' + path.basename(url); } catch (e) { return url; }
+}
+
+function ensureUploadedFileExists(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (!(url.startsWith('/uploads/'))) return url;
+  const fname = path.basename(url);
+  const p = path.join(UPLOAD_DIR, fname);
+  if (fs.existsSync(p)) return url;
+  console.error('Missing uploaded file referenced in DB or upload result:', p);
+  return ''; // clear URL if file missing
+}
+
 // ===== ROBOTS & SITEMAP =====
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain');
@@ -1880,6 +1898,9 @@ app.post('/api/songs', authMiddleware, upload.fields([
     return res.status(500).json({ error: 'Ses yüklenemedi: ' + (e && e.message ? e.message : String(e)) });
   }
   if (req.files?.cover?.[0]) { try { cover_url = await handleUpload(req.files.cover[0]); } catch (e) { console.error('Cover upload failed:', e && e.message ? e.message : e); } }
+  // Ensure referenced upload files actually exist on disk; if not, clear the URL to avoid 500s when clients try to access them
+  audio_url = ensureUploadedFileExists(audio_url);
+  cover_url = ensureUploadedFileExists(cover_url);
   const { rows } = await query(
     `INSERT INTO songs (uploader_id, song_type, title, artist_name, distributor, genre, lyrics, cover_url, audio_url, share_reason, slug)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'tmp') RETURNING id`,
@@ -1914,7 +1935,8 @@ app.get('/api/songs', async (req, res) => {
      ${where} ORDER BY s.published_at DESC LIMIT 100`,
     params
   );
-  res.json(rows);
+  const out = rows.map(r => ({ ...r, audio_url: normalizeMediaUrl(r.audio_url), cover_url: normalizeMediaUrl(r.cover_url) }));
+  res.json(out);
 });
 
 // Tek şarkı
@@ -1926,7 +1948,10 @@ app.get('/api/songs/:slug', async (req, res) => {
     [req.params.slug]
   );
   if (!rows.length) return res.status(404).json({ error: 'Şarkı bulunamadı' });
-  res.json(rows[0]);
+  const song = rows[0];
+  song.audio_url = normalizeMediaUrl(song.audio_url);
+  song.cover_url = normalizeMediaUrl(song.cover_url);
+  res.json(song);
 });
 
 // Dinlenme sayısı artır
@@ -1946,7 +1971,8 @@ app.get('/api/admin/songs', adminMiddleware, async (req, res) => {
   const { rows } = await query(
     `SELECT s.*, u.username as uploader FROM songs s LEFT JOIN users u ON s.uploader_id=u.id ORDER BY s.created_at DESC`
   );
-  res.json(rows);
+  const out = rows.map(r => ({ ...r, audio_url: normalizeMediaUrl(r.audio_url), cover_url: normalizeMediaUrl(r.cover_url) }));
+  res.json(out);
 });
 
 // Kullanıcı: kendi şarkısını güncelle
@@ -1960,8 +1986,10 @@ app.put('/api/songs/:id', authMiddleware, upload.fields([
   if (song.uploader_id !== req.user.id) return res.status(403).json({ error: 'Bu şarkıyı düzenleme yetkiniz yok' });
   const { title, artist_name, genre, lyrics, share_reason, distributor } = req.body;
   let audio_url = song.audio_url, cover_url = song.cover_url;
-  if (req.files?.audio?.[0]) { try { audio_url = await handleUpload(req.files.audio[0]); } catch {} }
-  if (req.files?.cover?.[0]) { try { cover_url = await handleUpload(req.files.cover[0]); } catch {} }
+  if (req.files?.audio?.[0]) { try { audio_url = await handleUpload(req.files.audio[0]); } catch (e) { console.error('Update audio upload failed:', e && e.message ? e.message : e); } }
+  if (req.files?.cover?.[0]) { try { cover_url = await handleUpload(req.files.cover[0]); } catch (e) { console.error('Update cover upload failed:', e && e.message ? e.message : e); } }
+  audio_url = ensureUploadedFileExists(audio_url);
+  cover_url = ensureUploadedFileExists(cover_url);
   await query(
     `UPDATE songs SET title=$1, artist_name=$2, genre=$3, lyrics=$4, share_reason=$5,
      distributor=$6, audio_url=$7, cover_url=$8 WHERE id=$9`,
@@ -1982,8 +2010,10 @@ app.put('/api/admin/songs/:id', adminMiddleware, upload.fields([
   const song = (await query('SELECT * FROM songs WHERE id=$1', [req.params.id])).rows[0];
   if (!song) return res.status(404).json({ error: 'Şarkı bulunamadı' });
   let audio_url = song.audio_url, cover_url = song.cover_url;
-  if (req.files?.audio?.[0]) { try { audio_url = await handleUpload(req.files.audio[0]); } catch {} }
-  if (req.files?.cover?.[0]) { try { cover_url = await handleUpload(req.files.cover[0]); } catch {} }
+  if (req.files?.audio?.[0]) { try { audio_url = await handleUpload(req.files.audio[0]); } catch (e) { console.error('Admin update audio upload failed:', e && e.message ? e.message : e); } }
+  if (req.files?.cover?.[0]) { try { cover_url = await handleUpload(req.files.cover[0]); } catch (e) { console.error('Admin update cover upload failed:', e && e.message ? e.message : e); } }
+  audio_url = ensureUploadedFileExists(audio_url);
+  cover_url = ensureUploadedFileExists(cover_url);
   await query(
     `UPDATE songs SET title=$1, artist_name=$2, distributor=$3, genre=$4, lyrics=$5,
      play_count=$6, status=$7, audio_url=$8, cover_url=$9 WHERE id=$10`,
@@ -2076,7 +2106,8 @@ app.get('/api/admin/artists/:id/songs', adminMiddleware, async (req, res) => {
     WHERE s.uploader_id = $1
     ORDER BY s.created_at DESC
   `, [req.params.id]);
-  res.json(rows);
+  const out = rows.map(r => ({ ...r, audio_url: normalizeMediaUrl(r.audio_url), cover_url: normalizeMediaUrl(r.cover_url) }));
+  res.json(out);
 });
 
 // Şarkıya ban uygula (süreli veya kalıcı)
