@@ -1,4 +1,4 @@
-// ===== DEMLIK ADMIN PANEL =====
+ï»¿// ===== DEMLIK ADMIN PANEL =====
 let adminToken = sessionStorage.getItem('admin_token') || '';
 let currentSection = 'dashboard';
 
@@ -23,9 +23,9 @@ function timeAgo(dt) {
   if (!dt) return '-';
   const now = new Date(), d = new Date(dt);
   const sec = Math.floor((now - d) / 1000);
-  if (sec < 60) return 'az önce';
-  if (sec < 3600) return Math.floor(sec / 60) + ' dk önce';
-  if (sec < 86400) return Math.floor(sec / 3600) + ' sa önce';
+  if (sec < 60) return 'az Ã¶nce';
+  if (sec < 3600) return Math.floor(sec / 60) + ' dk Ã¶nce';
+  if (sec < 86400) return Math.floor(sec / 3600) + ' sa Ã¶nce';
   return d.toLocaleDateString('tr-TR');
 }
 
@@ -70,7 +70,7 @@ async function tryLogin() {
     showPanel();
   } catch {
     adminToken = ''; sessionStorage.removeItem('admin_token');
-    $('#admin-login-err').textContent = 'Hatalı şifre';
+    $('#admin-login-err').textContent = 'HatalÄ± ÅŸifre';
   }
 }
 
@@ -103,7 +103,7 @@ async function loadTopbarStats() {
     const forums = await adminApi('/forums');
     const el = $('#adm-topbar-stats');
     if (el) el.innerHTML = `
-      <span><i class="fas fa-users" style="color:#5865F2;margin-right:4px"></i>${users.length} üye</span>
+      <span><i class="fas fa-users" style="color:#5865F2;margin-right:4px"></i>${users.length} Ã¼ye</span>
       <span><i class="fas fa-comments" style="color:#dc2626;margin-right:4px"></i>${forums.length} konu</span>`;
   } catch {}
 }
@@ -127,7 +127,7 @@ function loadSection(section) {
 async function renderDashboard(main) {
   main.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   
-  // Her isteği ayrı ayrı çek, biri patlarsa diğerleri etkilenmesin
+  // Her isteÄŸi ayrÄ± ayrÄ± Ã§ek, biri patlarsa diÄŸerleri etkilenmesin
   const [users, forums, books, groups, logs] = await Promise.all([
     adminApi('/users').catch(() => []),
     adminApi('/forums').catch(() => []),
@@ -148,7 +148,7 @@ async function renderDashboard(main) {
         <div class="adm-stat-glow" style="background:#5865F2"></div>
         <div class="adm-stat-icon" style="color:#7c87f5"><i class="fas fa-users"></i></div>
         <div class="adm-stat-num">${Array.isArray(users) ? users.length : 0}</div>
-        <div class="adm-stat-label">Toplam Üye</div>
+        <div class="adm-stat-label">Toplam Ãœye</div>
       </div>
       <div class="adm-stat-card">
         <div class="adm-stat-glow" style="background:#dc2626"></div>
@@ -171,13 +171,13 @@ async function renderDashboard(main) {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
       <div class="card">
-        <div class="card-header"><span><i class="fas fa-shield" style="color:#5865F2;margin-right:8px"></i>Sistem Özeti</span></div>
+        <div class="card-header"><span><i class="fas fa-shield" style="color:#5865F2;margin-right:8px"></i>Sistem Ã–zeti</span></div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg4);border-radius:8px">
-            <span style="font-size:13px">Banlı Üye</span><span class="badge badge-red">${banned}</span>
+            <span style="font-size:13px">BanlÄ± Ãœye</span><span class="badge badge-red">${banned}</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg4);border-radius:8px">
-            <span style="font-size:13px">Admin Sayısı</span><span class="badge badge-blue">${admins}</span>
+            <span style="font-size:13px">Admin SayÄ±sÄ±</span><span class="badge badge-blue">${admins}</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg4);border-radius:8px">
             <span style="font-size:13px">Gruplar</span><span class="badge badge-gray">${Array.isArray(groups) ? groups.length : 0}</span>
@@ -185,15 +185,15 @@ async function renderDashboard(main) {
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span><i class="fas fa-history" style="color:#f97316;margin-right:8px"></i>Son İşlemler</span></div>
+        <div class="card-header"><span><i class="fas fa-history" style="color:#f97316;margin-right:8px"></i>Son Ä°ÅŸlemler</span></div>
         <div class="card-body" style="padding:8px">
           ${Array.isArray(logs) && logs.length ? logs.map(l => `
             <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px">
               <span style="color:var(--red2);font-weight:600">${escHtml(l.actor)}</span>
-              <span style="color:var(--text2);margin:0 4px">›</span>
+              <span style="color:var(--text2);margin:0 4px">â†’</span>
               <span>${escHtml(l.action)}</span>
               <span style="float:right;color:var(--text3)">${timeAgo(l.created_at)}</span>
-            </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--text3)">Henüz log yok</div>'}
+            </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--text3)">HenÃ¼z log yok</div>'}
         </div>
       </div>
     </div>`;
@@ -203,18 +203,18 @@ async function renderDashboard(main) {
 async function renderUsers(main) {
   let users = [];
   try { users = await adminApi('/users'); } catch (e) {
-    main.innerHTML = `<div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users"></i></div> Kullanıcılar</div></div><div class="card"><div class="card-body" style="color:var(--red2);padding:20px"><i class="fas fa-exclamation-circle"></i> ${escHtml(e.message)}</div></div>`;
+    main.innerHTML = `<div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users"></i></div> KullanÄ±cÄ±lar</div></div><div class="card"><div class="card-body" style="color:var(--red2);padding:20px"><i class="fas fa-exclamation-circle"></i> ${escHtml(e.message)}</div></div>`;
     return;
   }
   main.innerHTML = `
     <div class="adm-section-header">
-      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users"></i></div> Kullanıcılar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${users.length})</span></div>
-      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="user-search" placeholder="Kullanıcı, e-posta, IP ara..." style="min-width:240px" /></div>
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users"></i></div> KullanÄ±cÄ±lar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${users.length})</span></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="user-search" placeholder="KullanÄ±cÄ±, e-posta, IP ara..." style="min-width:240px" /></div>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Kullanıcı</th><th>E-posta</th><th>Seviye</th><th>İstatistik</th><th>IP</th><th>Kayıt</th><th>Durum</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>ID</th><th>KullanÄ±cÄ±</th><th>E-posta</th><th>Seviye</th><th>Ä°statistik</th><th>IP</th><th>KayÄ±t</th><th>Durum</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="users-tbody"></tbody>
         </table>
       </div>
@@ -228,7 +228,7 @@ async function renderUsers(main) {
 
 function renderUsersTable(users) {
   const tbody = $('#users-tbody'); if (!tbody) return;
-  if (!users.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">Kullanıcı bulunamadı</td></tr>'; return; }
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">KullanÄ±cÄ± bulunamadÄ±</td></tr>'; return; }
   tbody.innerHTML = users.map(u => `<tr>
     <td style="color:var(--text3);font-size:11px">#${u.id}</td>
     <td>
@@ -249,13 +249,13 @@ function renderUsersTable(users) {
     </td>
     <td style="font-size:11px;color:var(--text3)">${escHtml(u.ip||'-')}</td>
     <td style="font-size:11px">${timeAgo(u.created_at)}</td>
-    <td>${u.banned ? '<span class="badge badge-red"><i class="fas fa-ban"></i> Banlı</span>' : '<span class="badge badge-green"><i class="fas fa-check"></i> Aktif</span>'}</td>
+    <td>${u.banned ? '<span class="badge badge-red"><i class="fas fa-ban"></i> BanlÄ±</span>' : '<span class="badge badge-green"><i class="fas fa-check"></i> Aktif</span>'}</td>
     <td>
       <div style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-xs edit-user-btn" data-id="${u.id}" title="Düzenle"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-outline btn-xs edit-user-btn" data-id="${u.id}" title="DÃ¼zenle"><i class="fas fa-edit"></i></button>
         <button class="btn btn-blue btn-xs perm-user-btn" data-id="${u.id}" title="Yetkiler"><i class="fas fa-shield"></i></button>
         ${u.banned
-          ? `<button class="btn btn-green btn-xs unban-user-btn" data-id="${u.id}" title="Ban Kaldır"><i class="fas fa-unlock"></i></button>`
+          ? `<button class="btn btn-green btn-xs unban-user-btn" data-id="${u.id}" title="Ban KaldÄ±r"><i class="fas fa-unlock"></i></button>`
           : `<button class="btn btn-danger btn-xs ban-user-btn" data-id="${u.id}" title="Banla"><i class="fas fa-ban"></i></button>`}
         <button class="btn btn-danger btn-xs del-user-btn" data-id="${u.id}" title="Sil"><i class="fas fa-trash"></i></button>
       </div>
@@ -270,29 +270,25 @@ function renderUsersTable(users) {
     const perm = e.target.closest('.perm-user-btn');
     if (edit) { const u = users.find(x => x.id == edit.dataset.id); if (u) showEditUserModal(u); }
     if (ban) showBanModal(ban.dataset.id);
-    if (unban) { if (!confirm('Ban kaldırılsın mı?')) return; try { await adminApi('/user/'+unban.dataset.id+'/unban',{method:'POST'}); toast('Ban kaldırıldı'); loadSection('users'); } catch(e){toast(e.message,'error');} }
-    if (del) { if (!confirm('Kullanıcı kalıcı silinsin mi?')) return; try { await adminApi('/user/'+del.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('users'); } catch(e){toast(e.message,'error');} }
+    if (unban) { if (!confirm('Ban kaldÄ±rÄ±lsÄ±n mÄ±?')) return; try { await adminApi('/user/'+unban.dataset.id+'/unban',{method:'POST'}); toast('Ban kaldÄ±rÄ±ldÄ±'); loadSection('users'); } catch(e){toast(e.message,'error');} }
+    if (del) { if (!confirm('KullanÄ±cÄ± kalÄ±cÄ± silinsin mi?')) return; try { await adminApi('/user/'+del.dataset.id,{method:'DELETE'}); toast('Silindi'); loadSection('users'); } catch(e){toast(e.message,'error');} }
     if (perm) { const u = users.find(x => x.id == perm.dataset.id); if (u) showPermModal(u); }
   });
 }
 
 function showEditUserModal(user) {
-  showModal('Kullanıcı Düzenle — ' + user.username, `
+  showModal('KullanÄ±cÄ± DÃ¼zenle â€” ' + user.username, `
     <div class="form-row">
-      <div class="form-group"><label>Kullanıcı Adı</label><input id="eu-username" value="${escHtml(user.username)}" /></div>
+      <div class="form-group"><label>KullanÄ±cÄ± AdÄ±</label><input id="eu-username" value="${escHtml(user.username)}" /></div>
       <div class="form-group"><label>E-posta</label><input id="eu-email" type="email" value="${escHtml(user.email)}" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Takma Ad</label><input id="eu-nickname" value="${escHtml(user.nickname||'')}" placeholder="Opsiyonel" /></div>
-      <div class="form-group"><label>Yeni Şifre (boş=değişme)</label><input id="eu-pw" type="password" placeholder="••••••" /></div>
-    </div>
-    <div class="form-row">
+      <div class="form-group"><label>Yeni Åifre (boÅŸ=deÄŸiÅŸme)</label><input id="eu-pw" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢" /></div>
       <div class="form-group"><label>Seviye ID</label><input id="eu-level" type="number" value="${user.level_id||1}" /></div>
-      <div class="form-group"><label>Ünvan</label><input id="eu-title" value="${escHtml(user.title||'')}" placeholder="Örn: Yazılımcı" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Ünvan</label><input id="eu-title" value="${escHtml(user.title||'')}" placeholder="Örn: Yazılımcı" /></div>
-      <div class="form-group"><label>İsim Rengi</label><input id="eu-color" type="color" value="${user.name_color||'#f5f5f5'}" style="height:38px;cursor:pointer" /></div>
+      <div class="form-group"><label>Ãœnvan</label><input id="eu-title" value="${escHtml(user.title||'')}" placeholder="Ã–rn: YazÄ±lÄ±mcÄ±" /></div>
+      <div class="form-group"><label>Ä°sim Rengi</label><input id="eu-color" type="color" value="${user.name_color||'#f5f5f5'}" style="height:38px;cursor:pointer" /></div>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
       <label class="checkbox-label"><input type="checkbox" id="eu-vip" ${user.is_vip?'checked':''} /> VIP</label>
@@ -304,7 +300,7 @@ function showEditUserModal(user) {
   `);
   $('#eu-submit').addEventListener('click', async () => {
     const wasAdmin = !!user.is_admin, isAdmin = $('#eu-admin').checked;
-    const body = { username: $('#eu-username').value.trim(), email: $('#eu-email').value.trim(), nickname: $('#eu-nickname').value.trim(),
+    const body = { username: $('#eu-username').value.trim(), email: $('#eu-email').value.trim(),
       is_vip: $('#eu-vip').checked, is_plus: $('#eu-plus').checked,
       name_color: $('#eu-color').value, level_id: parseInt($('#eu-level').value)||1,
       title: $('#eu-title').value.trim() };
@@ -312,14 +308,14 @@ function showEditUserModal(user) {
     try {
       await adminApi('/user/'+user.id, {method:'PUT', body:JSON.stringify(body)});
       if (isAdmin !== wasAdmin) await adminApi('/user/'+user.id+'/set-admin', {method:'POST', body:JSON.stringify({is_admin:isAdmin})});
-      toast('Kullanıcı güncellendi'); hideModal(); loadSection('users');
+      toast('KullanÄ±cÄ± gÃ¼ncellendi'); hideModal(); loadSection('users');
     } catch (e) { $('#eu-error').textContent = e.message; }
   });
 }
 
 function showBanModal(userId) {
-  showModal('Kullanıcıyı Banla', `
-    <div class="form-group"><label>Ban Türü</label>
+  showModal('KullanÄ±cÄ±yÄ± Banla', `
+    <div class="form-group"><label>Ban TÃ¼rÃ¼</label>
       <select id="ban-type">
         <option value="soft">Soft Ban (hesap kilitli)</option>
         <option value="ip">IP Ban (IP engeli)</option>
@@ -329,7 +325,7 @@ function showBanModal(userId) {
     <div id="ban-error" class="form-error mt-4"></div>
   `);
   $('#ban-submit').addEventListener('click', async () => {
-    try { await adminApi('/user/'+userId+'/ban',{method:'POST',body:JSON.stringify({ban_type:$('#ban-type').value})}); toast('Banlandı'); hideModal(); loadSection('users'); }
+    try { await adminApi('/user/'+userId+'/ban',{method:'POST',body:JSON.stringify({ban_type:$('#ban-type').value})}); toast('BanlandÄ±'); hideModal(); loadSection('users'); }
     catch (e) { $('#ban-error').textContent = e.message; }
   });
 }
@@ -340,28 +336,28 @@ async function showPermModal(user) {
   const p = perms || {};
   const isSuperAdmin = !perms && user.is_admin;
   const permDefs = [
-    { key:'can_view_users', label:'Üyeleri Görüntüle', desc:'Üye listesini görebilir', icon:'fas fa-users' },
-    { key:'can_ban_users', label:'Üye Yasakla/Kaldır', desc:'Ban atabilir, kaldırabilir', icon:'fas fa-ban' },
-    { key:'can_delete_content', label:'İçerik Sil', desc:'Forum, kitap, yorum silebilir', icon:'fas fa-trash' },
-    { key:'can_edit_content', label:'İçerik Düzenle', desc:'Forum ve kitap düzenleyebilir', icon:'fas fa-edit' },
-    { key:'can_manage_levels', label:'Seviyeleri Yönet', desc:'Seviye ekle/düzenle/sil', icon:'fas fa-layer-group' },
-    { key:'can_manage_tags', label:'Etiketleri Yönet', desc:'Etiket ekle/düzenle/sil', icon:'fas fa-tags' },
-    { key:'can_manage_announcements', label:'Duyuru Yönet', desc:'Duyuru oluştur/düzenle/sil', icon:'fas fa-bullhorn' },
-    { key:'can_view_logs', label:'Log Görüntüle', desc:'Sistem loglarını okuyabilir', icon:'fas fa-history' },
-    { key:'can_manage_settings', label:'Site Ayarları', desc:'Site ayarlarını değiştirebilir', icon:'fas fa-cog' },
-    { key:'can_manage_admins', label:'Admin Yönet', desc:'Admin atayabilir/alabilir', icon:'fas fa-shield' },
+    { key:'can_view_users', label:'Ãœyeleri GÃ¶rÃ¼ntÃ¼le', desc:'Ãœye listesini gÃ¶rebilir', icon:'fas fa-users' },
+    { key:'can_ban_users', label:'Ãœye Yasakla/KaldÄ±r', desc:'Ban atabilir, kaldÄ±rabilir', icon:'fas fa-ban' },
+    { key:'can_delete_content', label:'Ä°Ã§erik Sil', desc:'Forum, kitap, yorum silebilir', icon:'fas fa-trash' },
+    { key:'can_edit_content', label:'Ä°Ã§erik DÃ¼zenle', desc:'Forum ve kitap dÃ¼zenleyebilir', icon:'fas fa-edit' },
+    { key:'can_manage_levels', label:'Seviyeleri YÃ¶net', desc:'Seviye ekle/dÃ¼zenle/sil', icon:'fas fa-layer-group' },
+    { key:'can_manage_tags', label:'Etiketleri YÃ¶net', desc:'Etiket ekle/dÃ¼zenle/sil', icon:'fas fa-tags' },
+    { key:'can_manage_announcements', label:'Duyuru YÃ¶net', desc:'Duyuru oluÅŸtur/dÃ¼zenle/sil', icon:'fas fa-bullhorn' },
+    { key:'can_view_logs', label:'Log GÃ¶rÃ¼ntÃ¼le', desc:'Sistem loglarÄ±nÄ± okuyabilir', icon:'fas fa-history' },
+    { key:'can_manage_settings', label:'Site AyarlarÄ±', desc:'Site ayarlarÄ±nÄ± deÄŸiÅŸtirebilir', icon:'fas fa-cog' },
+    { key:'can_manage_admins', label:'Admin YÃ¶net', desc:'Admin atayabilir/alabilir', icon:'fas fa-shield' },
   ];
-  showModal(`Yetki Düzenleme — ${user.username}`, `
+  showModal(`Yetki DÃ¼zenleme â€” ${user.username}`, `
     ${isSuperAdmin ? `
     <div style="margin-bottom:16px;padding:12px 14px;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:10px;font-size:12px;color:#facc15">
       <i class="fas fa-crown" style="margin-right:6px"></i>
-      <strong>Bu kullanıcı şu an SÜPERADMİN.</strong> Yetki kaydı yokken tüm yetkilere sahiptir.
-      Aşağıdan kısıtlı yetki kaydı oluşturabilirsin — bu durumda sadece seçtiğin yetkiler geçerli olur.
+      <strong>Bu kullanÄ±cÄ± ÅŸu an SÃœPERADMÄ°N.</strong> Yetki kaydÄ± yokken tÃ¼m yetkilere sahiptir.
+      AÅŸaÄŸÄ±dan kÄ±sÄ±tlÄ± yetki kaydÄ± oluÅŸturabilirsin â€” bu durumda sadece seÃ§tiÄŸin yetkiler geÃ§erli olur.
     </div>` : `
     <div style="margin-bottom:16px;padding:10px 14px;background:rgba(88,101,242,0.1);border:1px solid rgba(88,101,242,0.2);border-radius:10px;font-size:12px">
       <i class="fas fa-info-circle" style="color:#7c87f5;margin-right:6px"></i>
-      Kaydet'e basınca kullanıcıya <strong>is_admin=1</strong> atanır ve sadece işaretli yetkiler verilir.
-      Tüm yetkiler verirsen süperadmin gibi çalışır.
+      Kaydet'e basÄ±nca kullanÄ±cÄ±ya <strong>is_admin=1</strong> atanÄ±r ve sadece iÅŸaretli yetkiler verilir.
+      TÃ¼m yetkiler verirsen sÃ¼peradmin gibi Ã§alÄ±ÅŸÄ±r.
     </div>`}
     <div class="perm-grid" id="perm-grid">
       ${permDefs.map(d => `
@@ -374,10 +370,10 @@ async function showPermModal(user) {
         </div>`).join('')}
     </div>
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-primary" id="perm-all-btn" style="flex:1;justify-content:center"><i class="fas fa-check-double"></i> Tümünü Ver</button>
-      <button class="btn btn-outline" id="perm-none-btn" style="flex:1;justify-content:center"><i class="fas fa-times"></i> Tümünü Al</button>
+      <button class="btn btn-primary" id="perm-all-btn" style="flex:1;justify-content:center"><i class="fas fa-check-double"></i> TÃ¼mÃ¼nÃ¼ Ver</button>
+      <button class="btn btn-outline" id="perm-none-btn" style="flex:1;justify-content:center"><i class="fas fa-times"></i> TÃ¼mÃ¼nÃ¼ Al</button>
     </div>
-    <button class="btn btn-blue" id="perm-save-btn" style="width:100%;justify-content:center;margin-top:8px"><i class="fas fa-save"></i> Kaydet &amp; Adminliği Etkinleştir</button>
+    <button class="btn btn-blue" id="perm-save-btn" style="width:100%;justify-content:center;margin-top:8px"><i class="fas fa-save"></i> Kaydet &amp; AdminliÄŸi EtkinleÅŸtir</button>
     <div id="perm-error" class="form-error mt-4"></div>
   `);
   $('#perm-all-btn').addEventListener('click', () => permDefs.forEach(d => { const el=$('#perm-'+d.key); if(el) el.checked=true; }));
@@ -399,29 +395,29 @@ async function renderForums(main) {
   main.innerHTML = `
     <div class="adm-section-header">
       <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-comments"></i></div> Konular <span style="font-size:13px;font-weight:400;color:var(--text2)">(${forums.length})</span></div>
-      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="forum-search" placeholder="Başlık veya kullanıcı ara..." style="min-width:240px" /></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="forum-search" placeholder="BaÅŸlÄ±k veya kullanÄ±cÄ± ara..." style="min-width:240px" /></div>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Başlık</th><th>Yazar</th><th>Görüntülenme</th><th>Beğeni</th><th>Tarih</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>ID</th><th>BaÅŸlÄ±k</th><th>Yazar</th><th>GÃ¶rÃ¼ntÃ¼lenme</th><th>BeÄŸeni</th><th>Tarih</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="forums-tbody"></tbody>
         </table>
       </div>
     </div>`;
   const renderTable = (list) => {
     const tbody = $('#forums-tbody'); if (!tbody) return;
-    if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">Konu bulunamadı</td></tr>'; return; }
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">Konu bulunamadÄ±</td></tr>'; return; }
     tbody.innerHTML = list.map(f => `<tr>
       <td style="color:var(--text3);font-size:12px">#${f.id}</td>
       <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(f.title)}">${escHtml(f.title)}</td>
-      <td><span style="color:var(--blue2)">${escHtml(f.username||'—')}</span></td>
+      <td><span style="color:var(--blue2)">${escHtml(f.username||'â€”')}</span></td>
       <td style="font-size:12px;color:var(--text2)">${f.views||0} <i class="fas fa-eye" style="font-size:10px"></i></td>
       <td style="font-size:12px;color:var(--text2)">${f.like_count||0} <i class="fas fa-heart" style="font-size:10px;color:#ef4444"></i></td>
       <td style="color:var(--text3);font-size:12px">${timeAgo(f.created_at)}</td>
       <td>
         <div style="display:flex;gap:4px">
-          <button class="btn btn-outline btn-xs edit-forum-btn" data-id="${f.id}" title="Düzenle"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-outline btn-xs edit-forum-btn" data-id="${f.id}" title="DÃ¼zenle"><i class="fas fa-edit"></i></button>
           <button class="btn btn-danger btn-xs del-forum-btn" data-id="${f.id}"><i class="fas fa-trash"></i> Sil</button>
         </div>
       </td>
@@ -430,10 +426,10 @@ async function renderForums(main) {
       btn.addEventListener('click', () => {
         const f = forums.find(x => x.id == btn.dataset.id);
         if (!f) return;
-        showModal(`?? Konu Düzenle — #${f.id}`, `
-          <div class="form-group"><label>Başlık</label><input id="ef-title" value="${escHtml(f.title)}" /></div>
+        showModal(`âœï¸ Konu DÃ¼zenle â€” #${f.id}`, `
+          <div class="form-group"><label>BaÅŸlÄ±k</label><input id="ef-title" value="${escHtml(f.title)}" /></div>
           <div class="form-row">
-            <div class="form-group"><label>Görüntülenme</label><input id="ef-views" type="number" value="${f.views||0}" /></div>
+            <div class="form-group"><label>GÃ¶rÃ¼ntÃ¼lenme</label><input id="ef-views" type="number" value="${f.views||0}" /></div>
           </div>
           <div id="ef-err" class="form-error"></div>
           <button class="btn btn-primary" id="ef-save" style="width:100%;justify-content:center;margin-top:12px"><i class="fas fa-save"></i> Kaydet</button>
@@ -447,7 +443,7 @@ async function renderForums(main) {
               views: parseInt($('#ef-views').value) || 0
             };
             await adminApi('/forum/'+f.id, { method:'PUT', body:JSON.stringify(body) });
-            toast('Konu güncellendi');
+            toast('Konu gÃ¼ncellendi');
             const idx = forums.findIndex(x => x.id == f.id);
             if (idx !== -1) { forums[idx] = { ...forums[idx], ...body }; }
             hideModal(); renderTable(forums);
@@ -457,7 +453,7 @@ async function renderForums(main) {
     });
     tbody.querySelectorAll('.del-forum-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Bu konuyu silmek istediğine emin misin?')) return;
+        if (!confirm('Bu konuyu silmek istediÄŸine emin misin?')) return;
         try { await adminApi('/forum/'+btn.dataset.id, {method:'DELETE'}); toast('Konu silindi'); forums = forums.filter(f=>f.id!=btn.dataset.id); renderTable(forums); }
         catch (e) { toast(e.message, 'error'); }
       });
@@ -480,30 +476,30 @@ async function renderBooks(main) {
   main.innerHTML = `
     <div class="adm-section-header">
       <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-book"></i></div> Kitaplar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${books.length})</span></div>
-      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="book-search" placeholder="Başlık veya kullanıcı ara..." style="min-width:240px" /></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="book-search" placeholder="BaÅŸlÄ±k veya kullanÄ±cÄ± ara..." style="min-width:240px" /></div>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Başlık</th><th>Yazar</th><th>Sayfa</th><th>Tarih</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>ID</th><th>BaÅŸlÄ±k</th><th>Yazar</th><th>Sayfa</th><th>Tarih</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="books-tbody"></tbody>
         </table>
       </div>
     </div>`;
   const renderTable = (list) => {
     const tbody = $('#books-tbody'); if (!tbody) return;
-    if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px">Kitap bulunamadı</td></tr>'; return; }
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px">Kitap bulunamadÄ±</td></tr>'; return; }
     tbody.innerHTML = list.map(b => `<tr>
       <td style="color:var(--text3);font-size:12px">#${b.id}</td>
       <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(b.title)}">${escHtml(b.title)}</td>
-      <td><span style="color:var(--blue2)">${escHtml(b.username||'—')}</span></td>
+      <td><span style="color:var(--blue2)">${escHtml(b.username||'â€”')}</span></td>
       <td style="color:var(--text3);font-size:12px">${b.page_count||0}</td>
       <td style="color:var(--text3);font-size:12px">${timeAgo(b.created_at)}</td>
       <td><button class="btn btn-danger btn-xs del-book-btn" data-id="${b.id}"><i class="fas fa-trash"></i> Sil</button></td>
     </tr>`).join('');
     tbody.querySelectorAll('.del-book-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Bu kitabı silmek istediğine emin misin?')) return;
+        if (!confirm('Bu kitabÄ± silmek istediÄŸine emin misin?')) return;
         try { await adminApi('/book/'+btn.dataset.id, {method:'DELETE'}); toast('Kitap silindi'); books = books.filter(b=>b.id!=btn.dataset.id); renderTable(books); }
         catch (e) { toast(e.message, 'error'); }
       });
@@ -526,29 +522,29 @@ async function renderGroups(main) {
   main.innerHTML = `
     <div class="adm-section-header">
       <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-users-cog"></i></div> Gruplar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${groups.length})</span></div>
-      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="group-search" placeholder="Grup adı veya sahibi ara..." style="min-width:240px" /></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="group-search" placeholder="Grup adÄ± veya sahibi ara..." style="min-width:240px" /></div>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Grup Adı</th><th>Sahibi</th><th>Tarih</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>ID</th><th>Grup AdÄ±</th><th>Sahibi</th><th>Tarih</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="groups-tbody"></tbody>
         </table>
       </div>
     </div>`;
   const renderTable = (list) => {
     const tbody = $('#groups-tbody'); if (!tbody) return;
-    if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">Grup bulunamadı</td></tr>'; return; }
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">Grup bulunamadÄ±</td></tr>'; return; }
     tbody.innerHTML = list.map(g => `<tr>
       <td style="color:var(--text3);font-size:12px">#${g.id}</td>
       <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(g.name)}">${escHtml(g.name)}</td>
-      <td><span style="color:var(--blue2)">${escHtml(g.owner_name||'—')}</span></td>
+      <td><span style="color:var(--blue2)">${escHtml(g.owner_name||'â€”')}</span></td>
       <td style="color:var(--text3);font-size:12px">${timeAgo(g.created_at)}</td>
       <td><button class="btn btn-danger btn-xs del-group-btn" data-id="${g.id}"><i class="fas fa-trash"></i> Sil</button></td>
     </tr>`).join('');
     tbody.querySelectorAll('.del-group-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Bu grubu silmek istediğine emin misin?')) return;
+        if (!confirm('Bu grubu silmek istediÄŸine emin misin?')) return;
         try { await adminApi('/group/'+btn.dataset.id, {method:'DELETE'}); toast('Grup silindi'); groups = groups.filter(g=>g.id!=btn.dataset.id); renderTable(groups); }
         catch (e) { toast(e.message, 'error'); }
       });
@@ -572,7 +568,7 @@ async function renderArtists(main) {
   const renderTable = (list) => {
     const tbody = $('#artists-tbody'); if (!tbody) return;
     if (!list.length) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px"><i class="fas fa-microphone-slash" style="font-size:28px;margin-bottom:8px;display:block"></i>Artist bulunamadı</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px"><i class="fas fa-microphone-slash" style="font-size:28px;margin-bottom:8px;display:block"></i>Artist bulunamadÄ±</td></tr>`;
       return;
     }
     tbody.innerHTML = list.map(a => `<tr>
@@ -586,18 +582,18 @@ async function renderArtists(main) {
           </div>
         </div>
       </td>
-      <td style="font-size:12px;color:var(--text2)">${escHtml(a.artist_genre||'—')}</td>
+      <td style="font-size:12px;color:var(--text2)">${escHtml(a.artist_genre||'â€”')}</td>
       <td>
         <div style="font-size:13px;font-weight:600;color:var(--purple)">${a.song_count||0}</div>
         <div style="font-size:10px;color:var(--text3)">${Number(a.total_plays||0).toLocaleString('tr-TR')} dinlenme</div>
       </td>
-      <td style="font-size:11px;color:var(--text3)">${a.artist_since ? formatDate(a.artist_since) : '—'}</td>
-      <td>${a.banned ? '<span class="badge badge-red"><i class="fas fa-ban"></i> Banlı</span>' : '<span class="badge badge-green"><i class="fas fa-check"></i> Aktif</span>'}</td>
+      <td style="font-size:11px;color:var(--text3)">${a.artist_since ? formatDate(a.artist_since) : 'â€”'}</td>
+      <td>${a.banned ? '<span class="badge badge-red"><i class="fas fa-ban"></i> BanlÄ±</span>' : '<span class="badge badge-green"><i class="fas fa-check"></i> Aktif</span>'}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn btn-blue btn-xs view-artist-songs-btn" data-id="${a.id}" data-name="${escHtml(a.username)}" title="Şarkılarını Gör"><i class="fas fa-music"></i> Şarkılar</button>
-          <button class="btn btn-outline btn-xs edit-artist-btn" data-id="${a.id}" title="Bilgileri Düzenle"><i class="fas fa-edit"></i></button>
-          <button class="btn btn-danger btn-xs revoke-artist-btn" data-id="${a.id}" data-name="${escHtml(a.username)}" title="Artist Rozetini Kaldır"><i class="fas fa-microphone-slash"></i></button>
+          <button class="btn btn-blue btn-xs view-artist-songs-btn" data-id="${a.id}" data-name="${escHtml(a.username)}" title="ÅarkÄ±larÄ±nÄ± GÃ¶r"><i class="fas fa-music"></i> ÅarkÄ±lar</button>
+          <button class="btn btn-outline btn-xs edit-artist-btn" data-id="${a.id}" title="Bilgileri DÃ¼zenle"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-xs revoke-artist-btn" data-id="${a.id}" data-name="${escHtml(a.username)}" title="Artist Rozetini KaldÄ±r"><i class="fas fa-microphone-slash"></i></button>
         </div>
       </td>
     </tr>`).join('');
@@ -613,10 +609,10 @@ async function renderArtists(main) {
     });
     tbody.querySelectorAll('.revoke-artist-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm(`${btn.dataset.name} kullanıcısının artist rozeti kaldırılsın mı?`)) return;
+        if (!confirm(`${btn.dataset.name} kullanÄ±cÄ±sÄ±nÄ±n artist rozeti kaldÄ±rÄ±lsÄ±n mÄ±?`)) return;
         try {
           await adminApi('/artists/'+btn.dataset.id, { method:'PUT', body:JSON.stringify({ is_artist: 0 }) });
-          toast('Artist rozeti kaldırıldı');
+          toast('Artist rozeti kaldÄ±rÄ±ldÄ±');
           artists = artists.filter(a => a.id != btn.dataset.id);
           renderTable(artists);
         } catch(e) { toast(e.message, 'error'); }
@@ -631,12 +627,12 @@ async function renderArtists(main) {
         Artistler
         <span style="font-size:13px;font-weight:400;color:var(--text2)">(${artists.length})</span>
       </div>
-      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="artist-search" placeholder="Artist veya kullanıcı ara..." style="min-width:240px" /></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="artist-search" placeholder="Artist veya kullanÄ±cÄ± ara..." style="min-width:240px" /></div>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Artist</th><th>Tür</th><th>Şarkılar</th><th>Artist'ten beri</th><th>Durum</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>Artist</th><th>TÃ¼r</th><th>ÅarkÄ±lar</th><th>Artist'ten beri</th><th>Durum</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="artists-tbody"></tbody>
         </table>
       </div>
@@ -654,7 +650,7 @@ async function renderArtists(main) {
 }
 
 async function showArtistSongsModal(artistId, artistName) {
-  showModal(`?? ${artistName} — Şarkılar`, `<div class="loading-center" style="padding:40px"><div class="spinner"></div></div>`);
+  showModal(`ğŸµ ${artistName} â€” ÅarkÄ±lar`, `<div class="loading-center" style="padding:40px"><div class="spinner"></div></div>`);
   let songs = [];
   try { songs = await adminApi('/artists/'+artistId+'/songs'); } catch(e) {
     $('#modal-body').innerHTML = `<div style="color:var(--red2);padding:20px">${escHtml(e.message)}</div>`; return;
@@ -663,7 +659,7 @@ async function showArtistSongsModal(artistId, artistName) {
   const renderSongs = (list) => {
     const wrap = $('#artist-songs-wrap'); if (!wrap) return;
     if (!list.length) {
-      wrap.innerHTML = '<div style="text-align:center;color:var(--text3);padding:32px"><i class="fas fa-music" style="font-size:28px;margin-bottom:8px;display:block"></i>Şarkı yok</div>';
+      wrap.innerHTML = '<div style="text-align:center;color:var(--text3);padding:32px"><i class="fas fa-music" style="font-size:28px;margin-bottom:8px;display:block"></i>ÅarkÄ± yok</div>';
       return;
     }
     wrap.innerHTML = list.map(s => {
@@ -676,18 +672,18 @@ async function showArtistSongsModal(artistId, artistName) {
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.title)}</div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px">
-            ${escHtml(s.artist_name)}${s.genre ? ` · ${escHtml(s.genre)}` : ''} · ${s.play_count} dinlenme
+            ${escHtml(s.artist_name)}${s.genre ? ` Â· ${escHtml(s.genre)}` : ''} Â· ${s.play_count} dinlenme
           </div>
           ${isBanned ? `<div style="font-size:10px;color:var(--red2);margin-top:2px">
             <i class="fas fa-ban"></i> ${escHtml(s.ban_reason||'Ban')}
             ${s.ban_until && !banExpired
-              ? ` · <span style="color:var(--orange)">${new Date(s.ban_until).toLocaleDateString('tr-TR')} tarihine kadar</span>`
-              : s.ban_until ? ' <span style="color:var(--text3)">(süresi doldu)</span>' : ' <span style="color:var(--text3)">(kalıcı)</span>'}
+              ? ` Â· <span style="color:var(--orange)">${new Date(s.ban_until).toLocaleDateString('tr-TR')} tarihine kadar</span>`
+              : s.ban_until ? ' <span style="color:var(--text3)">(sÃ¼resi doldu)</span>' : ' <span style="color:var(--text3)">(kalÄ±cÄ±)</span>'}
           </div>` : ''}
         </div>
         <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
           ${isBanned && !banExpired
-            ? `<button class="btn btn-green btn-xs song-unban-btn" data-id="${s.id}"><i class="fas fa-unlock"></i> Banı Kaldır</button>`
+            ? `<button class="btn btn-green btn-xs song-unban-btn" data-id="${s.id}"><i class="fas fa-unlock"></i> BanÄ± KaldÄ±r</button>`
             : `<button class="btn btn-danger btn-xs song-ban-btn" data-id="${s.id}" data-title="${escHtml(s.title)}"><i class="fas fa-ban"></i> Ban</button>`}
           <span style="font-size:10px;color:var(--text3)">${timeAgo(s.created_at)}</span>
         </div>
@@ -699,10 +695,10 @@ async function showArtistSongsModal(artistId, artistName) {
     });
     wrap.querySelectorAll('.song-unban-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Banı kaldırmak istediğine emin misin?')) return;
+        if (!confirm('BanÄ± kaldÄ±rmak istediÄŸine emin misin?')) return;
         try {
           await adminApi('/songs/'+btn.dataset.id+'/unban', { method:'POST' });
-          toast('Ban kaldırıldı');
+          toast('Ban kaldÄ±rÄ±ldÄ±');
           const s = songs.find(x => x.id == btn.dataset.id);
           if (s) { s.status = 'active'; s.ban_reason = ''; s.ban_until = null; }
           renderSongs(songs);
@@ -713,7 +709,7 @@ async function showArtistSongsModal(artistId, artistName) {
 
   $('#modal-body').innerHTML = `
     <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:12px;color:var(--text2)">${songs.length} şarkı</span>
+      <span style="font-size:12px;color:var(--text2)">${songs.length} ÅŸarkÄ±</span>
       <div class="adm-search" style="max-width:200px"><i class="fas fa-search"></i><input id="asong-search" type="text" placeholder="Ara..." style="min-width:0" /></div>
     </div>
     <div id="artist-songs-wrap"></div>`;
@@ -726,35 +722,35 @@ async function showArtistSongsModal(artistId, artistName) {
 }
 
 function showSongBanModal(songId, songTitle, songs, renderSongs) {
-  showModal(`?? Şarkı Banla — ${songTitle}`, `
+  showModal(`ğŸš« ÅarkÄ± Banla â€” ${songTitle}`, `
     <div style="background:rgba(220,38,38,0.07);border:1px solid var(--border-red);border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px;color:var(--text2)">
       <i class="fas fa-info-circle" style="color:var(--red2);margin-right:6px"></i>
-      Ban uygulanan şarkı dinleyicilere gösterilmez. Süreli ban bitince otomatik aktife döner.
+      Ban uygulanan ÅŸarkÄ± dinleyicilere gÃ¶sterilmez. SÃ¼reli ban bitince otomatik aktife dÃ¶ner.
     </div>
     <div class="form-group">
       <label>Ban Sebebi</label>
-      <input id="ban-reason" placeholder="Telif ihlali, uygunsuz içerik..." />
+      <input id="ban-reason" placeholder="Telif ihlali, uygunsuz iÃ§erik..." />
     </div>
     <div class="form-group">
-      <label>Ban Süresi</label>
+      <label>Ban SÃ¼resi</label>
       <select id="ban-duration">
-        <option value="0">Kalıcı (elle kaldırana kadar)</option>
-        <option value="1">1 Gün</option>
-        <option value="3">3 Gün</option>
-        <option value="7">7 Gün</option>
-        <option value="14">14 Gün</option>
-        <option value="30">30 Gün</option>
-        <option value="custom">Özel Gün Sayısı...</option>
+        <option value="0">KalÄ±cÄ± (elle kaldÄ±rana kadar)</option>
+        <option value="1">1 GÃ¼n</option>
+        <option value="3">3 GÃ¼n</option>
+        <option value="7">7 GÃ¼n</option>
+        <option value="14">14 GÃ¼n</option>
+        <option value="30">30 GÃ¼n</option>
+        <option value="custom">Ã–zel GÃ¼n SayÄ±sÄ±...</option>
       </select>
     </div>
     <div id="custom-days-wrap" class="form-group hidden">
-      <label>Gün Sayısı</label>
-      <input id="custom-days" type="number" min="1" placeholder="Örn: 60" />
+      <label>GÃ¼n SayÄ±sÄ±</label>
+      <input id="custom-days" type="number" min="1" placeholder="Ã–rn: 60" />
     </div>
     <div id="ban-preview" style="font-size:12px;margin-bottom:16px;padding:8px 12px;border-radius:8px;background:var(--bg4)"></div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-outline" id="ban-cancel-btn" style="flex:1;justify-content:center">İptal</button>
-      <button class="btn btn-primary" id="ban-confirm-btn" style="flex:1;justify-content:center"><i class="fas fa-ban"></i> Banı Uygula</button>
+      <button class="btn btn-outline" id="ban-cancel-btn" style="flex:1;justify-content:center">Ä°ptal</button>
+      <button class="btn btn-primary" id="ban-confirm-btn" style="flex:1;justify-content:center"><i class="fas fa-ban"></i> BanÄ± Uygula</button>
     </div>
     <div id="ban-err" class="form-error mt-4"></div>
   `);
@@ -765,10 +761,10 @@ function showSongBanModal(songId, songTitle, songs, renderSongs) {
     const p = $('#ban-preview');
     if (!p) return;
     if (!days) {
-      p.innerHTML = '<i class="fas fa-infinity" style="color:var(--red2);margin-right:6px"></i><span style="color:var(--red2)">Kalıcı ban — admin elle kaldırana kadar devam eder</span>';
+      p.innerHTML = '<i class="fas fa-infinity" style="color:var(--red2);margin-right:6px"></i><span style="color:var(--red2)">KalÄ±cÄ± ban â€” admin elle kaldÄ±rana kadar devam eder</span>';
     } else {
       const until = new Date(Date.now() + days * 86400000);
-      p.innerHTML = `<i class="fas fa-clock" style="color:var(--orange);margin-right:6px"></i><span style="color:var(--orange)">Bitiş: ${until.toLocaleDateString('tr-TR', {day:'2-digit',month:'long',year:'numeric'})}</span>`;
+      p.innerHTML = `<i class="fas fa-clock" style="color:var(--orange);margin-right:6px"></i><span style="color:var(--orange)">BitiÅŸ: ${until.toLocaleDateString('tr-TR', {day:'2-digit',month:'long',year:'numeric'})}</span>`;
     }
   };
   updatePreview();
@@ -789,33 +785,33 @@ function showSongBanModal(songId, songTitle, songs, renderSongs) {
     btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div>';
     try {
       await adminApi('/songs/'+songId+'/ban', { method:'POST', body:JSON.stringify({ reason, duration_days: days }) });
-      toast('Şarkıya ban uygulandı');
+      toast('ÅarkÄ±ya ban uygulandÄ±');
       hideModal();
       const s = songs.find(x => x.id == songId);
       if (s) { s.status='suspended'; s.ban_reason=reason; s.ban_until=days>0?new Date(Date.now()+days*86400000).toISOString():null; }
       if (renderSongs) renderSongs(songs);
-    } catch(e) { err.textContent=e.message; btn.disabled=false; btn.innerHTML='<i class="fas fa-ban"></i> Banı Uygula'; }
+    } catch(e) { err.textContent=e.message; btn.disabled=false; btn.innerHTML='<i class="fas fa-ban"></i> BanÄ± Uygula'; }
   });
 }
 
 function showEditArtistModal(artist, list, renderTable) {
-  showModal(`?? Artist Düzenle — ${escHtml(artist.username)}`, `
+  showModal(`âœï¸ Artist DÃ¼zenle â€” ${escHtml(artist.username)}`, `
     <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg4);border-radius:10px;margin-bottom:16px">
       ${artist.avatar
         ? `<img src="${escHtml(artist.avatar)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover" />`
         : `<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--red),#7f1d1d);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px"><i class="fas fa-microphone-alt"></i></div>`}
       <div>
         <div style="font-weight:700">${escHtml(artist.username)}</div>
-        <div style="font-size:11px;color:var(--text3)">Artist'ten beri: ${artist.artist_since ? formatDate(artist.artist_since) : '—'}</div>
+        <div style="font-size:11px;color:var(--text3)">Artist'ten beri: ${artist.artist_since ? formatDate(artist.artist_since) : 'â€”'}</div>
       </div>
     </div>
     <div class="form-group">
-      <label>Sahne Adı / Display Name</label>
-      <input id="ea-display" value="${escHtml(artist.artist_display_name||'')}" placeholder="Kullanıcı adından farklı sanatçı adı..." />
+      <label>Sahne AdÄ± / Display Name</label>
+      <input id="ea-display" value="${escHtml(artist.artist_display_name||'')}" placeholder="KullanÄ±cÄ± adÄ±ndan farklÄ± sanatÃ§Ä± adÄ±..." />
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Müzik Türü</label>
+        <label>MÃ¼zik TÃ¼rÃ¼</label>
         <input id="ea-genre" value="${escHtml(artist.artist_genre||'')}" placeholder="Pop, Rock, Hip-Hop..." />
       </div>
       <div class="form-group">
@@ -825,14 +821,14 @@ function showEditArtistModal(artist, list, renderTable) {
     </div>
     <div class="form-group">
       <label>Artist Bio</label>
-      <textarea id="ea-bio" rows="3" placeholder="Artist hakkında kısa açıklama...">${escHtml(artist.artist_bio||'')}</textarea>
+      <textarea id="ea-bio" rows="3" placeholder="Artist hakkÄ±nda kÄ±sa aÃ§Ä±klama...">${escHtml(artist.artist_bio||'')}</textarea>
     </div>
     <div style="background:rgba(220,38,38,0.07);border:1px solid var(--border-red);border-radius:10px;padding:12px;margin-bottom:16px">
       <label class="checkbox-label" style="margin:0">
         <input type="checkbox" id="ea-is-artist" ${artist.is_artist ? 'checked' : ''} />
         <span><i class="fas fa-microphone-alt" style="color:var(--red2);margin-right:6px"></i> Artist rozeti aktif</span>
       </label>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px;margin-left:26px">Rozeti kaldırırsan kullanıcı yeni şarkı yükleyemez. Mevcut şarkılar silinmez.</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;margin-left:26px">Rozeti kaldÄ±rÄ±rsan kullanÄ±cÄ± yeni ÅŸarkÄ± yÃ¼kleyemez. Mevcut ÅŸarkÄ±lar silinmez.</div>
     </div>
     <button class="btn btn-primary" id="ea-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
     <div id="ea-err" class="form-error mt-4"></div>
@@ -850,7 +846,7 @@ function showEditArtistModal(artist, list, renderTable) {
         is_artist: $('#ea-is-artist').checked ? 1 : 0
       };
       await adminApi('/artists/'+artist.id, { method:'PUT', body:JSON.stringify(body) });
-      toast('Artist bilgileri güncellendi');
+      toast('Artist bilgileri gÃ¼ncellendi');
       const idx = list.findIndex(a => a.id == artist.id);
       if (idx !== -1) {
         if (!body.is_artist) { list.splice(idx, 1); }
@@ -874,7 +870,7 @@ async function renderLevels(main) {
     tbody.innerHTML = levels.map(l => `<tr>
       <td><span style="font-size:18px"><i class="${escHtml(l.icon||'fas fa-star')}" style="color:${escHtml(l.color||'#aaa')}"></i></span></td>
       <td style="font-weight:600">${escHtml(l.name)}</td>
-      <td><span class="badge" style="background:${escHtml(l.color||'#666')};color:#fff;border:none">${escHtml(l.color||'—')}</span></td>
+      <td><span class="badge" style="background:${escHtml(l.color||'#666')};color:#fff;border:none">${escHtml(l.color||'â€”')}</span></td>
       <td style="font-size:12px;color:var(--text2)">
         Forum: ${l.min_forums||0} / Kitap: ${l.min_books||0} / Yorum: ${l.min_comments||0}
         ${l.require_any ? '<span class="badge badge-blue" style="margin-left:4px">veya</span>' : '<span class="badge badge-gray" style="margin-left:4px">ve</span>'}
@@ -882,7 +878,7 @@ async function renderLevels(main) {
       <td style="font-size:12px;color:var(--text2)">${l.order_num}</td>
       <td>
         <div style="display:flex;gap:4px">
-          <button class="btn btn-outline btn-xs edit-level-btn" data-id="${l.id}" title="Düzenle"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-outline btn-xs edit-level-btn" data-id="${l.id}" title="DÃ¼zenle"><i class="fas fa-edit"></i></button>
           <button class="btn btn-danger btn-xs del-level-btn" data-id="${l.id}"><i class="fas fa-trash"></i></button>
         </div>
       </td>
@@ -890,22 +886,22 @@ async function renderLevels(main) {
     tbody.querySelectorAll('.edit-level-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const l = levels.find(x => x.id == btn.dataset.id); if (!l) return;
-        showModal(`?? Seviye Düzenle — ${l.name}`, `
-          <div class="form-group"><label>İsim</label><input id="elv-name" value="${escHtml(l.name)}" /></div>
+        showModal(`âœï¸ Seviye DÃ¼zenle â€” ${l.name}`, `
+          <div class="form-group"><label>Ä°sim</label><input id="elv-name" value="${escHtml(l.name)}" /></div>
           <div class="form-row">
             <div class="form-group"><label>Min. Forum</label><input id="elv-forums" type="number" value="${l.min_forums||0}" /></div>
             <div class="form-group"><label>Min. Kitap</label><input id="elv-books" type="number" value="${l.min_books||0}" /></div>
           </div>
           <div class="form-row">
             <div class="form-group"><label>Min. Yorum</label><input id="elv-comments" type="number" value="${l.min_comments||0}" /></div>
-            <div class="form-group"><label>Min. Kitap Sayfası</label><input id="elv-pages" type="number" value="${l.min_book_pages||0}" /></div>
+            <div class="form-group"><label>Min. Kitap SayfasÄ±</label><input id="elv-pages" type="number" value="${l.min_book_pages||0}" /></div>
           </div>
           <div class="form-group">
             <label class="checkbox-label" style="margin:0">
               <input type="checkbox" id="elv-require-any" style="width:auto" ${l.require_any ? 'checked' : ''} />
               <div>
-                <span style="font-weight:600;font-size:13px">Herhangi birini tamamlayınca atla</span>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">İşaretliyse konu, kitap veya yorumdan birini yapan atlar.</div>
+                <span style="font-weight:600;font-size:13px">Herhangi birini tamamlayÄ±nca atla</span>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">Ä°ÅŸaretliyse konu, kitap veya yorumdan birini yapan atlar.</div>
               </div>
             </label>
           </div>
@@ -925,7 +921,7 @@ async function renderLevels(main) {
               require_any: $('#elv-require-any').checked ? 1 : 0
             };
             await adminApi('/level/'+l.id, { method:'PUT', body:JSON.stringify(body) });
-            toast('Seviye güncellendi');
+            toast('Seviye gÃ¼ncellendi');
             const idx = levels.findIndex(x=>x.id==l.id);
             if (idx !== -1) levels[idx] = { ...levels[idx], ...body };
             hideModal(); renderTable();
@@ -935,7 +931,7 @@ async function renderLevels(main) {
     });
     tbody.querySelectorAll('.del-level-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Bu seviyeyi silmek istediğine emin misin?')) return;
+        if (!confirm('Bu seviyeyi silmek istediÄŸine emin misin?')) return;
         try { await adminApi('/level/'+btn.dataset.id, {method:'DELETE'}); toast('Seviye silindi'); levels = levels.filter(l=>l.id!=btn.dataset.id); renderTable(); }
         catch (e) { toast(e.message, 'error'); }
       });
@@ -949,7 +945,7 @@ async function renderLevels(main) {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>İkon</th><th>İsim</th><th>Renk</th><th>Koşullar</th><th>Sıra</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>Ä°kon</th><th>Ä°sim</th><th>Renk</th><th>KoÅŸullar</th><th>SÄ±ra</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="levels-tbody"></tbody>
         </table>
       </div>
@@ -957,17 +953,17 @@ async function renderLevels(main) {
   renderTable();
   $('#new-level-btn').addEventListener('click', () => {
     showModal('Yeni Seviye Ekle', `
-      <div class="form-group"><label>İsim</label><input id="lv-name" /></div>
+      <div class="form-group"><label>Ä°sim</label><input id="lv-name" /></div>
       <div class="form-row">
         <div class="form-group" style="flex:1">
-          <label>İkon <span style="font-size:11px;color:var(--text3)">(FA class veya emoji)</span></label>
+          <label>Ä°kon <span style="font-size:11px;color:var(--text3)">(FA class veya emoji)</span></label>
           <div style="display:flex;gap:8px;align-items:center">
             <div id="lv-icon-preview" style="width:36px;height:36px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
               <i class="fas fa-star"></i>
             </div>
-            <input id="lv-icon" placeholder="fas fa-star veya ?" value="fas fa-star" style="flex:1" />
+            <input id="lv-icon" placeholder="fas fa-star veya â­" value="fas fa-star" style="flex:1" />
           </div>
-          <button type="button" class="btn btn-outline btn-sm" id="lv-icon-picker-btn" style="margin-top:6px;width:100%"><i class="fas fa-icons"></i> İkon Seç</button>
+          <button type="button" class="btn btn-outline btn-sm" id="lv-icon-picker-btn" style="margin-top:6px;width:100%"><i class="fas fa-icons"></i> Ä°kon SeÃ§</button>
           <div id="lv-icon-grid" style="display:none;max-height:220px;overflow-y:auto;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:6px;display:grid;grid-template-columns:repeat(8,1fr);gap:4px"></div>
         </div>
         <div class="form-group" style="flex:0 0 100px">
@@ -980,15 +976,15 @@ async function renderLevels(main) {
         <div class="form-group"><label>Min. Kitap</label><input id="lv-books" type="number" value="0" /></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Min. Kitap Sayfası</label><input id="lv-pages" type="number" value="0" /></div>
-        <div class="form-group"><label>Sıra</label><input id="lv-order" type="number" value="${levels.length+1}" /></div>
+        <div class="form-group"><label>Min. Kitap SayfasÄ±</label><input id="lv-pages" type="number" value="0" /></div>
+        <div class="form-group"><label>SÄ±ra</label><input id="lv-order" type="number" value="${levels.length+1}" /></div>
       </div>
       <div class="form-group">
         <label class="checkbox-label" style="margin:0">
           <input type="checkbox" id="lv-require-any" style="width:auto" />
           <div>
-            <span style="font-weight:600;font-size:13px">Herhangi birini tamamlayınca atla</span>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">İşaretliyse konu, kitap veya yorumdan birini yapan atlar. İşaretsizse hepsini yapması gerekir.</div>
+            <span style="font-weight:600;font-size:13px">Herhangi birini tamamlayÄ±nca atla</span>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Ä°ÅŸaretliyse konu, kitap veya yorumdan birini yapan atlar. Ä°ÅŸaretsizse hepsini yapmasÄ± gerekir.</div>
           </div>
         </label>
       </div>
@@ -996,7 +992,7 @@ async function renderLevels(main) {
       <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px" id="lv-save-btn"><i class="fas fa-save"></i> Kaydet</button>
     `);
 
-    // İkon önizleme güncelleyici
+    // Ä°kon Ã¶nizleme gÃ¼ncelleyici
     const iconInput = $('#lv-icon');
     const iconPreview = $('#lv-icon-preview');
     const iconGrid = $('#lv-icon-grid');
@@ -1012,7 +1008,7 @@ async function renderLevels(main) {
     };
     iconInput.addEventListener('input', updatePreview);
 
-    // İkon grid'ini aç/kapat
+    // Ä°kon grid'ini aÃ§/kapat
     const FA_ICONS = [
       'fas fa-star','fas fa-fire','fas fa-crown','fas fa-gem','fas fa-bolt','fas fa-heart',
       'fas fa-shield','fas fa-dragon','fas fa-feather','fas fa-pen','fas fa-book',
@@ -1049,7 +1045,7 @@ async function renderLevels(main) {
             updatePreview();
             iconGrid.style.display = 'none';
             gridOpen = false;
-            // Seçilen ikonu vurgula
+            // SeÃ§ilen ikonu vurgula
             iconGrid.querySelectorAll('.icon-pick-btn').forEach(b => b.style.background = 'var(--bg3)');
             btn.style.background = 'rgba(220,38,38,0.2)';
           });
@@ -1064,7 +1060,7 @@ async function renderLevels(main) {
     $('#lv-save-btn').addEventListener('click', async () => {
       const err = $('#lv-err');
       const name = $('#lv-name').value.trim();
-      if (!name) { err.textContent='İsim zorunlu'; return; }
+      if (!name) { err.textContent='Ä°sim zorunlu'; return; }
       try {
         const body = { name, icon:$('#lv-icon').value.trim()||'fas fa-star', color:$('#lv-color').value, min_forums:+$('#lv-forums').value, min_books:+$('#lv-books').value, min_book_pages:+$('#lv-pages').value, order_num:+$('#lv-order').value, require_any: $('#lv-require-any').checked ? 1 : 0 };
         const nl = await adminApi('/levels', {method:'POST', body:JSON.stringify(body)});
@@ -1085,13 +1081,13 @@ async function renderTags(main) {
     if (!tags.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:32px">Etiket yok</td></tr>'; return; }
     tbody.innerHTML = tags.map(t => `<tr>
       <td><span class="badge" style="background:${escHtml(t.color||'#666')}22;color:${escHtml(t.color||'#aaa')};border:1px solid ${escHtml(t.color||'#666')}44">${escHtml(t.name)}</span></td>
-      <td style="font-size:12px;color:var(--text3)">${escHtml(t.color||'—')}</td>
-      <td>${t.is_system ? '<span class="badge badge-blue">Sistem</span>' : '<span class="badge badge-gray">Özel</span>'}</td>
+      <td style="font-size:12px;color:var(--text3)">${escHtml(t.color||'â€”')}</td>
+      <td>${t.is_system ? '<span class="badge badge-blue">Sistem</span>' : '<span class="badge badge-gray">Ã–zel</span>'}</td>
       <td><button class="btn btn-danger btn-xs del-tag-btn" data-id="${t.id}" ${t.is_system?'disabled':''} title="${t.is_system?'Sistem etiketi silinemez':'Sil'}"><i class="fas fa-trash"></i></button></td>
     </tr>`).join('');
     tbody.querySelectorAll('.del-tag-btn:not([disabled])').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Bu etiketi silmek istediğine emin misin?')) return;
+        if (!confirm('Bu etiketi silmek istediÄŸine emin misin?')) return;
         try { await adminApi('/tag/'+btn.dataset.id, {method:'DELETE'}); toast('Etiket silindi'); tags = tags.filter(t=>t.id!=btn.dataset.id); renderTable(); }
         catch (e) { toast(e.message, 'error'); }
       });
@@ -1105,7 +1101,7 @@ async function renderTags(main) {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Etiket</th><th>Renk</th><th>Tür</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>Etiket</th><th>Renk</th><th>TÃ¼r</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="tags-tbody"></tbody>
         </table>
       </div>
@@ -1113,7 +1109,7 @@ async function renderTags(main) {
   renderTable();
   $('#new-tag-btn').addEventListener('click', () => {
     showModal('Yeni Etiket Ekle', `
-      <div class="form-group"><label>İsim</label><input id="tag-name" /></div>
+      <div class="form-group"><label>Ä°sim</label><input id="tag-name" /></div>
       <div class="form-group"><label>Renk</label><input id="tag-color" type="color" value="#5865F2" /></div>
       <div id="tag-err" class="form-error"></div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px" id="tag-save-btn"><i class="fas fa-save"></i> Kaydet</button>
@@ -1121,7 +1117,7 @@ async function renderTags(main) {
     $('#tag-save-btn').addEventListener('click', async () => {
       const err = $('#tag-err');
       const name = $('#tag-name').value.trim();
-      if (!name) { err.textContent='İsim zorunlu'; return; }
+      if (!name) { err.textContent='Ä°sim zorunlu'; return; }
       try {
         const nt = await adminApi('/tags', {method:'POST', body:JSON.stringify({name, color:$('#tag-color').value})});
         tags.push(nt); renderTable(); hideModal(); toast('Etiket eklendi');
@@ -1138,8 +1134,8 @@ async function renderLogs(main) {
   }
   main.innerHTML = `
     <div class="adm-section-header">
-      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-history"></i></div> Sistem Logları <span style="font-size:13px;font-weight:400;color:var(--text2)">(${logs.length})</span></div>
-      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="log-search" placeholder="Eylem veya aktör ara..." style="min-width:240px" /></div>
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-history"></i></div> Sistem LoglarÄ± <span style="font-size:13px;font-weight:400;color:var(--text2)">(${logs.length})</span></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="log-search" placeholder="Eylem veya aktÃ¶r ara..." style="min-width:240px" /></div>
     </div>
     <div class="card">
       <div id="logs-list">
@@ -1147,7 +1143,7 @@ async function renderLogs(main) {
           <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:center;gap:10px">
             <span style="color:var(--red2);font-weight:600;min-width:100px">${escHtml(l.actor)}</span>
             <span style="color:var(--text2);font-size:11px;margin-right:4px"><i class="fas fa-arrow-right"></i></span>
-            <span style="flex:1">${escHtml(l.action)}${l.target?' <span style="color:var(--text3)">› '+escHtml(l.target)+'</span>':''}</span>
+            <span style="flex:1">${escHtml(l.action)}${l.target?' <span style="color:var(--text3)">â†’ '+escHtml(l.target)+'</span>':''}</span>
             <span style="color:var(--text3);font-size:11px;white-space:nowrap">${timeAgo(l.created_at)}</span>
           </div>`).join('') : '<div style="padding:32px;text-align:center;color:var(--text3)">Log yok</div>'}
       </div>
@@ -1159,9 +1155,9 @@ async function renderLogs(main) {
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:center;gap:10px">
         <span style="color:var(--red2);font-weight:600;min-width:100px">${escHtml(l.actor)}</span>
         <span style="color:var(--text2);font-size:11px;margin-right:4px"><i class="fas fa-arrow-right"></i></span>
-        <span style="flex:1">${escHtml(l.action)}${l.target?' <span style="color:var(--text3)">› '+escHtml(l.target)+'</span>':''}</span>
+        <span style="flex:1">${escHtml(l.action)}${l.target?' <span style="color:var(--text3)">â†’ '+escHtml(l.target)+'</span>':''}</span>
         <span style="color:var(--text3);font-size:11px;white-space:nowrap">${timeAgo(l.created_at)}</span>
-      </div>`).join('') : '<div style="padding:32px;text-align:center;color:var(--text3)">Sonuç bulunamadı</div>';
+      </div>`).join('') : '<div style="padding:32px;text-align:center;color:var(--text3)">SonuÃ§ bulunamadÄ±</div>';
   });
 }
 
@@ -1178,15 +1174,15 @@ async function renderAdminMessages(main) {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Kullanıcı 1</th><th>Kullanıcı 2</th><th>Son Mesaj</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>ID</th><th>KullanÄ±cÄ± 1</th><th>KullanÄ±cÄ± 2</th><th>Son Mesaj</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody>
             ${convs.length ? convs.map(c => `<tr>
               <td style="color:var(--text3);font-size:12px">#${c.id}</td>
-              <td style="color:var(--blue2)">${escHtml(c.user1||'—')}</td>
-              <td style="color:var(--blue2)">${escHtml(c.user2||'—')}</td>
+              <td style="color:var(--blue2)">${escHtml(c.user1||'â€”')}</td>
+              <td style="color:var(--blue2)">${escHtml(c.user2||'â€”')}</td>
               <td style="color:var(--text3);font-size:12px">${timeAgo(c.last_message_at)}</td>
-              <td><button class="btn btn-outline btn-xs view-conv-btn" data-id="${c.id}" data-u1="${escHtml(c.user1||'')}" data-u2="${escHtml(c.user2||'')}"><i class="fas fa-eye"></i> Gör</button></td>
-            </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">Konuşma bulunamadı</td></tr>'}
+              <td><button class="btn btn-outline btn-xs view-conv-btn" data-id="${c.id}" data-u1="${escHtml(c.user1||'')}" data-u2="${escHtml(c.user2||'')}"><i class="fas fa-eye"></i> GÃ¶r</button></td>
+            </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">KonuÅŸma bulunamadÄ±</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -1196,7 +1192,7 @@ async function renderAdminMessages(main) {
       try {
         const msgs = await adminApi('/conversations/'+btn.dataset.id+'/messages');
         const u1 = btn.dataset.u1, u2 = btn.dataset.u2;
-        showModal(`${u1} - ${u2}`, `
+        showModal(`${u1} â†” ${u2}`, `
           <div style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0">
             ${msgs.length ? msgs.map(m => `
               <div style="padding:8px 12px;border-radius:8px;background:var(--bg4);font-size:13px">
@@ -1223,7 +1219,7 @@ async function renderAnnouncements(main) {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Başlık</th><th>Konum</th><th>Boyut</th><th>Bitiş</th><th>Durum</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>BaÅŸlÄ±k</th><th>Konum</th><th>Boyut</th><th>BitiÅŸ</th><th>Durum</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="ann-tbody"></tbody>
         </table>
       </div>
@@ -1245,7 +1241,7 @@ function renderAnnTable(anns) {
     </td>
     <td><span class="badge badge-gray">${a.position||'top'}</span></td>
     <td><span class="badge badge-gray">${a.size||'normal'}</span></td>
-    <td style="font-size:11px;color:var(--text2)">${a.expires_at ? formatDate(a.expires_at) : '? Süresiz'}</td>
+    <td style="font-size:11px;color:var(--text2)">${a.expires_at ? formatDate(a.expires_at) : 'âˆ SÃ¼resiz'}</td>
     <td>${a.active ? '<span class="badge badge-green"><i class="fas fa-circle" style="font-size:8px"></i> Aktif</span>' : '<span class="badge badge-gray">Pasif</span>'}</td>
     <td>
       <div style="display:flex;gap:4px">
@@ -1264,18 +1260,18 @@ function renderAnnTable(anns) {
 
 function showAnnModal(ann, anns) {
   const isEdit = !!ann;
-  showModal(isEdit ? 'Duyuru Düzenle' : 'Yeni Duyuru', `
-    <div class="form-group"><label>Başlık</label><input id="ann-title" value="${escHtml(ann?.title||'')}" placeholder="Duyuru başlığı..." /></div>
-    <div class="form-group"><label>İçerik</label><textarea id="ann-content" rows="3" placeholder="Duyuru metni...">${escHtml(ann?.content||'')}</textarea></div>
+  showModal(isEdit ? 'Duyuru DÃ¼zenle' : 'Yeni Duyuru', `
+    <div class="form-group"><label>BaÅŸlÄ±k</label><input id="ann-title" value="${escHtml(ann?.title||'')}" placeholder="Duyuru baÅŸlÄ±ÄŸÄ±..." /></div>
+    <div class="form-group"><label>Ä°Ã§erik</label><textarea id="ann-content" rows="3" placeholder="Duyuru metni...">${escHtml(ann?.content||'')}</textarea></div>
     <div class="form-row">
       <div class="form-group"><label>Arka Plan Rengi</label><input id="ann-bg" type="color" value="${ann?.bg_color||'#dc2626'}" style="height:38px;cursor:pointer" /></div>
-      <div class="form-group"><label>Yazı Rengi</label><input id="ann-text-color" type="color" value="${ann?.text_color||'#ffffff'}" style="height:38px;cursor:pointer" /></div>
+      <div class="form-group"><label>YazÄ± Rengi</label><input id="ann-text-color" type="color" value="${ann?.text_color||'#ffffff'}" style="height:38px;cursor:pointer" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Kenarlık Rengi</label><input id="ann-border" type="color" value="${ann?.border_color||'#991b1b'}" style="height:38px;cursor:pointer" /></div>
+      <div class="form-group"><label>KenarlÄ±k Rengi</label><input id="ann-border" type="color" value="${ann?.border_color||'#991b1b'}" style="height:38px;cursor:pointer" /></div>
       <div class="form-group"><label>Konum</label>
         <select id="ann-pos">
-          <option value="top" ${ann?.position==='top'?'selected':''}>Üst</option>
+          <option value="top" ${ann?.position==='top'?'selected':''}>Ãœst</option>
           <option value="bottom" ${ann?.position==='bottom'?'selected':''}>Alt</option>
         </select>
       </div>
@@ -1283,9 +1279,9 @@ function showAnnModal(ann, anns) {
     <div class="form-row">
       <div class="form-group"><label>Boyut</label>
         <select id="ann-size">
-          <option value="small" ${ann?.size==='small'?'selected':''}>Küçük</option>
+          <option value="small" ${ann?.size==='small'?'selected':''}>KÃ¼Ã§Ã¼k</option>
           <option value="normal" ${ann?.size==='normal'||!ann?.size?'selected':''}>Normal</option>
-          <option value="large" ${ann?.size==='large'?'selected':''}>Büyük</option>
+          <option value="large" ${ann?.size==='large'?'selected':''}>BÃ¼yÃ¼k</option>
         </select>
       </div>
       <div class="form-group"><label>Durum</label>
@@ -1296,29 +1292,29 @@ function showAnnModal(ann, anns) {
       </div>
     </div>
     <div style="background:var(--bg4);border-radius:10px;padding:14px;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Süre Ayarı</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">SÃ¼re AyarÄ±</div>
       <div class="form-row" style="margin-bottom:0">
-        <div class="form-group" style="margin-bottom:0"><label>Değer (0 = süresiz)</label><input id="ann-dur-val" type="number" min="0" value="0" /></div>
+        <div class="form-group" style="margin-bottom:0"><label>DeÄŸer (0 = sÃ¼resiz)</label><input id="ann-dur-val" type="number" min="0" value="0" /></div>
         <div class="form-group" style="margin-bottom:0"><label>Birim</label>
           <select id="ann-dur-type">
             <option value="seconds">Saniye</option>
             <option value="minutes">Dakika</option>
             <option value="hours" selected>Saat</option>
-            <option value="days">Gün</option>
+            <option value="days">GÃ¼n</option>
           </select>
         </div>
       </div>
     </div>
     <div id="ann-preview" style="margin-bottom:16px"></div>
-    <button class="btn btn-primary" id="ann-save-btn" style="width:100%;justify-content:center">${isEdit?'Güncelle':'Oluştur'}</button>
+    <button class="btn btn-primary" id="ann-save-btn" style="width:100%;justify-content:center">${isEdit?'GÃ¼ncelle':'OluÅŸtur'}</button>
     <div id="ann-error" class="form-error mt-4"></div>
   `);
 
   function updatePreview() {
     const pre = $('#ann-preview'); if (!pre) return;
     const bg = $('#ann-bg')?.value||'#dc2626', tc = $('#ann-text-color')?.value||'#fff', bc = $('#ann-border')?.value||'#991b1b';
-    const title = $('#ann-title')?.value||'Başlık', content = $('#ann-content')?.value||'İçerik';
-    pre.innerHTML = `<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Önizleme</div>
+    const title = $('#ann-title')?.value||'BaÅŸlÄ±k', content = $('#ann-content')?.value||'Ä°Ã§erik';
+    pre.innerHTML = `<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Ã–nizleme</div>
       <div style="background:${bg};color:${tc};border:2px solid ${bc};border-radius:8px;padding:10px 14px;font-size:13px">
         <strong>${escHtml(title)}</strong> <span>${escHtml(content)}</span>
       </div>`;
@@ -1334,35 +1330,35 @@ function showAnnModal(ann, anns) {
       size: $('#ann-size').value, active: parseInt($('#ann-active').value),
       duration_type: $('#ann-dur-type').value, duration_value: $('#ann-dur-val').value
     };
-    if (!body.title || !body.content) { $('#ann-error').textContent = 'Başlık ve içerik zorunlu'; return; }
+    if (!body.title || !body.content) { $('#ann-error').textContent = 'BaÅŸlÄ±k ve iÃ§erik zorunlu'; return; }
     try {
       if (isEdit) await adminApi('/announcements/'+ann.id, {method:'PUT', body:JSON.stringify(body)});
       else await adminApi('/announcements', {method:'POST', body:JSON.stringify(body)});
-      toast(isEdit ? 'Duyuru güncellendi' : 'Duyuru oluşturuldu'); hideModal(); loadSection('announcements');
+      toast(isEdit ? 'Duyuru gÃ¼ncellendi' : 'Duyuru oluÅŸturuldu'); hideModal(); loadSection('announcements');
     } catch (e) { $('#ann-error').textContent = e.message; }
   });
 }
 
-// ===== ADMIN: MÜZİKLER =====
+// ===== ADMIN: MÃœZÄ°KLER =====
 async function renderAdminSongs(main) {
   let songs = [];
   try { songs = await adminApi('/songs'); } catch (e) { main.innerHTML = `<p style="color:var(--red2);padding:20px">${e.message}</p>`; return; }
   main.innerHTML = `
     <div class="adm-section-header">
-      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-music"></i></div> Müzikler <span style="font-size:13px;font-weight:400;color:var(--text2)">(${songs.length})</span></div>
-      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="song-search" placeholder="Şarkı, sanatçı, dağıtıcı ara..." style="min-width:220px" /></div>
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-music"></i></div> MÃ¼zikler <span style="font-size:13px;font-weight:400;color:var(--text2)">(${songs.length})</span></div>
+      <div class="adm-search"><i class="fas fa-search"></i><input type="text" id="song-search" placeholder="ÅarkÄ±, sanatÃ§Ä±, daÄŸÄ±tÄ±cÄ± ara..." style="min-width:220px" /></div>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Kapak</th><th>Başlık / Sanatçı</th><th>Tür</th><th>Dağıtıcı</th><th>Dinlenme</th><th>Durum</th><th>Yükleyen</th><th>Tarih</th><th>İşlem</th></tr></thead>
+          <thead><tr><th>Kapak</th><th>BaÅŸlÄ±k / SanatÃ§Ä±</th><th>TÃ¼r</th><th>DaÄŸÄ±tÄ±cÄ±</th><th>Dinlenme</th><th>Durum</th><th>YÃ¼kleyen</th><th>Tarih</th><th>Ä°ÅŸlem</th></tr></thead>
           <tbody id="songs-tbody"></tbody>
         </table>
       </div>
     </div>`;
   const render = (list) => {
     const t = document.getElementById('songs-tbody'); if (!t) return;
-    if (!list.length) { t.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">Şarkı yok</td></tr>'; return; }
+    if (!list.length) { t.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">ÅarkÄ± yok</td></tr>'; return; }
     t.innerHTML = list.map(s => `<tr>
       <td>${s.cover_url ? `<img src="${escHtml(s.cover_url)}" style="width:40px;height:40px;border-radius:6px;object-fit:cover" />` : `<div style="width:40px;height:40px;border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;color:var(--text3)"><i class="fas fa-music"></i></div>`}</td>
       <td>
@@ -1372,14 +1368,14 @@ async function renderAdminSongs(main) {
       <td style="font-size:12px;color:var(--text2)">${escHtml(s.genre||'-')}</td>
       <td style="font-size:12px;color:var(--text2)">${escHtml(s.distributor||'-')}</td>
       <td style="font-size:12px">${s.play_count}</td>
-      <td>${s.status === 'active' ? '<span class="badge badge-green">Aktif</span>' : s.status === 'suspended' ? '<span class="badge badge-red">Askıda</span>' : `<span class="badge badge-gray">${escHtml(s.status)}</span>`}</td>
+      <td>${s.status === 'active' ? '<span class="badge badge-green">Aktif</span>' : s.status === 'suspended' ? '<span class="badge badge-red">AskÄ±da</span>' : `<span class="badge badge-gray">${escHtml(s.status)}</span>`}</td>
       <td style="font-size:11px;color:var(--text2)">${escHtml(s.uploader||'-')}</td>
       <td style="font-size:11px;color:var(--text3)">${timeAgo(s.created_at)}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn btn-outline btn-xs es-btn" data-id="${s.id}" title="Düzenle"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-outline btn-xs es-btn" data-id="${s.id}" title="DÃ¼zenle"><i class="fas fa-edit"></i></button>
           ${s.status === 'active'
-            ? `<button class="btn btn-danger btn-xs sus-btn" data-id="${s.id}" title="Askıya Al"><i class="fas fa-pause"></i></button>`
+            ? `<button class="btn btn-danger btn-xs sus-btn" data-id="${s.id}" title="AskÄ±ya Al"><i class="fas fa-pause"></i></button>`
             : `<button class="btn btn-green btn-xs unsus-btn" data-id="${s.id}" title="Aktife Al"><i class="fas fa-play"></i></button>`}
           <button class="btn btn-danger btn-xs ds-btn" data-id="${s.id}" title="Sil"><i class="fas fa-trash"></i></button>
         </div>
@@ -1393,13 +1389,13 @@ async function renderAdminSongs(main) {
       const ds = e.target.closest('.ds-btn');
       if (es) { const s = list.find(x => x.id == es.dataset.id); if (s) showSongEditModal(s); }
       if (sus) {
-        if (!confirm('Şarkı askıya alınsın mı?')) return;
-        try { await adminApi('/songs/'+sus.dataset.id, {method:'PUT', body:JSON.stringify({status:'suspended'})}); toast('Askıya alındı'); loadSection('songs'); } catch(e){toast(e.message,'error');}
+        if (!confirm('ÅarkÄ± askÄ±ya alÄ±nsÄ±n mÄ±?')) return;
+        try { await adminApi('/songs/'+sus.dataset.id, {method:'PUT', body:JSON.stringify({status:'suspended'})}); toast('AskÄ±ya alÄ±ndÄ±'); loadSection('songs'); } catch(e){toast(e.message,'error');}
       }
       if (unsus) {
-        try { await adminApi('/songs/'+unsus.dataset.id, {method:'PUT', body:JSON.stringify({status:'active'})}); toast('Aktife alındı'); loadSection('songs'); } catch(e){toast(e.message,'error');}
+        try { await adminApi('/songs/'+unsus.dataset.id, {method:'PUT', body:JSON.stringify({status:'active'})}); toast('Aktife alÄ±ndÄ±'); loadSection('songs'); } catch(e){toast(e.message,'error');}
       }
-      if (ds) { if (!confirm('Şarkı kalıcı silinsin mi?')) return; try { await adminApi('/songs/'+ds.dataset.id, {method:'DELETE'}); toast('Silindi'); loadSection('songs'); } catch(e){toast(e.message,'error');} }
+      if (ds) { if (!confirm('ÅarkÄ± kalÄ±cÄ± silinsin mi?')) return; try { await adminApi('/songs/'+ds.dataset.id, {method:'DELETE'}); toast('Silindi'); loadSection('songs'); } catch(e){toast(e.message,'error');} }
     });
   };
   render(songs);
@@ -1410,30 +1406,30 @@ async function renderAdminSongs(main) {
 }
 
 function showSongEditModal(song) {
-  showModal(`Şarkı Düzenle — ${escHtml(song.title)}`, `
+  showModal(`ÅarkÄ± DÃ¼zenle â€” ${escHtml(song.title)}`, `
     <div class="form-row">
-      <div class="form-group"><label>Şarkı Adı</label><input id="se-title" value="${escHtml(song.title)}" /></div>
-      <div class="form-group"><label>Sanatçı Adı</label><input id="se-artist" value="${escHtml(song.artist_name)}" /></div>
+      <div class="form-group"><label>ÅarkÄ± AdÄ±</label><input id="se-title" value="${escHtml(song.title)}" /></div>
+      <div class="form-group"><label>SanatÃ§Ä± AdÄ±</label><input id="se-artist" value="${escHtml(song.artist_name)}" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Dağıtıcı</label><input id="se-dist" value="${escHtml(song.distributor||'')}" /></div>
-      <div class="form-group"><label>Tür</label><input id="se-genre" value="${escHtml(song.genre||'')}" /></div>
+      <div class="form-group"><label>DaÄŸÄ±tÄ±cÄ±</label><input id="se-dist" value="${escHtml(song.distributor||'')}" /></div>
+      <div class="form-group"><label>TÃ¼r</label><input id="se-genre" value="${escHtml(song.genre||'')}" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Dinlenme Sayısı</label><input id="se-plays" type="number" value="${song.play_count}" /></div>
+      <div class="form-group"><label>Dinlenme SayÄ±sÄ±</label><input id="se-plays" type="number" value="${song.play_count}" /></div>
       <div class="form-group"><label>Durum</label>
         <select id="se-status">
           <option value="active" ${song.status==='active'?'selected':''}>Aktif</option>
-          <option value="suspended" ${song.status==='suspended'?'selected':''}>Askıda</option>
+          <option value="suspended" ${song.status==='suspended'?'selected':''}>AskÄ±da</option>
           <option value="deleted" ${song.status==='deleted'?'selected':''}>Silindi</option>
         </select>
       </div>
     </div>
-    <div class="form-group"><label>Şarkı Sözleri</label><textarea id="se-lyrics" rows="6">${escHtml(song.lyrics||'')}</textarea></div>
-    <div class="form-group"><label>Yeni Ses Dosyası (boş bırak = değişme)</label>
+    <div class="form-group"><label>ÅarkÄ± SÃ¶zleri</label><textarea id="se-lyrics" rows="6">${escHtml(song.lyrics||'')}</textarea></div>
+    <div class="form-group"><label>Yeni Ses DosyasÄ± (boÅŸ bÄ±rak = deÄŸiÅŸme)</label>
       <input type="file" id="se-audio" accept="audio/*" style="background:var(--bg3);border:1px dashed var(--border);padding:8px;cursor:pointer;border-radius:8px" />
     </div>
-    <div class="form-group"><label>Yeni Kapak Fotoğrafı (boş bırak = değişme)</label>
+    <div class="form-group"><label>Yeni Kapak FotoÄŸrafÄ± (boÅŸ bÄ±rak = deÄŸiÅŸme)</label>
       <input type="file" id="se-cover" accept="image/*" style="background:var(--bg3);border:1px dashed var(--border);padding:8px;cursor:pointer;border-radius:8px" />
     </div>
     <button class="btn btn-primary" id="se-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
@@ -1456,12 +1452,12 @@ function showSongEditModal(song) {
       const res = await fetch('/api/admin/songs/'+song.id, { method:'PUT', headers:{'X-Admin-Token':adminToken}, body:fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error||'Hata');
-      toast('Şarkı güncellendi'); hideModal(); loadSection('songs');
+      toast('ÅarkÄ± gÃ¼ncellendi'); hideModal(); loadSection('songs');
     } catch(e) { document.getElementById('se-msg').textContent=e.message; btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Kaydet'; }
   });
 }
 
-// ===== ADMIN: ARTİST BAŞVURULARI =====
+// ===== ADMIN: ARTÄ°ST BAÅVURULARI =====
 async function renderArtistApps(main) {
   let apps = [];
   try { apps = await adminApi('/artist-applications'); } catch (e) { main.innerHTML = `<p style="color:var(--red2);padding:20px">${e.message}</p>`; return; }
@@ -1471,29 +1467,29 @@ async function renderArtistApps(main) {
     <div class="adm-section-header">
       <div class="adm-section-title">
         <div class="icon-pill"><i class="fas fa-microphone"></i></div>
-        Artist Başvuruları
+        Artist BaÅŸvurularÄ±
         ${pending.length ? `<span class="adm-nav-badge">${pending.length}</span>` : ''}
       </div>
     </div>
     ${pending.length ? `
     <div style="margin-bottom:24px">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">? Bekleyen (${pending.length})</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">â³ Bekleyen (${pending.length})</div>
       <div class="card">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Kullanıcı</th><th>Tür</th><th>Örnek</th><th>Not</th><th>Tarih</th><th>İşlem</th></tr></thead>
+            <thead><tr><th>KullanÄ±cÄ±</th><th>TÃ¼r</th><th>Ã–rnek</th><th>Not</th><th>Tarih</th><th>Ä°ÅŸlem</th></tr></thead>
             <tbody id="pending-tbody"></tbody>
           </table>
         </div>
       </div>
-    </div>` : '<div class="card" style="margin-bottom:20px"><div class="card-body" style="text-align:center;color:var(--text3);padding:30px"><i class="fas fa-check-circle" style="font-size:28px;margin-bottom:8px;color:var(--green)"></i><div>Bekleyen başvuru yok</div></div></div>'}
+    </div>` : '<div class="card" style="margin-bottom:20px"><div class="card-body" style="text-align:center;color:var(--text3);padding:30px"><i class="fas fa-check-circle" style="font-size:28px;margin-bottom:8px;color:var(--green)"></i><div>Bekleyen baÅŸvuru yok</div></div></div>'}
     ${others.length ? `
     <div>
-      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Geçmiş Başvurular</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">GeÃ§miÅŸ BaÅŸvurular</div>
       <div class="card">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Kullanıcı</th><th>Tür</th><th>Durum</th><th>İnceleme</th><th>Tarih</th></tr></thead>
+            <thead><tr><th>KullanÄ±cÄ±</th><th>TÃ¼r</th><th>Durum</th><th>Ä°nceleme</th><th>Tarih</th></tr></thead>
             <tbody>${others.map(a => `<tr>
               <td>
                 <div style="display:flex;align-items:center;gap:8px">
@@ -1502,7 +1498,7 @@ async function renderArtistApps(main) {
                 </div>
               </td>
               <td style="font-size:12px">${escHtml(a.genre)}</td>
-              <td>${a.status === 'accepted' ? '<span class="badge badge-green"><i class="fas fa-check"></i> Onaylandı</span>' : '<span class="badge badge-red"><i class="fas fa-times"></i> Reddedildi</span>'}</td>
+              <td>${a.status === 'accepted' ? '<span class="badge badge-green"><i class="fas fa-check"></i> OnaylandÄ±</span>' : '<span class="badge badge-red"><i class="fas fa-times"></i> Reddedildi</span>'}</td>
               <td style="font-size:11px;color:var(--text3)">${a.reviewed_at ? timeAgo(a.reviewed_at) : '-'}</td>
               <td style="font-size:11px;color:var(--text3)">${timeAgo(a.created_at)}</td>
             </tr>`).join('')}</tbody>
@@ -1546,17 +1542,17 @@ async function renderArtistApps(main) {
       const approve = e.target.closest('.approve-app-btn');
       const reject = e.target.closest('.reject-app-btn');
       if (approve) {
-        if (!confirm('Başvuru onaylansın mı? Kullanıcıya artist rozeti verilecek.')) return;
+        if (!confirm('BaÅŸvuru onaylansÄ±n mÄ±? KullanÄ±cÄ±ya artist rozeti verilecek.')) return;
         try {
           await adminApi('/artist-applications/'+approve.dataset.id+'/review', { method:'POST', body:JSON.stringify({status:'accepted'}) });
-          toast('? Artist rozeti verildi!'); loadSection('artist-apps');
+          toast('âœ“ Artist rozeti verildi!'); loadSection('artist-apps');
         } catch(e) { toast(e.message, 'error'); }
       }
       if (reject) {
-        if (!confirm('Başvuru reddedilsin mi?')) return;
+        if (!confirm('BaÅŸvuru reddedilsin mi?')) return;
         try {
           await adminApi('/artist-applications/'+reject.dataset.id+'/review', { method:'POST', body:JSON.stringify({status:'rejected'}) });
-          toast('Başvuru reddedildi'); loadSection('artist-apps');
+          toast('BaÅŸvuru reddedildi'); loadSection('artist-apps');
         } catch(e) { toast(e.message, 'error'); }
       }
     });
@@ -1569,12 +1565,12 @@ async function renderSettings(main) {
   try { const rows = await adminApi('/settings'); settings = rows; } catch {}
 
   main.innerHTML = `
-    <div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-cog"></i></div> Site Ayarları</div></div>
+    <div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-cog"></i></div> Site AyarlarÄ±</div></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="card">
         <div class="card-header"><span><i class="fas fa-palette" style="color:var(--red2);margin-right:8px"></i>Genel</span></div>
         <div class="card-body">
-          <div class="form-group"><label>Site Adı</label><input id="s-sitename" value="${escHtml(settings['site_name']||'TeaTube')}" /></div>
+          <div class="form-group"><label>Site AdÄ±</label><input id="s-sitename" value="${escHtml(settings['site_name']||'Demlik')}" /></div>
           <div class="form-group">
             <label>Site Logosu</label>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
@@ -1582,9 +1578,9 @@ async function renderSettings(main) {
                 ${settings['site_logo'] ? `<img src="${escHtml(settings['site_logo'])}" style="width:100%;height:100%;object-fit:contain" />` : `<i class="fas fa-image" style="color:var(--text3)"></i>`}
               </div>
               <div style="flex:1">
-                <div style="font-size:12px;color:var(--text2);margin-bottom:6px">PNG, JPG veya SVG yükleyin</div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:6px">PNG, JPG veya SVG yÃ¼kleyin</div>
                 <label for="logo-file-input" class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-                  <i class="fas fa-upload"></i> Dosya Seç
+                  <i class="fas fa-upload"></i> Dosya SeÃ§
                 </label>
                 <input type="file" id="logo-file-input" accept="image/*" style="display:none" />
               </div>
@@ -1593,40 +1589,30 @@ async function renderSettings(main) {
             <button class="btn btn-primary btn-sm" id="logo-upload-btn" style="display:none"><i class="fas fa-check"></i> Logoyu Kaydet</button>
             <div id="logo-msg" class="form-error mt-4"></div>
           </div>
-          <div class="form-group"><label>Site Açıklaması</label><textarea id="s-desc" rows="3">${escHtml(settings['site_description']||'')}</textarea></div>
+          <div class="form-group"><label>Site AÃ§Ä±klamasÄ±</label><textarea id="s-desc" rows="3">${escHtml(settings['site_description']||'')}</textarea></div>
           <button class="btn btn-primary" id="s-general-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
           <div id="s-general-msg" class="form-error mt-4"></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span><i class="fas fa-lock" style="color:var(--red2);margin-right:8px"></i>Güvenlik</span></div>
+        <div class="card-header"><span><i class="fas fa-lock" style="color:var(--red2);margin-right:8px"></i>GÃ¼venlik</span></div>
         <div class="card-body">
-          <div class="form-group"><label>Yeni Admin Şifresi</label><input id="s-newpw" type="password" placeholder="Boş bırakırsan değişmez" /></div>
-          <div class="form-group"><label>Şifreyi Onayla</label><input id="s-newpw2" type="password" placeholder="••••••" /></div>
-          <button class="btn btn-primary" id="s-pw-save" style="width:100%;justify-content:center"><i class="fas fa-key"></i> Şifreyi Güncelle</button>
+          <div class="form-group"><label>Yeni Admin Åifresi</label><input id="s-newpw" type="password" placeholder="BoÅŸ bÄ±rakÄ±rsan deÄŸiÅŸmez" /></div>
+          <div class="form-group"><label>Åifreyi Onayla</label><input id="s-newpw2" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢" /></div>
+          <button class="btn btn-primary" id="s-pw-save" style="width:100%;justify-content:center"><i class="fas fa-key"></i> Åifreyi GÃ¼ncelle</button>
           <div id="s-pw-msg" class="form-error mt-4"></div>
         </div>
       </div>
       <div class="card">
         <div class="card-header"><span><i class="fas fa-file-alt" style="color:var(--red2);margin-right:8px"></i>Footer</span></div>
         <div class="card-body">
-          <div class="form-group"><label>Footer Yazısı</label><input id="s-footer" value="${escHtml(settings['footer_copyright_text']||'')}" placeholder="© Copyright 2026" /></div>
+          <div class="form-group"><label>Footer YazÄ±sÄ±</label><input id="s-footer" value="${escHtml(settings['footer_copyright_text']||'')}" placeholder="Â© Copyright 2026" /></div>
           <label class="checkbox-label" style="margin-bottom:12px">
             <input type="checkbox" id="s-footer-created" ${settings['footer_created_visible']!=='0'?'checked':''} />
-            "Created By" yazısını göster
+            "Created By" yazÄ±sÄ±nÄ± gÃ¶ster
           </label>
           <button class="btn btn-primary" id="s-footer-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
           <div id="s-footer-msg" class="form-error mt-4"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span><i class="fas fa-cogs" style="color:var(--red2);margin-right:8px"></i>Forum Ayarları</span></div>
-        <div class="card-body">
-          <div class="form-group"><label>Ayrılmış Kullanıcı Adları</label><textarea id="s-reserved-usernames" rows="4" placeholder="Birer satıra yazın">${escHtml(settings['reserved_usernames']||'')}</textarea></div>
-          <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="s-default-forum-comments" ${settings['forum_default_allow_comments']!=='0'?'checked':''} /> Yeni konular için varsayılan olarak yorumlara izin ver</label></div>
-          <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="s-default-forum-likes" ${settings['forum_default_allow_likes']!=='0'?'checked':''} /> Yeni konular için varsayılan olarak beğenilere izin ver</label></div>
-          <button class="btn btn-primary" id="s-forum-settings-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
-          <div id="s-forum-settings-msg" class="form-error mt-4"></div>
         </div>
       </div>
       <div class="card">
@@ -1638,11 +1624,11 @@ async function renderSettings(main) {
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span><i class="fas fa-music" style="color:var(--red2);margin-right:8px"></i>Şarkı Yayınlama Kuralları</span></div>
+        <div class="card-header"><span><i class="fas fa-music" style="color:var(--red2);margin-right:8px"></i>ÅarkÄ± YayÄ±nlama KurallarÄ±</span></div>
         <div class="card-body">
-          <div class="form-group"><label>Kendi Şarkım – Kurallar</label><textarea id="s-music-own" rows="4">${escHtml(settings['music_own_rules']||'')}</textarea></div>
+          <div class="form-group"><label>Kendi ÅarkÄ±m â€“ Kurallar</label><textarea id="s-music-own" rows="4">${escHtml(settings['music_own_rules']||'')}</textarea></div>
           <button class="btn btn-primary btn-sm" id="s-music-own-save" style="width:100%;justify-content:center;margin-bottom:16px"><i class="fas fa-save"></i> Kaydet</button>
-          <div class="form-group"><label>Başkasının Şarkısı – Kurallar</label><textarea id="s-music-other" rows="4">${escHtml(settings['music_other_rules']||'')}</textarea></div>
+          <div class="form-group"><label>BaÅŸkasÄ±nÄ±n ÅarkÄ±sÄ± â€“ Kurallar</label><textarea id="s-music-other" rows="4">${escHtml(settings['music_other_rules']||'')}</textarea></div>
           <button class="btn btn-primary btn-sm" id="s-music-other-save" style="width:100%;justify-content:center"><i class="fas fa-save"></i> Kaydet</button>
           <div id="s-music-msg" class="form-error mt-4"></div>
         </div>
@@ -1661,29 +1647,18 @@ async function renderSettings(main) {
   });
   document.getElementById('logo-upload-btn').addEventListener('click', async () => {
     const file = logoInput.files[0]; const msgEl = document.getElementById('logo-msg');
-    if (!file) { msgEl.textContent='Dosya seçin'; return; }
+    if (!file) { msgEl.textContent='Dosya seÃ§in'; return; }
     const btn = document.getElementById('logo-upload-btn');
-    btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:14px;height:14px"></div> Yükleniyor...';
+    btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:14px;height:14px"></div> YÃ¼kleniyor...';
     msgEl.textContent='';
     try {
       const fd = new FormData(); fd.append('logo', file);
       const res = await fetch('/api/admin/upload-logo', { method:'POST', headers:{'X-Admin-Token':adminToken}, body:fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error||'Hata');
-      toast('Logo güncellendi!'); msgEl.style.color='var(--green)'; msgEl.textContent='? Kaydedildi';
+      toast('Logo gÃ¼ncellendi!'); msgEl.style.color='var(--green)'; msgEl.textContent='âœ“ Kaydedildi';
     } catch(e) { msgEl.style.color='var(--red2)'; msgEl.textContent=e.message; }
     finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-check"></i> Logoyu Kaydet'; }
-  });
-
-  document.getElementById('s-forum-settings-save')?.addEventListener('click', async () => {
-    const msgEl = document.getElementById('s-forum-settings-msg');
-    if (msgEl) msgEl.textContent = '';
-    try {
-      await saveSetting('reserved_usernames', $('#s-reserved-usernames').value.trim(), msgEl);
-      await saveSetting('forum_default_allow_comments', $('#s-default-forum-comments').checked ? '1' : '0', msgEl);
-      await saveSetting('forum_default_allow_likes', $('#s-default-forum-likes').checked ? '1' : '0', msgEl);
-      toast('Forum ayarları kaydedildi');
-    } catch (e) { if (msgEl) msgEl.textContent = e.message; }
   });
 
   async function saveSetting(key, value, msgEl) {
@@ -1701,12 +1676,12 @@ async function renderSettings(main) {
   document.getElementById('s-pw-save').addEventListener('click', async () => {
     const msg = document.getElementById('s-pw-msg');
     const pw = document.getElementById('s-newpw').value, pw2 = document.getElementById('s-newpw2').value;
-    if (!pw) { msg.textContent='Şifre boş olamaz'; return; }
-    if (pw !== pw2) { msg.textContent='Şifreler eşleşmiyor'; return; }
+    if (!pw) { msg.textContent='Åifre boÅŸ olamaz'; return; }
+    if (pw !== pw2) { msg.textContent='Åifreler eÅŸleÅŸmiyor'; return; }
     const hashHex = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw)))).map(b=>b.toString(16).padStart(2,'0')).join('');
     await saveSetting('admin_password', hashHex, msg);
     adminToken = hashHex; sessionStorage.setItem('admin_token', adminToken);
-    msg.style.color='var(--green)'; msg.textContent='Şifre güncellendi';
+    msg.style.color='var(--green)'; msg.textContent='Åifre gÃ¼ncellendi';
   });
   document.getElementById('s-footer-save').addEventListener('click', async () => {
     const msg = document.getElementById('s-footer-msg');
@@ -1723,4 +1698,3 @@ async function renderSettings(main) {
     await saveSetting('music_other_rules', document.getElementById('s-music-other').value.trim(), document.getElementById('s-music-msg'));
   });
 }
-

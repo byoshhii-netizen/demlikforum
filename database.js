@@ -1,4 +1,4 @@
-const { Pool } = require('pg');
+ï»¿const { Pool } = require('pg');
 const crypto = require('crypto');
 
 const pool = new Pool({
@@ -22,7 +22,6 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS users (
       id BIGSERIAL PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
-      nickname TEXT DEFAULT '',
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       avatar TEXT DEFAULT '',
@@ -87,7 +86,6 @@ async function initDb() {
       banner_image TEXT DEFAULT '',
       slug TEXT UNIQUE,
       allow_comments INTEGER DEFAULT 1,
-      allow_likes INTEGER DEFAULT 1,
       custom_tags TEXT DEFAULT '',
       views INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT NOW(),
@@ -148,9 +146,7 @@ async function initDb() {
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT,
       title TEXT NOT NULL,
-      nickname TEXT DEFAULT '',
       preface TEXT DEFAULT '',
-      topic TEXT DEFAULT '',
       cover_image TEXT DEFAULT '',
       slug TEXT UNIQUE,
       page_count INTEGER DEFAULT 0,
@@ -307,7 +303,6 @@ async function initDb() {
     ALTER TABLE forums ADD COLUMN IF NOT EXISTS share_count INTEGER DEFAULT 0;
     ALTER TABLE dm_conversations ADD COLUMN IF NOT EXISTS read_until_user1 BIGINT DEFAULT 0;
     ALTER TABLE dm_conversations ADD COLUMN IF NOT EXISTS read_until_user2 BIGINT DEFAULT 0;
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INTEGER DEFAULT 0;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_since TIMESTAMP;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS spotify_id TEXT DEFAULT '';
@@ -318,8 +313,6 @@ async function initDb() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS title TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS location TEXT DEFAULT '';
     ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMP;
-
-    ALTER TABLE books ADD COLUMN IF NOT EXISTS nickname TEXT DEFAULT '';
 
     CREATE TABLE IF NOT EXISTS announcements (
       id BIGSERIAL PRIMARY KEY,
@@ -423,9 +416,9 @@ async function initDb() {
   const { rows: lvRows } = await query('SELECT COUNT(*) as c FROM levels');
   if (parseInt(lvRows[0].c) === 0) {
     const ins = 'INSERT INTO levels (name,icon,color,min_forums,min_books,min_comments,order_num) VALUES ($1,$2,$3,$4,$5,$6,$7)';
-    await query(ins, ['Yeni Üye',   'fas fa-seedling', '#6b7280', 0,  0,  0,   1]);
-    await query(ins, ['Aktif Üye',  'fas fa-fire',     '#f97316', 5,  1,  10,  2]);
-    await query(ins, ['Katkýcý',    'fas fa-pen',      '#3b82f6', 15, 3,  30,  3]);
+    await query(ins, ['Yeni Ãœye',   'fas fa-seedling', '#6b7280', 0,  0,  0,   1]);
+    await query(ins, ['Aktif Ãœye',  'fas fa-fire',     '#f97316', 5,  1,  10,  2]);
+    await query(ins, ['KatkÄ±cÄ±',    'fas fa-pen',      '#3b82f6', 15, 3,  30,  3]);
     await query(ins, ['Uzman',      'fas fa-crown',    '#8b5cf6', 30, 5,  60,  4]);
     await query(ins, ['Efsane',     'fas fa-dragon',   '#dc2626', 50, 10, 100, 5]);
   }
@@ -436,9 +429,9 @@ async function initDb() {
     const ins = 'INSERT INTO tags (name,color,is_system) VALUES ($1,$2,1)';
     await query(ins, ['Genel',     '#3b82f6']);
     await query(ins, ['Soru',      '#f97316']);
-    await query(ins, ['Tartýþma',  '#8b5cf6']);
+    await query(ins, ['TartÄ±ÅŸma',  '#8b5cf6']);
     await query(ins, ['Haber',     '#dc2626']);
-    await query(ins, ['Yardým',    '#10b981']);
+    await query(ins, ['YardÄ±m',    '#10b981']);
     await query(ins, ['Teknoloji', '#06b6d4']);
     await query(ins, ['Sanat',     '#ec4899']);
     await query(ins, ['Edebiyat',  '#6366f1']);
@@ -454,31 +447,30 @@ async function initDb() {
   // Seed KVKK
   const { rows: kvkkRows } = await query("SELECT value FROM settings WHERE key='kvkk_text'");
   if (kvkkRows.length === 0) {
-    await query('INSERT INTO settings (key,value) VALUES ($1,$2)', ['kvkk_text', `KÝÞÝSEL VERÝLERÝN KORUNMASI KANUNU (KVKK) AYDINLATMA METNÝ
+    await query('INSERT INTO settings (key,value) VALUES ($1,$2)', ['kvkk_text', `KÄ°ÅžÄ°SEL VERÄ°LERÄ°N KORUNMASI KANUNU (KVKK) AYDINLATMA METNÄ°
 
-TeaTube Forum olarak, 6698 sayýlý Kiþisel Verilerin Korunmasý Kanunu kapsamýnda kiþisel verilerinizin iþlenmesine iliþkin sizi bilgilendirmek isteriz.
+Demlik Forum olarak, 6698 sayÄ±lÄ± KiÅŸisel Verilerin KorunmasÄ± Kanunu kapsamÄ±nda kiÅŸisel verilerinizin iÅŸlenmesine iliÅŸkin sizi bilgilendirmek isteriz.
 
-1. VERÝ SORUMLUSU
-TeaTube Forum platformu, veri sorumlusu sýfatýyla hareket etmektedir.
+1. VERÄ° SORUMLUSU
+Demlik Forum platformu, veri sorumlusu sÄ±fatÄ±yla hareket etmektedir.
 
-2. ÝÞLENEN KÝÞÝSEL VERÝLER
-Kullanýcý adý, e-posta adresi, IP adresi, platform içi içerikleriniz (forum gönderileri, kitap sayfalarý, grup mesajlarý) iþlenmektedir.
+2. Ä°ÅžLENEN KÄ°ÅžÄ°SEL VERÄ°LER
+KullanÄ±cÄ± adÄ±, e-posta adresi, IP adresi, platform iÃ§i iÃ§erikleriniz (forum gÃ¶nderileri, kitap sayfalarÄ±, grup mesajlarÄ±) iÅŸlenmektedir.
 
-3. KÝÞÝSEL VERÝLERÝN ÝÞLENME AMACI
-Kiþisel verileriniz; platform hizmetlerinin sunulmasý, hesap yönetimi, güvenlik ve sahteciliðin önlenmesi amacýyla iþlenmektedir.
+3. KÄ°ÅžÄ°SEL VERÄ°LERÄ°N Ä°ÅžLENME AMACI
+KiÅŸisel verileriniz; platform hizmetlerinin sunulmasÄ±, hesap yÃ¶netimi, gÃ¼venlik ve sahteciliÄŸin Ã¶nlenmesi amacÄ±yla iÅŸlenmektedir.
 
-4. KÝÞÝSEL VERÝLERÝN AKTARILMASI
-Kiþisel verileriniz yasal yükümlülükler dýþýnda üçüncü kiþilerle paylaþýlmamaktadýr.
+4. KÄ°ÅžÄ°SEL VERÄ°LERÄ°N AKTARILMASI
+KiÅŸisel verileriniz yasal yÃ¼kÃ¼mlÃ¼lÃ¼kler dÄ±ÅŸÄ±nda Ã¼Ã§Ã¼ncÃ¼ kiÅŸilerle paylaÅŸÄ±lmamaktadÄ±r.
 
 5. HAKLARINIZ
-KVKK'nýn 11. maddesi kapsamýnda; kiþisel verilerinize eriþim, düzeltme, silme ve iþlemenin kýsýtlanmasýný talep etme haklarýna sahipsiniz.
+KVKK'nÄ±n 11. maddesi kapsamÄ±nda; kiÅŸisel verilerinize eriÅŸim, dÃ¼zeltme, silme ve iÅŸlemenin kÄ±sÄ±tlanmasÄ±nÄ± talep etme haklarÄ±na sahipsiniz.
 
-6. ÝLETÝÞÝM
-Talepleriniz için platform üzerinden iletiþime geçebilirsiniz.`]);
+6. Ä°LETÄ°ÅžÄ°M
+Talepleriniz iÃ§in platform Ã¼zerinden iletiÅŸime geÃ§ebilirsiniz.`]);
   }
 
-  console.log('PostgreSQL baðlantýsý ve tablolar hazýr.');
+  console.log('PostgreSQL baÄŸlantÄ±sÄ± ve tablolar hazÄ±r.');
 }
 
 module.exports = { query, pool, initDb };
-

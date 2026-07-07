@@ -381,8 +381,8 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
 .profile-avatar-wrap { position: relative; flex-shrink: 0; }
 .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; background: var(--bg-card2); border: 3px solid var(--border); }
 .profile-avatar-placeholder { width: 100px; height: 100px; border-radius: 50%; background: var(--bg-card2); border: 3px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--text-muted); }
-.profile-info { flex: 1; }
-.profile-username { font-size: 26px; font-weight: 800; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.profile-info { flex: 1; text-align: center; }
+.profile-username { font-size: 26px; font-weight: 800; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .profile-title { font-size: 13px; font-weight: 600; color: var(--accent-red2); margin-top: 4px; margin-bottom: 4px; }
 .profile-bio { color: var(--text-secondary); font-size: 14px; margin-bottom: 12px; }
 
@@ -933,10 +933,12 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
 .dm-conv-name { font-size: 14px; color: var(--text-primary); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dm-conv-last { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dm-unread-badge { background: var(--accent-red); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
-.dm-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.dm-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .dm-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); }
-.dm-chat { display: flex; flex-direction: column; height: 100%; }
+.dm-chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .dm-chat-header { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); flex-shrink: 0; }
+.dm-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.dm-msg-content { display: flex; flex-direction: column; max-width: 70%; min-width: 0; }
 .dm-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .dm-msg-wrap { display: flex; align-items: flex-end; gap: 8px; }
 .dm-msg-wrap.dm-own { flex-direction: row-reverse; }
@@ -1276,9 +1278,12 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
 
 /* PLAYER */
 .music-player-box { background: var(--bg-card2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+.music-player-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.music-vol-wrap { display:flex; align-items:center; gap:6px; }
 .music-play-btn { background: var(--grad-red); color: #fff; border: none; padding: 10px 24px; border-radius: 24px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; transition: box-shadow 0.2s; }
 .music-play-btn:hover { box-shadow: 0 4px 20px rgba(220,38,38,0.4); }
 .music-progress-wrap { display: flex; align-items: center; gap: 10px; }
+.music-detail-title { word-break: break-word; overflow-wrap: anywhere; }
 .music-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; min-width: 32px; }
 .music-bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 4px; position: relative; cursor: pointer; }
 .music-bar-fill { height: 100%; background: var(--accent-red); border-radius: 4px; pointer-events: none; transition: width 0.1s; }
@@ -1287,6 +1292,17 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
 .music-share-reason { background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.15); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
 .music-share-reason-label { font-size: 12px; font-weight: 600; color: var(--accent-red2); margin-bottom: 6px; }
 .music-share-reason-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+.comment-author a { color: inherit; text-decoration: none; }
+.comment-author a:hover { text-decoration: underline; }
+.resume-card a { text-decoration: none; }
+.song-card { border:1px solid var(--border); border-radius:16px; overflow:hidden; background:var(--bg-card2); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; }
+.song-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.05); }
+.song-card-cover, .song-card-cover-ph { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; }
+.song-card-cover-ph { display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:26px; }
+.song-card-body { padding:14px; display:flex; flex-direction:column; gap:4px; }
+.song-card-title { font-size:15px; font-weight:700; line-height:1.3; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.song-card-subtitle { font-size:13px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.song-card-meta { font-size:12px; color:var(--text-muted); }
 .music-lyrics-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; }
 .music-lyrics-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
 .music-lyrics-text { font-size: 15px; line-height: 2; color: var(--text-secondary); white-space: pre-wrap; font-family: 'Georgia', serif; }
