@@ -666,9 +666,6 @@ pre, .page-reader-content { font-family: 'Inter', sans-serif; }
   box-sizing: border-box;
   overflow-x: hidden;
 }
-  box-sizing: border-box;
-  overflow-x: hidden;
-}
 .ebook-page-content .book-title-heading {
   font-size: 1.3em;
   font-weight: 700;

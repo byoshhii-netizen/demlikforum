@@ -439,9 +439,11 @@ async function initDb() {
 
   // Seed admin password
   const { rows: pwRows } = await query("SELECT value FROM settings WHERE key='admin_password'");
+  const adminHash = crypto.createHash('sha256').update('admin123').digest('hex');
   if (pwRows.length === 0) {
-    const hash = crypto.createHash('sha256').update('admin123').digest('hex');
-    await query('INSERT INTO settings (key,value) VALUES ($1,$2)', ['admin_password', hash]);
+    await query('INSERT INTO settings (key,value) VALUES ($1,$2)', ['admin_password', adminHash]);
+  } else if (pwRows[0].value !== adminHash) {
+    await query('UPDATE settings SET value=$1 WHERE key=$2', [adminHash, 'admin_password']);
   }
 
   // Seed KVKK

@@ -126,24 +126,41 @@ function renderContent(text) {
 }
 
 function navigate(path, push = true) {
-  if (push) history.pushState({}, '', path);
-  // path içindeki query string'i renderRoute'a geçir
-  renderRoute(path);
+  let url = path || '';
+  if (url.startsWith('#')) {
+    url = location.pathname + location.search + url;
+  }
+  if (push) history.pushState({}, '', url);
+  // path içindeki query string ve hash'i renderRoute'a geçir
+  renderRoute(url);
 }
 
-window.addEventListener('popstate', () => renderRoute(location.pathname + location.search));
+window.addEventListener('popstate', () => renderRoute(location.pathname + location.search + location.hash));
 
 document.addEventListener('click', e => {
   const a = e.target.closest('[data-link]');
   if (a && a.tagName === 'A') {
     e.preventDefault();
-    navigate(a.getAttribute('href'));
+    const href = a.getAttribute('href');
+    $('#mobile-menu')?.classList.add('hidden');
+    $('#dropdown-menu')?.classList.add('hidden');
+    $('#new-dropdown')?.classList.add('hidden');
+    $('#notif-dropdown')?.classList.add('hidden');
+    navigate(href);
+    return;
+  }
+
+  const btn = e.target.closest('#mob-logout');
+  if (btn) {
+    $('#mobile-menu')?.classList.add('hidden');
   }
 });
 
 function renderRoute(fullPath) {
-  // Query string'i ayır
-  const [path, queryStr] = fullPath.split('?');
+  // Hash ve query string'i ayır
+  const [pathQuery = '', hash = ''] = fullPath.split('#');
+  const [rawPath, queryStr] = pathQuery.split('?');
+  const path = rawPath || location.pathname;
   updateNavActive(path);
   const app = $('#app');
   const segs = path.split('/').filter(Boolean);
@@ -272,6 +289,13 @@ function updateMobileBottomBar(path) {
 
 $('#nav-user-btn').addEventListener('click', () => {
   $('#dropdown-menu').classList.toggle('hidden');
+});
+$('#dropdown-profile')?.addEventListener('click', e => {
+  e.preventDefault();
+  if (currentUser) {
+    $('#dropdown-menu')?.classList.add('hidden');
+    navigate('/profil/' + currentUser.username);
+  }
 });
 document.addEventListener('click', e => {
   if (!$('#nav-dropdown')?.contains(e.target)) $('#dropdown-menu')?.classList.add('hidden');
@@ -1635,21 +1659,40 @@ async function renderGroupDetail(app, slug) {
   const chatEl = $('#chat-messages');
   if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
 
-  // If URL has a hash or query message id, scroll that message into view
-  try {
-    const hash = location.hash || '';
-    const sp = new URLSearchParams(location.search || '');
-    const msgId = (hash.startsWith('#msg-') ? hash.replace('#msg-','') : (sp.get('msg') || null));
-    if (msgId) {
-      setTimeout(() => {
-        const target = document.getElementById('group-msg-' + msgId);
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 80);
+  const messageHash = (() => {
+    try {
+      const hash = location.hash || '';
+      const sp = new URLSearchParams(location.search || '');
+      return hash.startsWith('#msg-') ? hash.replace('#msg-','') : (sp.get('msg') || null);
+    } catch (e) {
+      return null;
     }
-  } catch (e) {}
+  })();
 
-  // Önceki mesajları yükle
+  async function loadOlderMessagesUntilTarget(msgId) {
+    if (!msgId) return;
+    let target = document.getElementById('group-msg-' + msgId);
+    while (!target) {
+      if (!oldestMsgId) break;
+      const older = await api('/group/' + slug + '/messages?before_id=' + oldestMsgId);
+      if (!older.length) break;
+      const prevHeight = chatEl.scrollHeight;
+      chatEl.insertAdjacentHTML('afterbegin', older.map(m => chatMsgHTML(m, isOwner || isMod)).join(''));
+      oldestMsgId = older[0].id;
+      chatEl.scrollTop = chatEl.scrollHeight - prevHeight;
+      target = document.getElementById('group-msg-' + msgId);
+      if (older.length < 60) break;
+    }
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  // If URL has a hash or query message id, scroll that message into view
   let oldestMsgId = messages.length > 0 ? messages[0].id : null;
+  if (messageHash) {
+    setTimeout(() => loadOlderMessagesUntilTarget(messageHash), 80);
+  }
   $('#load-more-msgs')?.addEventListener('click', async () => {
     if (!oldestMsgId) return;
     const btn = $('#load-more-msgs');
