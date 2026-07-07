@@ -1513,10 +1513,7 @@ app.post('/api/admin/user/:id/unban', adminMiddleware, async (req, res) => {
   res.json({ ok: true });
 });
 
-// If an /api route was not matched, return JSON 404 instead of HTML fallback
-app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
+// Note: API 404 fallback handled later after all routes (see app.get('*')).
 
 // Global error handler — ensure API errors return JSON
 app.use((err, req, res, next) => {
