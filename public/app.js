@@ -2809,9 +2809,10 @@ async function loadPopupAd() {
     // Prefer an ad with image and target
     const ad = ads.find(a => a.image_url && a.target_url) || ads[0];
     if (!ad || !ad.image_url) return;
-    // show modal popup
+    // show modal popup with clear 'REKLAM' badge
     showModal(ad.title || 'Reklam', `
-      <div style="text-align:center;padding:8px">
+      <div style="text-align:center;padding:8px;position:relative">
+        <div style="position:absolute;right:12px;top:8px;background:rgba(0,0,0,0.6);color:#fff;padding:4px 8px;border-radius:6px;font-size:12px;font-weight:700">REKLAM</div>
         <a href="#" id="popup-ad-link"><img src="${escHtml(ad.image_url)}" style="max-width:100%;height:auto;border-radius:8px" /></a>
         <div style="margin-top:8px;font-weight:700">${escHtml(ad.title||'')}</div>
         <div style="margin-top:6px;color:var(--text-muted);font-size:13px">Bu reklamı kapatmak için sağ üstten kapatın.</div>
