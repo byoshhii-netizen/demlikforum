@@ -321,7 +321,7 @@ const storage = multer.diskStorage({
     cb(null, uuidv4() + ext);
   }
 });
-const maxMb = parseInt(process.env.MAX_UPLOAD_MB || '200');
+const maxMb = parseInt(process.env.MAX_UPLOAD_MB || '500');
 const upload = multer({
   storage,
   limits: { fileSize: maxMb * 1024 * 1024 }, // configurable via MAX_UPLOAD_MB env (default 200MB)
@@ -1319,6 +1319,8 @@ app.get('/api/media/:id', async (req, res) => {
 // Upload media
 app.post('/api/media', authMiddleware, upload.single('file'), async (req, res) => {
   try {
+    // Log incoming upload info to help diagnose network/size issues
+    try { console.log('Media upload request:', req.file && { originalname: req.file.originalname, size: req.file.size, mimetype: req.file.mimetype }); } catch(e) {}
     const { title = '', description = '', type = 'video' } = req.body;
     if (!req.file) return res.status(400).json({ error: 'Dosya gerekli' });
     const url = await handleUpload(req.file);
