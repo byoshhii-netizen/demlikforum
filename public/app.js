@@ -64,7 +64,16 @@ async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (currentToken) headers['Authorization'] = 'Bearer ' + currentToken;
   const res = await fetch('/api' + path, { ...options, headers });
-  const data = await res.json();
+  const ct = res.headers.get('content-type') || '';
+  let data = null;
+  if (ct.includes('application/json')) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    // try to extract an error message from HTML or plain text
+    const m = /<title>(.*?)<\/title>/i.exec(text);
+    data = { error: m ? m[1] : text };
+  }
   if (!res.ok) throw new Error(data.error || 'Hata');
   return data;
 }
@@ -73,7 +82,14 @@ async function apiForm(path, formData, method = 'POST') {
   const headers = {};
   if (currentToken) headers['Authorization'] = 'Bearer ' + currentToken;
   const res = await fetch('/api' + path, { method, body: formData, headers });
-  const data = await res.json();
+  const ct = res.headers.get('content-type') || '';
+  let data = null;
+  if (ct.includes('application/json')) data = await res.json();
+  else {
+    const text = await res.text();
+    const m = /<title>(.*?)<\/title>/i.exec(text);
+    data = { error: m ? m[1] : text };
+  }
   if (!res.ok) throw new Error(data.error || 'Hata');
   return data;
 }
@@ -221,7 +237,7 @@ async function renderMediaDetail(app, id) {
         <div style="margin-left:auto"><button class="btn btn-primary btn-sm" id="follow-btn">Takip Et</button></div>
       </div>
       <div style="padding:0 12px 12px">${m.title?`<h3 class="page-reader-title">${escHtml(m.title)}</h3>`:''}
-      <div style="margin-top:8px">${m.type === 'video' ? `<video controls style="width:100%;max-height:480px;background:#000"><source src="${escHtml(m.media_url)}"></video>` : `<img src="${escHtml(m.media_url)}" style="width:100%" />`}</div>
+      <div style="margin-top:8px">${m.type === 'video' ? `<video controls playsinline webkit-playsinline preload="metadata" style="width:100%;max-height:480px;background:#000"><source src="${escHtml(m.media_url)}" type="video/mp4"></video>` : `<img src="${escHtml(m.media_url)}" style="width:100%" />`}</div>
       <div style="margin-top:10px" id="media-actions"><button class="btn btn-ghost btn-sm" id="like-btn"><i class="fas fa-heart"></i> Beğen</button> <button class="btn btn-ghost btn-sm" id="share-btn"><i class="fas fa-share"></i> Paylaş</button></div>
       <div style="margin-top:12px;color:var(--text-muted)">${escHtml(m.description || '')}</div>
       </div></div>`;
@@ -247,6 +263,18 @@ async function renderMediaDetail(app, id) {
     // like/share handlers (simple)
     $('#like-btn').addEventListener('click', () => toast('Beğenme eklendi'));
     $('#share-btn').addEventListener('click', () => { navigator.share ? navigator.share({ title: m.title||'Demlik', url: location.href }) : prompt('Paylaşılacak link', location.href); });
+
+    // Send view event when video is actually played (only once)
+    if (m.type === 'video') {
+      const v = main.querySelector('video');
+      if (v) {
+        let viewed = false;
+        v.addEventListener('play', async () => {
+          if (viewed) return; viewed = true;
+          try { await api('/media/' + encodeURIComponent(m.id) + '/view', { method: 'POST' }); } catch (e) {}
+        });
+      }
+    }
 
     // sidebar ads
     try {
@@ -2762,6 +2790,7 @@ async function init() {
     }
   } catch {}
   loadAnnouncements();
+  loadPopupAd();
   renderRoute(location.pathname + location.search);
   if (currentUser) {
     checkUnreadMessages();
@@ -2769,6 +2798,35 @@ async function init() {
     loadNotifCount();
     setInterval(() => { if (currentUser) loadNotifCount(); }, 30000);
   }
+}
+
+// Popup ad: show one active ad once per session
+async function loadPopupAd() {
+  try {
+    if (sessionStorage.getItem('popup_ad_shown')) return;
+    const ads = await api('/ads');
+    if (!ads || !ads.length) return;
+    // Prefer an ad with image and target
+    const ad = ads.find(a => a.image_url && a.target_url) || ads[0];
+    if (!ad || !ad.image_url) return;
+    // show modal popup
+    showModal(ad.title || 'Reklam', `
+      <div style="text-align:center;padding:8px">
+        <a href="#" id="popup-ad-link"><img src="${escHtml(ad.image_url)}" style="max-width:100%;height:auto;border-radius:8px" /></a>
+        <div style="margin-top:8px;font-weight:700">${escHtml(ad.title||'')}</div>
+        <div style="margin-top:6px;color:var(--text-muted);font-size:13px">Bu reklamı kapatmak için sağ üstten kapatın.</div>
+      </div>
+    `);
+    try { await api('/ads/' + ad.id + '/impression', { method: 'POST' }); } catch {}
+    const link = document.getElementById('popup-ad-link');
+    if (link) link.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try { await api('/ads/' + ad.id + '/click', { method: 'POST' }); } catch {}
+      if (ad.target_url) window.open(ad.target_url, '_blank');
+      hideModal();
+    });
+    sessionStorage.setItem('popup_ad_shown', '1');
+  } catch (e) { /* ignore */ }
 }
 
 async function loadAnnouncements() {

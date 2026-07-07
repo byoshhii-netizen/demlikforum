@@ -7,6 +7,7 @@ const multer = require('multer');
 const slugify = require('slugify');
 const rateLimit = require('express-rate-limit');
 const cloudinary = require('cloudinary').v2;
+const mime = require('mime-types');
 const { query, initDb } = require('./database');
 
 const app = express();
@@ -28,13 +29,50 @@ if (process.env.CLOUDINARY_URL) {
 const USE_CLOUDINARY = !!(process.env.CLOUDINARY_URL || process.env.CLOUDINARY_CLOUD_NAME);
 
 // Fallback: local disk (Railway volume veya geliştirme)
-const UPLOAD_DIR = process.env.UPLOAD_DIR || '/data/uploads';
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 if (!USE_CLOUDINARY) {
   try { if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
+
+  // Serve uploads with range support for video streaming
+  app.get('/uploads/:name', (req, res) => {
+    const fileName = req.params.name;
+    const filePath = path.join(UPLOAD_DIR, fileName);
+    if (!fs.existsSync(filePath)) return res.status(404).end();
+    const stat = fs.statSync(filePath);
+    const total = stat.size;
+    const range = req.headers.range;
+    const contentType = mime.lookup(filePath) || 'application/octet-stream';
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
+      if (isNaN(start) || isNaN(end) || start >= total) {
+        res.status(416).set('Content-Range', `bytes */${total}`).end();
+        return;
+      }
+      const chunkSize = (end - start) + 1;
+      const stream = fs.createReadStream(filePath, { start, end });
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${total}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': contentType,
+      });
+      stream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': total,
+        'Content-Type': contentType,
+        'Accept-Ranges': 'bytes',
+      });
+      fs.createReadStream(filePath).pipe(res);
+    }
+  });
+
+  app.use('/uploads', express.static(UPLOAD_DIR));
 }
 
 app.use(express.json());
-if (!USE_CLOUDINARY) app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Cloudflare proxy arkasındaysa gerçek IP'yi al
 app.set('trust proxy', 1);
@@ -123,6 +161,14 @@ app.use('/api/group/:slug/upload', uploadLimiter);
 app.use('/api/forums', createLimiter);
 app.use('/api/books', createLimiter);
 app.use('/api/group/:slug/messages', createLimiter);
+
+// Multer / upload error handler
+app.use((err, req, res, next) => {
+  if (err && err.name === 'MulterError') {
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
+});
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -267,19 +313,18 @@ async function checkDailyLimit(userId, user, type) {
 }
 
 // ===== MULTER / UPLOAD =====
-// Memory storage — Cloudinary varsa RAM'den upload, yoksa disk'e yaz
-const storage = USE_CLOUDINARY
-  ? multer.memoryStorage()
-  : multer.diskStorage({
-      destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-      filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        cb(null, uuidv4() + ext);
-      }
-    });
+// Use disk storage for uploads to avoid buffering large files in memory
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, uuidv4() + ext);
+  }
+});
+const maxMb = parseInt(process.env.MAX_UPLOAD_MB || '200');
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB (audio için)
+  limits: { fileSize: maxMb * 1024 * 1024 }, // configurable via MAX_UPLOAD_MB env (default 200MB)
   fileFilter: (req, file, cb) => {
     const allowedImages = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
       const allowedAudio = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/flac', 'audio/aac', 'audio/x-wav', 'audio/wave'];
@@ -291,29 +336,23 @@ const upload = multer({
 
 // Yükleme helper'ı — Cloudinary ya da disk
 async function handleUpload(file) {
+  // We store uploads on disk; if Cloudinary configured, upload from the file path to avoid buffering
   if (USE_CLOUDINARY) {
     return new Promise((resolve, reject) => {
-      if (!file.buffer || file.buffer.length === 0) {
-        return reject(new Error('Dosya buffer boş'));
-      }
-      const ext = path.extname(file.originalname).replace('.', '') || 'jpg';
-      const public_id = 'demlik/' + uuidv4();
+      const filepath = file.path || (file.filename ? path.join(UPLOAD_DIR, file.filename) : null);
+      if (!filepath || !fs.existsSync(filepath)) return reject(new Error('Dosya bulunamadı (disk)'));
       const isAudio = file.mimetype && file.mimetype.startsWith('audio/');
-      const stream = cloudinary.uploader.upload_stream(
-        isAudio
-          ? { public_id, resource_type: 'video' } // Cloudinary audio için 'video' resource type kullanır
-          : { public_id, resource_type: 'image', quality: 'auto', fetch_format: 'auto' },
-        (err, result) => {
-          if (err) return reject(new Error('Cloudinary yükleme hatası: ' + (err.message || JSON.stringify(err))));
-          if (!result?.secure_url) return reject(new Error('Cloudinary URL alınamadı'));
-          resolve(result.secure_url);
-        }
-      );
-      stream.end(file.buffer);
+      const opts = isAudio ? { resource_type: 'video' } : { quality: 'auto', fetch_format: 'auto' };
+      cloudinary.uploader.upload(filepath, opts, (err, result) => {
+        // remove local temp file regardless of result
+        try { fs.unlinkSync(filepath); } catch (e) {}
+        if (err) return reject(new Error('Cloudinary yükleme hatası: ' + (err.message || JSON.stringify(err))));
+        if (!result?.secure_url) return reject(new Error('Cloudinary URL alınamadı'));
+        resolve(result.secure_url);
+      });
     });
-  } else {
-    return '/uploads/' + file.filename;
   }
+  return '/uploads/' + file.filename;
 }
 
 // ===== ROBOTS & SITEMAP =====
@@ -1365,21 +1404,18 @@ app.post('/api/ads/:id/click', async (req, res) => {
 });
 
 // Admin ad management
-app.get('/api/admin/ads', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+app.get('/api/admin/ads', adminMiddleware, async (req, res) => {
   const { rows } = await query('SELECT * FROM ads ORDER BY created_at DESC');
   res.json(rows);
 });
 
-app.post('/api/admin/ads', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+app.post('/api/admin/ads', adminMiddleware, async (req, res) => {
   const { image_url, title, description, target_url, start_at, end_at, active } = req.body;
   const { rows } = await query('INSERT INTO ads (image_url,title,description,target_url,start_at,end_at,active) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *', [image_url, title||'', description||'', target_url||'', start_at||null, end_at||null, active?1:0]);
   res.json(rows[0]);
 });
 
-app.put('/api/admin/ads/:id', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+app.put('/api/admin/ads/:id', adminMiddleware, async (req, res) => {
   const id = parseInt(req.params.id);
   const { image_url, title, description, target_url, start_at, end_at, active } = req.body;
   await query('UPDATE ads SET image_url=$1,title=$2,description=$3,target_url=$4,start_at=$5,end_at=$6,active=$7 WHERE id=$8', [image_url, title||'', description||'', target_url||'', start_at||null, end_at||null, active?1:0, id]);
@@ -1387,29 +1423,25 @@ app.put('/api/admin/ads/:id', authMiddleware, async (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/admin/ads/:id', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+app.delete('/api/admin/ads/:id', adminMiddleware, async (req, res) => {
   const id = parseInt(req.params.id);
   await query('DELETE FROM ads WHERE id=$1', [id]);
   res.json({ ok: true });
 });
 
 // Admin censor rules
-app.get('/api/admin/censor', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+app.get('/api/admin/censor', adminMiddleware, async (req, res) => {
   const { rows } = await query('SELECT * FROM censor_rules ORDER BY created_at DESC');
   res.json(rows);
 });
 
-app.post('/api/admin/censor', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+app.post('/api/admin/censor', adminMiddleware, async (req, res) => {
   const { phrase, level, action, replacement } = req.body;
   const { rows } = await query('INSERT INTO censor_rules (phrase,level,action,replacement) VALUES ($1,$2,$3,$4) RETURNING *', [phrase, level||'medium', action||'replace', replacement||'***']);
   res.json(rows[0]);
 });
 
-app.put('/api/admin/censor/:id', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+app.put('/api/admin/censor/:id', adminMiddleware, async (req, res) => {
   const id = parseInt(req.params.id);
   const { phrase, level, action, replacement } = req.body;
   await query('UPDATE censor_rules SET phrase=$1,level=$2,action=$3,replacement=$4 WHERE id=$5', [phrase, level||'medium', action||'replace', replacement||'***', id]);
@@ -1417,8 +1449,7 @@ app.put('/api/admin/censor/:id', authMiddleware, async (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/admin/censor/:id', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.is_admin) return res.status(403).json({ error: 'Yetki yok' });
+app.delete('/api/admin/censor/:id', adminMiddleware, async (req, res) => {
   const id = parseInt(req.params.id);
   await query('DELETE FROM censor_rules WHERE id=$1', [id]);
   res.json({ ok: true });
@@ -1478,6 +1509,20 @@ app.post('/api/admin/user/:id/unban', adminMiddleware, async (req, res) => {
   await query("UPDATE users SET banned=0,ban_type='',banned_ip='' WHERE id=$1", [req.params.id]);
   await logAction('admin', 'unban_user', rows[0].username);
   res.json({ ok: true });
+});
+
+// If an /api route was not matched, return JSON 404 instead of HTML fallback
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Global error handler — ensure API errors return JSON
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err && err.stack ? err.stack : err);
+  if (req.path && req.path.startsWith('/api')) {
+    return res.status(err?.status || 500).json({ error: err?.message || 'Internal server error' });
+  }
+  next(err);
 });
 
 app.delete('/api/admin/user/:id', adminMiddleware, async (req, res) => {
@@ -1673,6 +1718,19 @@ app.post('/api/admin/upload-logo', adminMiddleware, upload.single('logo'), async
 app.get('/api/kvkk', async (req, res) => {
   const { rows } = await query("SELECT value FROM settings WHERE key='kvkk_text'");
   res.json({ text: rows[0]?.value || '' });
+});
+
+// First-time admin setup: set admin password hash if not set
+app.post('/api/admin/setup', async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: 'Parola gerekli' });
+    const { rows } = await query("SELECT value FROM settings WHERE key='admin_password'");
+    if (rows.length) return res.status(403).json({ error: 'Admin parolası zaten ayarlı' });
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
+    await query('INSERT INTO settings (key,value) VALUES ($1,$2)', ['admin_password', hash]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/public-settings', async (req, res) => {
