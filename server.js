@@ -115,8 +115,9 @@ const createLimiter = rateLimit({
 });
 
 app.use('/api/', generalLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+// Auth rate limiting is disabled to avoid the 15 dakika bekleme uyarısı.
+// app.use('/api/auth/login', authLimiter);
+// app.use('/api/auth/register', authLimiter);
 app.use('/api/upload', uploadLimiter);
 app.use('/api/group/:slug/upload', uploadLimiter);
 app.use('/api/forums', createLimiter);
