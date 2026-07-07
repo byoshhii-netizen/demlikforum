@@ -1174,7 +1174,7 @@ app.get('/api/profile/:username', async (req, res) => {
 });
 
 app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
-  const { bio, links, name_color, show_level_badge, show_level_color, title, location, allow_mentions } = req.body;
+  const { bio, links, display_name, name_color, show_level_badge, show_level_color, title, location, allow_mentions } = req.body;
   let newAvatar = req.user.avatar;
   if (req.file) {
     try {
@@ -1184,8 +1184,8 @@ app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res
     }
   }
   const newLinks = links ? (typeof links === 'string' ? links : JSON.stringify(links)) : req.user.links;
-  await query('UPDATE users SET bio=$1,links=$2,name_color=$3,show_level_badge=$4,show_level_color=$5,avatar=$6,title=$7,location=$8,allow_mentions=$9 WHERE id=$10',
-    [bio??req.user.bio, newLinks, name_color??req.user.name_color,
+  await query('UPDATE users SET bio=$1,display_name=$2,links=$3,name_color=$4,show_level_badge=$5,show_level_color=$6,avatar=$7,title=$8,location=$9,allow_mentions=$10 WHERE id=$11',
+    [bio??req.user.bio, display_name!==undefined?display_name:req.user.display_name, newLinks, name_color??req.user.name_color,
      show_level_badge!==undefined?(show_level_badge?1:0):req.user.show_level_badge,
      show_level_color!==undefined?(show_level_color?1:0):req.user.show_level_color,
      newAvatar, title??req.user.title??'', location??req.user.location??'',

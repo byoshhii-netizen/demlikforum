@@ -26,6 +26,7 @@ async function initDb() {
       password_hash TEXT NOT NULL,
       avatar TEXT DEFAULT '',
       bio TEXT DEFAULT '',
+      display_name TEXT DEFAULT '',
       links TEXT DEFAULT '[]',
       level_id INTEGER DEFAULT 1,
       show_level_badge INTEGER DEFAULT 1,
@@ -354,6 +355,7 @@ async function initDb() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_bio TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_genre TEXT DEFAULT '';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS artist_website TEXT DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT '';
     ALTER TABLE songs ADD COLUMN IF NOT EXISTS ban_reason TEXT DEFAULT '';
     ALTER TABLE songs ADD COLUMN IF NOT EXISTS ban_until TIMESTAMP;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS delete_requested_at TIMESTAMP;

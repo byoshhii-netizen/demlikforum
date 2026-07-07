@@ -102,7 +102,8 @@ function userDisplayName(u) {
   if (!u) return 'Silindi';
   const color = (u.show_level_color !== 0 && u.name_color) ? `style="color:${escHtml(u.name_color)}"` : '';
   const adminBadge = u.is_admin ? ` <i class="fas fa-shield user-admin" title="Demlik Yetkilisi" data-admin-since="${escHtml(u.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:13px"></i>` : '';
-  return `<span class="user-badge" ${color}>${escHtml(u.username)}${u.is_vip ? ' <i class="fas fa-gem user-vip" title="VIP"></i>' : ''}${u.is_plus ? ' <i class="fas fa-plus user-plus" title="Plus"></i>' : ''}${adminBadge}</span>`;
+  const displayName = u.display_name ? escHtml(u.display_name) : escHtml(u.username);
+  return `<span class="user-badge" ${color}>${displayName}${u.is_vip ? ' <i class="fas fa-gem user-vip" title="VIP"></i>' : ''}${u.is_plus ? ' <i class="fas fa-plus user-plus" title="Plus"></i>' : ''}${adminBadge}</span>`;
 }
 
 function avatarImg(u, cls = 'avatar-sm') {
@@ -1975,8 +1976,9 @@ async function renderProfile(app, username) {
       </div>
       <div class="profile-info">
         <div class="profile-username" style="${user.show_level_color && user.name_color ? 'color:' + escHtml(user.name_color) : ''}">
-          ${escHtml(user.username)}${user.is_admin ? ` <i class="fas fa-shield user-admin" title="Demlik Yetkilisi" data-admin-since="${escHtml(user.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:18px"></i>` : ''}
+          ${escHtml(user.display_name || user.username)}${user.is_admin ? ` <i class="fas fa-shield user-admin" title="Demlik Yetkilisi" data-admin-since="${escHtml(user.admin_since || '')}" style="color:#5865F2;cursor:pointer;font-size:18px"></i>` : ''}
         </div>
+        ${user.display_name ? `<div style="font-size:13px;color:var(--text-muted);margin-top:6px">@${escHtml(user.username)}</div>` : ''}
         ${user.title ? `<div class="profile-title"><i class="fas fa-briefcase" style="font-size:11px;margin-right:4px"></i>${escHtml(user.title)}</div>` : ''}
         ${user.location ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px"><i class="fas fa-map-marker-alt" style="font-size:11px;margin-right:4px"></i>${escHtml(user.location)}</div>` : ''}
         ${badgesHTML}
@@ -2085,12 +2087,9 @@ function renderSettingsSection(section) {
             </div>
           </div>
           <div class="form-group"><label>Biyografi</label><textarea id="s-bio" rows="3">${escHtml(currentUser.bio || '')}</textarea></div>
-          <div class="form-group"><label>Ünvan <span style="color:var(--accent-red2)">*</span></label><input type="text" id="s-title" placeholder="Örn: Yazar, Öğrenci, Mühendis..." value="${escHtml(currentUser.title || '')}" /></div>
-          <div class="form-group"><label>Konum (opsiyonel)</label><input type="text" id="s-location" placeholder="Örn: İstanbul, Türkiye" value="${escHtml(currentUser.location || '')}" /></div>
-          <div class="form-row">
-            <div class="form-group"><label>Ünvan <span style="color:var(--accent-red2)">*</span></label><input type="text" id="s-title" value="${escHtml(currentUser.title || '')}" placeholder="Örn: Yazılım Geliştirici, Öğrenci..." /></div>
-            <div class="form-group"><label>Konum <span style="color:var(--text-muted);font-size:11px">(opsiyonel)</span></label><input type="text" id="s-location" value="${escHtml(currentUser.location || '')}" placeholder="Örn: İstanbul, Türkiye" /></div>
-          </div>
+          <div class="form-group"><label>Takma Ad</label><input type="text" id="s-display-name" placeholder="Örn: Edebiyatçı, Gezgin, Kodcu..." value="${escHtml(currentUser.display_name || '')}" /></div>
+          <div class="form-group"><label>Ünvan <span style="color:var(--accent-red2)">*</span></label><input type="text" id="s-title" value="${escHtml(currentUser.title || '')}" placeholder="Örn: Yazılım Geliştirici, Öğrenci..." /></div>
+          <div class="form-group"><label>Konum <span style="color:var(--text-muted);font-size:11px">(opsiyonel)</span></label><input type="text" id="s-location" value="${escHtml(currentUser.location || '')}" placeholder="Örn: İstanbul, Türkiye" /></div>
           <div class="form-group">
             <label>Linkler</label>
             <div id="links-container" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
@@ -2140,6 +2139,7 @@ function renderSettingsSection(section) {
       if (!titleVal) { $('#profile-msg').textContent = 'Ünvan zorunlu'; return; }
       const fd = new FormData();
       fd.append('bio', $('#s-bio').value);
+      fd.append('display_name', $('#s-display-name').value.trim() || '');
       fd.append('title', titleVal);
       fd.append('location', $('#s-location').value || '');
       const validLinks = currentLinks.filter(l => l.url && l.url.trim());
