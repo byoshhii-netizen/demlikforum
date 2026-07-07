@@ -183,6 +183,7 @@ function renderRoute(fullPath) {
   if (path.startsWith('/grup/')) return renderGroupDetail(app, segs[1]);
   if (path.startsWith('/profil/')) return renderProfile(app, segs[1]);
   if (path === '/ayarlar') return renderSettings(app);
+  if (path.startsWith('/media/')) return renderMediaDetail(app, segs[1]);
   if (path === '/giris') return renderLogin(app);
   if (path === '/kayit') return renderRegister(app);
   if (path === '/mesajlar') return renderMessages(app, null);
@@ -194,6 +195,70 @@ function renderRoute(fullPath) {
   if (path === '/artist-panel') return renderArtistPanel(app);
   if (path === '/sarki-yukle') return renderShareSong(app);
   renderNotFound(app);
+}
+
+async function renderMediaDetail(app, id) {
+  document.title = 'İçerik - Demlik';
+  app.innerHTML = `<div class="container page">
+    <div style="display:flex;gap:20px;align-items:flex-start">
+      <div style="flex:1;max-width:720px" id="media-main"></div>
+      <div style="width:320px" id="media-side"></div>
+    </div>
+  </div>`;
+  const main = $('#media-main');
+  const side = $('#media-side');
+  try {
+    const data = await api('/media/' + encodeURIComponent(id));
+    const m = data.media;
+    const comments = data.comments || [];
+    const user = { username: m.username, avatar: m.avatar, display_name: m.display_name };
+    let mediaHTML = `<div class="card">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px">
+        ${avatarImg(user,'avatar-md')}<div>
+          <div style="font-weight:700">${userDisplayName(user)}</div>
+          <div style="font-size:13px;color:var(--text-muted)">${formatDate(m.created_at)}</div>
+        </div>
+        <div style="margin-left:auto"><button class="btn btn-primary btn-sm" id="follow-btn">Takip Et</button></div>
+      </div>
+      <div style="padding:0 12px 12px">${m.title?`<h3 class="page-reader-title">${escHtml(m.title)}</h3>`:''}
+      <div style="margin-top:8px">${m.type === 'video' ? `<video controls style="width:100%;max-height:480px;background:#000"><source src="${escHtml(m.media_url)}"></video>` : `<img src="${escHtml(m.media_url)}" style="width:100%" />`}</div>
+      <div style="margin-top:10px" id="media-actions"><button class="btn btn-ghost btn-sm" id="like-btn"><i class="fas fa-heart"></i> Beğen</button> <button class="btn btn-ghost btn-sm" id="share-btn"><i class="fas fa-share"></i> Paylaş</button></div>
+      <div style="margin-top:12px;color:var(--text-muted)">${escHtml(m.description || '')}</div>
+      </div></div>`;
+    main.innerHTML = mediaHTML + `<div class="card" style="margin-top:12px"><div class="card-header"><span>Yorumlar</span></div><div class="card-body">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        ${avatarImg(currentUser,'avatar-sm')}<textarea id="c-text" placeholder="Yorum yaz..." style="flex:1;height:60px"></textarea>
+      </div>
+      <div style="text-align:right;margin-top:8px"><button class="btn btn-primary btn-sm" id="c-send">Gönder</button></div>
+      <div id="comments-list" style="margin-top:12px">${comments.map(c=>`<div style="display:flex;gap:8px;margin-bottom:8px">${avatarImg(c,'avatar-sm')}<div><div style="font-weight:700">${escHtml(c.display_name||c.username)}</div><div style="font-size:13px">${escHtml(c.content)}</div></div></div>`).join('')}</div>
+    </div></div>`;
+
+    $('#c-send').addEventListener('click', async () => {
+      if (!currentUser) { navigate('/giris'); return; }
+      const content = $('#c-text').value.trim(); if (!content) return;
+      try {
+        const added = await api('/media/' + encodeURIComponent(id) + '/comments', { method: 'POST', body: JSON.stringify({ content }), headers: { 'Content-Type': 'application/json' } });
+        const cl = $('#comments-list');
+        cl.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:8px;margin-bottom:8px">${avatarImg(added,'avatar-sm')}<div><div style="font-weight:700">${escHtml(added.display_name||added.username)}</div><div style="font-size:13px">${escHtml(added.content)}</div></div></div>`);
+        $('#c-text').value = '';
+      } catch (e) { toast(e.message || 'Yorum gönderilemedi', 'error'); }
+    });
+
+    // like/share handlers (simple)
+    $('#like-btn').addEventListener('click', () => toast('Beğenme eklendi'));
+    $('#share-btn').addEventListener('click', () => { navigator.share ? navigator.share({ title: m.title||'Demlik', url: location.href }) : prompt('Paylaşılacak link', location.href); });
+
+    // sidebar ads
+    try {
+      const ads = await api('/ads');
+      side.innerHTML = ads.map(a => `<div class="card" style="margin-bottom:12px"><a href="#" class="ad-link" data-id="${a.id}" data-url="${escHtml(a.target_url)}"><img src="${escHtml(a.image_url)}" style="width:100%" /><div style="padding:8px"><strong>${escHtml(a.title||'')}</strong><div style="font-size:13px;color:var(--text-muted)">${escHtml(a.description||'')}</div></div></a></div>`).join('');
+      side.querySelectorAll('.ad-link').forEach(el => el.addEventListener('click', async (e) => {
+        e.preventDefault(); const id = el.dataset.id; const url = el.dataset.url; try { await api('/ads/' + id + '/click', { method: 'POST' }); } catch {}
+        if (url) window.open(url, '_blank');
+      }));
+    } catch (e) { side.innerHTML = '' }
+
+  } catch (e) { main.innerHTML = `<div class="card"><div class="card-body">İçerik bulunamadı</div></div>`; }
 }
 
 function updateNavActive(path) {
@@ -370,6 +435,8 @@ $('#nav-notif-btn')?.addEventListener('click', e => {
 $('#nav-new-forum')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/forum'); setTimeout(() => { if (currentUser) showNewForumModal(); else navigate('/giris'); }, 100); });
 $('#nav-new-book')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/kitaplar'); setTimeout(() => { if (currentUser) showNewBookModal(); else navigate('/giris'); }, 100); });
 $('#nav-new-group')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); navigate('/gruplar'); });
+$('#nav-new-photo')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); if (!currentUser) { navigate('/giris'); return; } showNewMediaModal('photo'); });
+$('#nav-new-video')?.addEventListener('click', () => { $('#new-dropdown').classList.add('hidden'); if (!currentUser) { navigate('/giris'); return; } showNewMediaModal('video'); });
 $('#logout-btn').addEventListener('click', async () => {
   try { await api('/auth/logout', { method: 'POST' }); } catch {}
   currentToken = null; currentUser = null;
@@ -2086,6 +2153,7 @@ function renderSettingsSection(section) {
               <input type="file" id="avatar-file" accept="image/*" style="padding:6px" />
             </div>
           </div>
+          <div class="form-group"><label>Kullanıcı Adı</label><input type="text" id="s-username" placeholder="Kullanıcı adınız (değiştirilebilir)" value="${escHtml(currentUser.username || '')}" /></div>
           <div class="form-group"><label>Biyografi</label><textarea id="s-bio" rows="3">${escHtml(currentUser.bio || '')}</textarea></div>
           <div class="form-group"><label>Takma Ad</label><input type="text" id="s-display-name" placeholder="Örn: Edebiyatçı, Gezgin, Kodcu..." value="${escHtml(currentUser.display_name || '')}" /></div>
           <div class="form-group"><label>Ünvan <span style="color:var(--accent-red2)">*</span></label><input type="text" id="s-title" value="${escHtml(currentUser.title || '')}" placeholder="Örn: Yazılım Geliştirici, Öğrenci..." /></div>
@@ -2139,6 +2207,7 @@ function renderSettingsSection(section) {
       if (!titleVal) { $('#profile-msg').textContent = 'Ünvan zorunlu'; return; }
       const fd = new FormData();
       fd.append('bio', $('#s-bio').value);
+      fd.append('username', $('#s-username').value.trim());
       fd.append('display_name', $('#s-display-name').value.trim() || '');
       fd.append('title', titleVal);
       fd.append('location', $('#s-location').value || '');
@@ -2380,6 +2449,45 @@ function renderSettingsSection(section) {
       }
     });
   }
+}
+
+function showNewMediaModal(defaultType = 'photo') {
+  showModal(defaultType === 'video' ? 'Yeni Video Yükle' : 'Yeni Fotoğraf Yükle', `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="form-group"><label>Dosya</label><input type="file" id="m-file" accept="image/*,video/*" /></div>
+      <div class="form-group"><label>Başlık</label><input type="text" id="m-title" placeholder="Başlık (opsiyonel)" /></div>
+      <div class="form-group"><label>Açıklama</label><textarea id="m-desc" rows="4" placeholder="Açıklama..."></textarea></div>
+      <div class="form-group"><label>Tür</label>
+        <select id="m-type"><option value="photo">Fotoğraf</option><option value="video">Video</option></select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" id="m-cancel">İptal</button>
+        <button class="btn btn-primary" id="m-upload">Yükle</button>
+      </div>
+      <div id="m-msg" style="color:var(--accent-red2);font-size:13px"></div>
+    </div>
+  `);
+  $('#m-type').value = defaultType === 'video' ? 'video' : 'photo';
+  $('#m-cancel').addEventListener('click', hideModal);
+  $('#m-upload').addEventListener('click', async () => {
+    const fileEl = $('#m-file');
+    const title = $('#m-title').value || '';
+    const desc = $('#m-desc').value || '';
+    const type = $('#m-type').value || 'photo';
+    if (!fileEl.files || !fileEl.files[0]) { $('#m-msg').textContent = 'Dosya seçin'; return; }
+    const fd = new FormData();
+    fd.append('file', fileEl.files[0]);
+    fd.append('title', title);
+    fd.append('description', desc);
+    fd.append('type', type);
+    try {
+      const res = await apiForm('/media', fd, 'POST');
+      hideModal();
+      toast('İçerik yüklendi');
+      // navigate to uploaded media page if available
+      navigate('/media/' + res.id);
+    } catch (e) { $('#m-msg').textContent = e.message || 'Yükleme hatası'; }
+  });
 }
 
 function renderLogin(app) {

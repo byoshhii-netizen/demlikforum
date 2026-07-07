@@ -117,10 +117,160 @@ function loadSection(section) {
     forums: renderForums, books: renderBooks, groups: renderGroups, artists: renderArtists,
     levels: renderLevels, tags: renderTags, logs: renderLogs,
     settings: renderSettings, messages: renderAdminMessages,
+    ads: renderAds, censor: renderCensor,
     announcements: renderAnnouncements,
     songs: renderAdminSongs, 'artist-apps': renderArtistApps
   };
   if (map[section]) map[section](main);
+}
+
+// ===== ADS =====
+async function renderAds(main) {
+  let ads = [];
+  try { ads = await adminApi('/ads'); } catch (e) {
+    main.innerHTML = `<div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-ad"></i></div> Reklamlar</div></div><div class="card"><div class="card-body" style="color:var(--red2);padding:20px"><i class="fas fa-exclamation-circle"></i> ${escHtml(e.message)}</div></div>`;
+    return;
+  }
+  main.innerHTML = `
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-ad"></i></div> Reklamlar <span style="font-size:13px;font-weight:400;color:var(--text2)">(${ads.length})</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary" id="create-ad-btn"><i class="fas fa-plus"></i> Yeni Reklam</button></div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Görsel</th><th>Başlık</th><th>Hedef</th><th>Durum</th><th>Gösterim</th><th>Tıklama</th><th>Dönem</th><th>İşlem</th></tr></thead>
+          <tbody id="ads-tbody"></tbody>
+        </table>
+      </div>
+    </div>`;
+  const tbody = $('#ads-tbody');
+  if (!ads.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">Reklam yok</td></tr>'; }
+  else tbody.innerHTML = ads.map(a => `<tr>
+    <td style="color:var(--text3);font-size:11px">#${a.id}</td>
+    <td>${a.image_url ? `<img src="${escHtml(a.image_url)}" style="width:120px;height:48px;object-fit:cover;border-radius:6px" />` : '<span style="color:var(--text3)">-</span>'}</td>
+    <td style="font-weight:600">${escHtml(a.title||'')}</td>
+    <td style="font-size:12px;color:var(--text2)">${escHtml(a.target_url||'')}</td>
+    <td>${a.active?'<span class="badge badge-green">Aktif</span>':'<span class="badge badge-gray">Pasif</span>'}</td>
+    <td style="font-size:12px;color:var(--text3)">${a.impressions||0}</td>
+    <td style="font-size:12px;color:var(--text3)">${a.clicks||0}</td>
+    <td style="font-size:12px;color:var(--text3)">${a.start_at?formatDate(a.start_at):'-'} → ${a.end_at?formatDate(a.end_at):'-'}</td>
+    <td>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-xs edit-ad-btn" data-id="${a.id}"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-danger btn-xs del-ad-btn" data-id="${a.id}"><i class="fas fa-trash"></i></button>
+      </div>
+    </td>
+  </tr>`).join('');
+
+  $('#create-ad-btn').addEventListener('click', () => showAdModal());
+
+  tbody.addEventListener('click', e => {
+    const edit = e.target.closest('.edit-ad-btn');
+    const del = e.target.closest('.del-ad-btn');
+    if (edit) { const ad = ads.find(x => x.id == edit.dataset.id); if (ad) showAdModal(ad); }
+    if (del) { if (!confirm('Reklam silinsin mi?')) return; adminApi('/ads/'+del.dataset.id, {method:'DELETE'}).then(() => { toast('Silindi'); loadSection('ads'); }).catch(err=>toast(err.message,'error')); }
+  });
+}
+
+function showAdModal(ad) {
+  const isEdit = !!ad;
+  showModal(isEdit ? 'Reklamı Düzenle' : 'Yeni Reklam', `
+    <div class="form-group"><label>Görsel URL</label><input id="ad-image" placeholder="https://.../image.jpg" value="${escHtml(ad?.image_url||'')}" /></div>
+    <div class="form-group"><label>Başlık</label><input id="ad-title" value="${escHtml(ad?.title||'')}" /></div>
+    <div class="form-group"><label>Hedef URL</label><input id="ad-target" value="${escHtml(ad?.target_url||'')}" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Başlangıç</label><input id="ad-start" type="datetime-local" value="${ad?.start_at?new Date(ad.start_at).toISOString().slice(0,16):''}" /></div>
+      <div class="form-group"><label>Bitiş</label><input id="ad-end" type="datetime-local" value="${ad?.end_at?new Date(ad.end_at).toISOString().slice(0,16):''}" /></div>
+    </div>
+    <label class="checkbox-label"><input type="checkbox" id="ad-active" ${ad && ad.active? 'checked' : ''} /> Aktif</label>
+    <button class="btn btn-primary" id="ad-save" style="width:100%;justify-content:center">Kaydet</button>
+    <div id="ad-error" class="form-error mt-4"></div>
+  `);
+  $('#ad-save').addEventListener('click', async () => {
+    const body = {
+      image_url: $('#ad-image').value.trim(), title: $('#ad-title').value.trim(), target_url: $('#ad-target').value.trim(),
+      start_at: $('#ad-start').value ? new Date($('#ad-start').value).toISOString() : null,
+      end_at: $('#ad-end').value ? new Date($('#ad-end').value).toISOString() : null,
+      active: $('#ad-active').checked
+    };
+    try {
+      if (isEdit) await adminApi('/ads/'+ad.id, {method:'PUT', body:JSON.stringify(body)});
+      else await adminApi('/ads', {method:'POST', body:JSON.stringify(body)});
+      toast('Kaydedildi'); hideModal(); loadSection('ads');
+    } catch (e) { $('#ad-error').textContent = e.message; }
+  });
+}
+
+// ===== CENSOR =====
+async function renderCensor(main) {
+  let rules = [];
+  try { rules = await adminApi('/censor'); } catch (e) {
+    main.innerHTML = `<div class="adm-section-header"><div class="adm-section-title"><div class="icon-pill"><i class="fas fa-filter"></i></div> Sansür Kuralları</div></div><div class="card"><div class="card-body" style="color:var(--red2);padding:20px"><i class="fas fa-exclamation-circle"></i> ${escHtml(e.message)}</div></div>`;
+    return;
+  }
+  main.innerHTML = `
+    <div class="adm-section-header">
+      <div class="adm-section-title"><div class="icon-pill"><i class="fas fa-filter"></i></div> Sansür Kuralları <span style="font-size:13px;font-weight:400;color:var(--text2)">(${rules.length})</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary" id="create-rule-btn"><i class="fas fa-plus"></i> Yeni Kural</button></div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>İfade</th><th>Seviye</th><th>İşlem</th><th>Yedek</th><th>Oluşturma</th><th>İşlem</th></tr></thead>
+          <tbody id="censor-tbody"></tbody>
+        </table>
+      </div>
+    </div>`;
+  const tbody = $('#censor-tbody');
+  if (!rules.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">Kural yok</td></tr>'; }
+  else tbody.innerHTML = rules.map(r => `<tr>
+    <td style="color:var(--text3);font-size:11px">#${r.id}</td>
+    <td style="font-weight:600">${escHtml(r.phrase)}</td>
+    <td style="font-size:12px;color:var(--text2)">${escHtml(r.level)}</td>
+    <td style="font-size:12px;color:var(--text3)">${escHtml(r.action)}</td>
+    <td style="font-size:12px;color:var(--text3)">${escHtml(r.replacement||'***')}</td>
+    <td style="font-size:12px;color:var(--text3)">${timeAgo(r.created_at)}</td>
+    <td>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-xs edit-rule-btn" data-id="${r.id}"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-danger btn-xs del-rule-btn" data-id="${r.id}"><i class="fas fa-trash"></i></button>
+      </div>
+    </td>
+  </tr>`).join('');
+
+  $('#create-rule-btn').addEventListener('click', () => showRuleModal());
+  tbody.addEventListener('click', e => {
+    const edit = e.target.closest('.edit-rule-btn');
+    const del = e.target.closest('.del-rule-btn');
+    if (edit) { const rule = rules.find(x => x.id == edit.dataset.id); if (rule) showRuleModal(rule); }
+    if (del) { if (!confirm('Kural silinsin mi?')) return; adminApi('/censor/'+del.dataset.id, {method:'DELETE'}).then(()=>{toast('Silindi'); loadSection('censor');}).catch(err=>toast(err.message,'error')); }
+  });
+}
+
+function showRuleModal(rule) {
+  const isEdit = !!rule;
+  showModal(isEdit ? 'Kuralı Düzenle' : 'Yeni Kural', `
+    <div class="form-group"><label>İfade (kelime veya regex)</label><input id="rule-phrase" value="${escHtml(rule?.phrase||'')}" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Seviye</label>
+        <select id="rule-level"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+      <div class="form-group"><label>İşlem</label>
+        <select id="rule-action"><option value="replace">Replace</option><option value="block">Block</option></select></div>
+    </div>
+    <div class="form-group"><label>Yedek (değiştirilecek metin)</label><input id="rule-repl" value="${escHtml(rule?.replacement||'***')}" /></div>
+    <button class="btn btn-primary" id="rule-save" style="width:100%;justify-content:center">Kaydet</button>
+    <div id="rule-error" class="form-error mt-4"></div>
+  `);
+  if (rule) $('#rule-level').value = rule.level; if (rule) $('#rule-action').value = rule.action;
+  $('#rule-save').addEventListener('click', async () => {
+    const body = { phrase: $('#rule-phrase').value.trim(), level: $('#rule-level').value, action: $('#rule-action').value, replacement: $('#rule-repl').value };
+    try {
+      if (isEdit) await adminApi('/censor/'+rule.id, {method:'PUT', body:JSON.stringify(body)});
+      else await adminApi('/censor', {method:'POST', body:JSON.stringify(body)});
+      toast('Kaydedildi'); hideModal(); loadSection('censor');
+    } catch (e) { $('#rule-error').textContent = e.message; }
+  });
 }
 
 // ===== DASHBOARD =====

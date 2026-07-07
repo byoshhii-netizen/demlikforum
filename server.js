@@ -1175,7 +1175,7 @@ app.get('/api/profile/:username', async (req, res) => {
 });
 
 app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
-  const { bio, links, display_name, name_color, show_level_badge, show_level_color, title, location, allow_mentions } = req.body;
+  const { bio, links, display_name, username, name_color, show_level_badge, show_level_color, title, location, allow_mentions } = req.body;
   let newAvatar = req.user.avatar;
   if (req.file) {
     try {
@@ -1185,8 +1185,16 @@ app.put('/api/profile', authMiddleware, upload.single('avatar'), async (req, res
     }
   }
   const newLinks = links ? (typeof links === 'string' ? links : JSON.stringify(links)) : req.user.links;
-  await query('UPDATE users SET bio=$1,display_name=$2,links=$3,name_color=$4,show_level_badge=$5,show_level_color=$6,avatar=$7,title=$8,location=$9,allow_mentions=$10 WHERE id=$11',
-    [bio??req.user.bio, display_name!==undefined?display_name:req.user.display_name, newLinks, name_color??req.user.name_color,
+  // handle username change: validate and ensure uniqueness
+  let finalUsername = req.user.username;
+  if (username && username !== req.user.username) {
+    if (typeof username !== 'string' || username.length < 3 || username.length > 30) return res.status(400).json({ error: 'Kullanıcı adı 3-30 karakter olmalı' });
+    const { rows: exists } = await query('SELECT id FROM users WHERE username=$1', [username]);
+    if (exists.length) return res.status(400).json({ error: 'Bu kullanıcı adı zaten alınmış' });
+    finalUsername = username;
+  }
+  await query('UPDATE users SET username=$1,bio=$2,display_name=$3,links=$4,name_color=$5,show_level_badge=$6,show_level_color=$7,avatar=$8,title=$9,location=$10,allow_mentions=$11 WHERE id=$12',
+    [finalUsername, bio??req.user.bio, display_name!==undefined?display_name:req.user.display_name, newLinks, name_color??req.user.name_color,
      show_level_badge!==undefined?(show_level_badge?1:0):req.user.show_level_badge,
      show_level_color!==undefined?(show_level_color?1:0):req.user.show_level_color,
      newAvatar, title??req.user.title??'', location??req.user.location??'',
@@ -1298,6 +1306,35 @@ app.post('/api/media/:id/comments', authMiddleware, async (req, res) => {
     const comment = rows[0];
     const joined = (await query('SELECT mc.*, u.username, u.avatar, u.display_name FROM media_comments mc LEFT JOIN users u ON u.id=mc.user_id WHERE mc.id=$1', [comment.id])).rows[0];
     res.json(joined);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Like / unlike media (toggle)
+app.post('/api/media/:id/like', authMiddleware, async (req, res) => {
+  try {
+    const mediaId = parseInt(req.params.id);
+    const userId = req.user.id;
+    const { rows: exists } = await query('SELECT id FROM media_likes WHERE media_id=$1 AND user_id=$2', [mediaId, userId]);
+    if (exists.length) {
+      await query('DELETE FROM media_likes WHERE id=$1', [exists[0].id]);
+      await query('UPDATE media SET likes = GREATEST(0, likes-1) WHERE id=$1', [mediaId]);
+      const { rows } = await query('SELECT likes FROM media WHERE id=$1', [mediaId]);
+      return res.json({ liked: false, likes: rows[0]?.likes || 0 });
+    } else {
+      await query('INSERT INTO media_likes (media_id,user_id) VALUES ($1,$2)', [mediaId, userId]);
+      await query('UPDATE media SET likes = likes+1 WHERE id=$1', [mediaId]);
+      const { rows } = await query('SELECT likes FROM media WHERE id=$1', [mediaId]);
+      return res.json({ liked: true, likes: rows[0]?.likes || 0 });
+    }
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Increment view count
+app.post('/api/media/:id/view', async (req, res) => {
+  try {
+    const mediaId = parseInt(req.params.id);
+    await query('UPDATE media SET views = views + 1 WHERE id=$1', [mediaId]);
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
