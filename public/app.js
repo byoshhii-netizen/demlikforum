@@ -212,9 +212,10 @@ function updateNavUI() {
     const btn = $('#nav-user-btn');
     btn.innerHTML = `${nav}<i class="fas fa-chevron-down" style="font-size:10px;color:var(--text-muted)"></i>`;
     $('#dropdown-profile').setAttribute('href', '/profil/' + currentUser.username);
+    // Keep brand linking to home — profile is in dropdown
     const navBrand = document.querySelector('.nav-brand');
     if (navBrand) {
-      navBrand.setAttribute('href', '/profil/' + currentUser.username);
+      navBrand.setAttribute('href', '/');
       navBrand.style.cursor = 'pointer';
     }
 
@@ -1141,9 +1142,9 @@ async function renderBookDetail(app, slug) {
         </div>
       </div>
     </div>
-    <div class="chapters-list">
+      <div class="chapters-list">
       ${resumeHTML}
-      <div class="section-title" style="margin-bottom:16px"><div class="section-title-bar"></div>İçindekiler</div>
+      <div class="section-title" style="margin-bottom:16px"><div class="section-title-bar"></div>Sayfa Başlıkları</div>
       ${!chapters.length && !pages.length ? '<div class="empty-state"><i class="fas fa-file-alt"></i><p>Henüz sayfa yok.</p></div>' : ''}
       ${unassignedHTML}
       ${chapListHTML}
@@ -1368,8 +1369,8 @@ async function renderPageReader(app, bookSlug, pageSlug) {
       <div class="ebook-reader" style="flex:1">
         <!-- Toolbar -->
         <div class="ebook-toolbar">
-          <button class="btn btn-ghost btn-sm" id="toc-toggle" title="İçindekiler">
-            <i class="fas fa-list"></i> <span class="hidden" id="toc-label">İçindekiler</span>
+          <button class="btn btn-ghost btn-sm" id="toc-toggle" title="Sayfa Başlıkları">
+            <i class="fas fa-list"></i> <span class="hidden" id="toc-label">Sayfa Başlıkları</span>
           </button>
           <div class="font-size-controls" style="display:flex;align-items:center;gap:6px">
             <button id="font-dec" title="Küçük">A-</button>
@@ -1634,6 +1635,19 @@ async function renderGroupDetail(app, slug) {
   const chatEl = $('#chat-messages');
   if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
 
+  // If URL has a hash or query message id, scroll that message into view
+  try {
+    const hash = location.hash || '';
+    const sp = new URLSearchParams(location.search || '');
+    const msgId = (hash.startsWith('#msg-') ? hash.replace('#msg-','') : (sp.get('msg') || null));
+    if (msgId) {
+      setTimeout(() => {
+        const target = document.getElementById('group-msg-' + msgId);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+    }
+  } catch (e) {}
+
   // Önceki mesajları yükle
   let oldestMsgId = messages.length > 0 ? messages[0].id : null;
   $('#load-more-msgs')?.addEventListener('click', async () => {
@@ -1787,7 +1801,7 @@ async function renderGroupDetail(app, slug) {
 function chatMsgHTML(m, canModDelete = false) {
   const isOwn = currentUser && currentUser.id === m.user_id;
   const canDel = isOwn || canModDelete;
-  return `<div class="chat-msg">
+  return `<div class="chat-msg" id="group-msg-${m.id}">
     ${m.avatar ? `<img src="${escHtml(m.avatar)}" class="chat-msg-avatar" alt="" />` : `<div class="chat-msg-avatar avatar-placeholder" style="font-size:11px;font-weight:700">?</div>`}
     <div class="chat-msg-body">
       <div class="chat-msg-meta">

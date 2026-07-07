@@ -121,6 +121,12 @@ label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec
   font-size: 16px; font-weight: 900;
   color: white;
 }
+/* Ensure nav brand image is not cropped oddly */
+.nav-brand img { width:32px; height:32px; object-fit:contain; border-radius:6px; display:block; }
+.nav-brand { min-width:0; }
+
+/* Prevent logo/cover images from being oddly clipped — prefer contain for small logos */
+.brand-img, .logo-img, .nav-brand img, .brand-icon img { object-fit: contain !important; }
 .nav-links {
   display: flex;
   gap: 4px;
