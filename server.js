@@ -15,6 +15,14 @@ try { sharp = require('sharp'); } catch (e) { /* sharp optional; install if you 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Global error handlers to avoid uncaught exceptions killing the process
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err && err.stack ? err.stack : err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason && reason.stack ? reason.stack : reason);
+});
+
 // Cloudinary config — Railway'de CLOUDINARY_URL env var olarak ekle
 // Format: cloudinary://API_KEY:API_SECRET@CLOUD_NAME
 if (process.env.CLOUDINARY_URL) {
@@ -33,14 +41,23 @@ const USE_CLOUDINARY = !!(process.env.CLOUDINARY_URL || process.env.CLOUDINARY_C
 // Fallback: local disk (Railway volume veya geliştirme)
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 if (!USE_CLOUDINARY) {
-  try { if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
+  try {
+    if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    // quick writability test
+    const testPath = path.join(UPLOAD_DIR, '.upload_test');
+    fs.writeFileSync(testPath, 'ok');
+    fs.unlinkSync(testPath);
+  } catch (e) {
+    console.error('Upload directory not writable or cannot be created:', UPLOAD_DIR, e && e.message ? e.message : e);
+  }
 
   // Serve uploads with range support for video streaming
   app.get('/uploads/:name', (req, res) => {
     const fileName = req.params.name;
     const filePath = path.join(UPLOAD_DIR, fileName);
     if (!fs.existsSync(filePath)) return res.status(404).end();
-    const stat = fs.statSync(filePath);
+    let stat;
+    try { stat = fs.statSync(filePath); } catch (e) { console.error('Stat failed for upload:', filePath, e && e.message ? e.message : e); return res.status(404).end(); }
     const total = stat.size;
     const range = req.headers.range;
     const contentType = mime.lookup(filePath) || 'application/octet-stream';
@@ -53,12 +70,22 @@ if (!USE_CLOUDINARY) {
         return;
       }
       const chunkSize = (end - start) + 1;
-      const stream = fs.createReadStream(filePath, { start, end });
+      let stream;
+      try {
+        stream = fs.createReadStream(filePath, { start, end });
+      } catch (err) {
+        console.error('Error creating read stream for', filePath, err && err.message ? err.message : err);
+        return res.status(404).end();
+      }
       res.writeHead(206, {
         'Content-Range': `bytes ${start}-${end}/${total}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkSize,
         'Content-Type': contentType,
+      });
+      stream.on('error', (err) => {
+        console.error('Stream error for', filePath, err && err.message ? err.message : err);
+        try { res.status(404).end(); } catch(e){}
       });
       stream.pipe(res);
     } else {
@@ -67,7 +94,9 @@ if (!USE_CLOUDINARY) {
         'Content-Type': contentType,
         'Accept-Ranges': 'bytes',
       });
-      fs.createReadStream(filePath).pipe(res);
+      const s = fs.createReadStream(filePath);
+      s.on('error', (err) => { console.error('Stream error for', filePath, err && err.message ? err.message : err); try { res.status(404).end(); } catch(e){} });
+      s.pipe(res);
     }
   });
 
