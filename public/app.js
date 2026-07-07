@@ -2502,6 +2502,12 @@ function showNewMediaModal(defaultType = 'photo') {
       <div class="form-group"><label>Tür</label>
         <select id="m-type"><option value="photo">Fotoğraf</option><option value="video">Video</option></select>
       </div>
+      <div id="m-progress" class="hidden" style="margin-top:8px">
+        <div style="height:10px;background:rgba(255,255,255,0.06);border-radius:6px;overflow:hidden">
+          <div id="m-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--red),var(--blue));"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px"><span id="m-progress-text">0%</span></div>
+      </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-outline" id="m-cancel">İptal</button>
         <button class="btn btn-primary" id="m-upload">Yükle</button>
@@ -2522,13 +2528,42 @@ function showNewMediaModal(defaultType = 'photo') {
     fd.append('title', title);
     fd.append('description', desc);
     fd.append('type', type);
-    try {
-      const res = await apiForm('/media', fd, 'POST');
-      hideModal();
-      toast('İçerik yüklendi');
-      // navigate to uploaded media page if available
-      navigate('/media/' + res.id);
-    } catch (e) { $('#m-msg').textContent = e.message || 'Yükleme hatası'; }
+
+    // Use XHR to track upload progress
+    const uploadBtn = $('#m-upload');
+    const cancelBtn = $('#m-cancel');
+    const progressWrap = $('#m-progress');
+    const progressFill = $('#m-progress-fill');
+    const progressText = $('#m-progress-text');
+    uploadBtn.disabled = true; cancelBtn.disabled = true; $('#m-msg').textContent = '';
+    progressWrap.classList.remove('hidden'); progressFill.style.width = '0%'; progressText.textContent = '0%';
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/media');
+    if (currentToken) xhr.setRequestHeader('Authorization', 'Bearer ' + currentToken);
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        progressFill.style.width = pct + '%';
+        progressText.textContent = pct + '%';
+      }
+    });
+    xhr.addEventListener('load', () => {
+      uploadBtn.disabled = false; cancelBtn.disabled = false;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          hideModal(); toast('İçerik yüklendi'); navigate('/media/' + res.id);
+        } catch (e) { $('#m-msg').textContent = 'Yükleme tamamlandı, fakat cevap işlenemedi'; }
+      } else {
+        let err = 'Yükleme hatası';
+        try { err = JSON.parse(xhr.responseText).error || err; } catch(_){}
+        $('#m-msg').textContent = err;
+      }
+      progressWrap.classList.add('hidden');
+    });
+    xhr.addEventListener('error', () => { uploadBtn.disabled = false; cancelBtn.disabled = false; $('#m-msg').textContent = 'Ağ hatası'; progressWrap.classList.add('hidden'); });
+    xhr.send(fd);
   });
 }
 
