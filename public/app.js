@@ -2749,15 +2749,14 @@ async function renderDMChat(username) {
       <div id="dm-img-preview" style="display:none;position:relative">
         <img id="dm-img-thumb" style="height:48px;border-radius:6px;object-fit:cover" />
         <button onclick="clearDmImg()" style="position:absolute;top:-6px;right:-6px;background:var(--accent-red);color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center">✕</button>
-      </div>`
-  ;
-  const dmMessagesContainer = $('#dm-messages');
-  if (dmMessagesContainer) dmMessagesContainer.scrollTop = dmMessagesContainer.scrollHeight;
-
+      </div>
       <textarea id="dm-input" placeholder="Mesaj yaz..." rows="1" style="flex:1;background:transparent;border:none;resize:none;color:var(--text-primary);font-size:14px;padding:8px 0;outline:none;max-height:120px;overflow-y:auto"></textarea>
       <button class="btn btn-primary btn-sm" id="dm-send-btn"><i class="fas fa-paper-plane"></i></button>
     </div>
   </div>`;
+
+  const dmMessagesContainer = $('#dm-messages');
+  if (dmMessagesContainer) dmMessagesContainer.scrollTop = dmMessagesContainer.scrollHeight;
 
   // Scroll to bottom
   const msgsEl = $('#dm-messages');
