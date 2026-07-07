@@ -1206,7 +1206,7 @@ async function renderBookDetail(app, slug) {
         y += 8;
       }
 
-      addText('İÇİNDEKİLER', 14, true, [180, 30, 30]);
+      addText('SAYFA BAŞLIKLARI', 14, true, [180, 30, 30]);
       const allPagesData = await api('/book/' + slug);
       const allP = allPagesData.pages || [];
       allP.forEach(p => { addText(p.page_num + '. ' + p.title, 11, false); });
@@ -1355,10 +1355,10 @@ async function renderPageReader(app, bookSlug, pageSlug) {
     </div>` : ''}
 
     <div class="ebook-layout">
-      <!-- Sol: İçindekiler -->
+      <!-- Sol: Sayfa Başlıkları -->
       <div class="ebook-toc" id="ebook-toc" style="display:none">
         <div style="padding:12px 16px;border-bottom:1px solid rgba(220,38,38,0.15);font-size:13px;font-weight:600;color:var(--text-secondary)">
-          <i class="fas fa-list" style="color:var(--accent-red)"></i> İçindekiler
+          <i class="fas fa-list" style="color:var(--accent-red)"></i> Sayfa Başlıkları
         </div>
         <div style="overflow-y:auto;max-height:600px">
           ${tocHTML || '<div style="padding:16px;font-size:13px;color:var(--text-muted)">Sayfa yok</div>'}
@@ -1414,7 +1414,7 @@ async function renderPageReader(app, bookSlug, pageSlug) {
     if (fontSize < 26) { fontSize++; contentEl.style.fontSize = fontSize + 'px'; $('#font-size-label').textContent = fontSize + 'px'; localStorage.setItem('ebook-font-size', fontSize); }
   });
 
-  // İçindekiler toggle
+  // Sayfa Başlıkları toggle
   const tocEl = $('#ebook-toc');
   const layout = document.querySelector('.ebook-layout');
   let tocOpen = window.innerWidth >= 900;
@@ -1541,7 +1541,7 @@ function showNewGroupModal() {
     const reader = new FileReader();
     reader.onload = ev => {
       const prev = $('#gr-cover-preview');
-      prev.outerHTML = `<img id="gr-cover-preview" src="${ev.target.result}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px" />`;
+      prev.outerHTML = `<img id="gr-cover-preview" src="${ev.target.result}" style="width:100%;max-height:120px;object-fit:contain;object-position:center center;border-radius:8px" />`;
     };
     reader.readAsDataURL(file);
   });
@@ -1584,7 +1584,7 @@ async function renderGroupDetail(app, slug) {
 
   app.innerHTML = `<div class="container page">
     <div style="margin-bottom:20px">
-      ${group.cover_image ? `<img src="${escHtml(group.cover_image)}" style="width:100%;border-radius:var(--radius);aspect-ratio:16/5;object-fit:cover;margin-bottom:16px" alt="" />` : ''}
+      ${group.cover_image ? `<img src="${escHtml(group.cover_image)}" style="width:100%;border-radius:var(--radius);aspect-ratio:16/5;object-fit:contain;object-position:center center;margin-bottom:16px" alt="" />` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div>
           <h1 style="font-size:28px;font-weight:800">${escHtml(group.name)}</h1>
@@ -1742,7 +1742,7 @@ async function renderGroupDetail(app, slug) {
       <div class="form-group">
         <label>Kapak Resmi</label>
         <input type="file" id="gs-cover-file" accept="image/*" style="margin-bottom:8px" />
-        ${group.cover_image ? `<img id="gs-cover-preview" src="${escHtml(group.cover_image)}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px" />` : `<div id="gs-cover-preview" style="display:none"></div>`}
+        ${group.cover_image ? `<img id="gs-cover-preview" src="${escHtml(group.cover_image)}" style="width:100%;max-height:120px;object-fit:contain;object-position:center center;border-radius:8px" />` : `<div id="gs-cover-preview" style="display:none"></div>`}
       </div>
       <div class="form-group"><label>Tür</label><select id="gs-type"><option value="public" ${group.type === 'public' ? 'selected' : ''}>Açık</option><option value="private" ${group.type === 'private' ? 'selected' : ''}>Özel</option></select></div>
       <div class="form-group">
@@ -1759,7 +1759,7 @@ async function renderGroupDetail(app, slug) {
       const reader = new FileReader();
       reader.onload = ev => {
         const prev = $('#gs-cover-preview');
-        prev.outerHTML = `<img id="gs-cover-preview" src="${ev.target.result}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px" />`;
+        prev.outerHTML = `<img id="gs-cover-preview" src="${ev.target.result}" style="width:100%;max-height:120px;object-fit:contain;object-position:center center;border-radius:8px" />`;
       };
       reader.readAsDataURL(file);
     });
@@ -2035,7 +2035,7 @@ function renderSettingsSection(section) {
         <div class="card-header"><span>Profil Bilgileri</span></div>
         <div class="card-body">
           <div class="form-group" style="display:flex;align-items:center;gap:16px">
-            ${currentUser.avatar ? `<img src="${escHtml(currentUser.avatar)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover" />` : `<div style="width:64px;height:64px;border-radius:50%;background:var(--bg-card2);display:flex;align-items:center;justify-content:center"><i class="fas fa-user" style="font-size:24px;color:var(--text-muted)"></i></div>`}
+            ${currentUser.avatar ? `<img src="${escHtml(currentUser.avatar)}" style="width:64px;height:64px;border-radius:50%;object-fit:contain;object-position:center center" />` : `<div style="width:64px;height:64px;border-radius:50%;background:var(--bg-card2);display:flex;align-items:center;justify-content:center"><i class="fas fa-user" style="font-size:24px;color:var(--text-muted)"></i></div>`}
             <div style="flex:1">
               <label>Avatar Yükle</label>
               <input type="file" id="avatar-file" accept="image/*" style="padding:6px" />

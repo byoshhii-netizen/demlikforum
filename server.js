@@ -52,13 +52,13 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://www.googletagmanager.com https://googleads.g.doubleclick.net; " +
+    "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://www.googletagmanager.com https://googleads.g.doubleclick.net https://accounts.spotify.com; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
     "img-src 'self' data: https: blob:; " +
     "media-src 'self' https: blob:; " +
-    "connect-src 'self' https://api.spotify.com https://pagead2.googlesyndication.com; " +
-    "frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;"
+    "connect-src 'self' https://api.spotify.com https://pagead2.googlesyndication.com https://accounts.spotify.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://accounts.spotify.com https://accounts.google.com;"
   );
   // Statik dosyalarda source map'leri engelle
   if (req.path.endsWith('.map')) {
