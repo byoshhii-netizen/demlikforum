@@ -9,6 +9,8 @@ const rateLimit = require('express-rate-limit');
 const cloudinary = require('cloudinary').v2;
 const mime = require('mime-types');
 const { query, initDb } = require('./database');
+let sharp = null;
+try { sharp = require('sharp'); } catch (e) { /* sharp optional; install if you want HEIC->JPEG conversion */ }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -327,6 +329,8 @@ const upload = multer({
   limits: { fileSize: maxMb * 1024 * 1024 }, // configurable via MAX_UPLOAD_MB env (default 200MB)
   fileFilter: (req, file, cb) => {
     const allowedImages = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
+        // Allow HEIC/HEIF from iPhones
+        allowedImages.push('image/heic', 'image/heif', 'image/x-heic');
       const allowedAudio = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/flac', 'audio/aac', 'audio/x-wav', 'audio/wave'];
       const allowedVideo = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-matroska'];
       if (allowedImages.includes(file.mimetype) || allowedAudio.includes(file.mimetype) || file.mimetype.startsWith('audio/') || allowedVideo.includes(file.mimetype) || file.mimetype.startsWith('video/')) cb(null, true);
@@ -337,9 +341,11 @@ const upload = multer({
 // Yükleme helper'ı — Cloudinary ya da disk
 async function handleUpload(file) {
   // We store uploads on disk; if Cloudinary configured, upload from the file path to avoid buffering
+  const filepath = file.path || (file.filename ? path.join(UPLOAD_DIR, file.filename) : null);
+  const ext = filepath ? path.extname(filepath).toLowerCase() : '';
+  const isHeic = (file.mimetype && (file.mimetype.includes('heic') || file.mimetype.includes('heif'))) || ext === '.heic' || ext === '.heif';
   if (USE_CLOUDINARY) {
     return new Promise((resolve, reject) => {
-      const filepath = file.path || (file.filename ? path.join(UPLOAD_DIR, file.filename) : null);
       if (!filepath || !fs.existsSync(filepath)) return reject(new Error('Dosya bulunamadı (disk)'));
       const isAudio = file.mimetype && file.mimetype.startsWith('audio/');
       const opts = isAudio ? { resource_type: 'video' } : { quality: 'auto', fetch_format: 'auto' };
@@ -351,6 +357,21 @@ async function handleUpload(file) {
         resolve(result.secure_url);
       });
     });
+  }
+  // Local disk storage: if HEIC and sharp available, convert to JPEG for browser compatibility
+  try {
+    if (isHeic && sharp && filepath && fs.existsSync(filepath)) {
+      const base = path.basename(filepath, ext);
+      const outFilename = base + '.jpg';
+      const outPath = path.join(UPLOAD_DIR, outFilename);
+      await sharp(filepath).rotate().jpeg({ quality: 80 }).toFile(outPath);
+      try { fs.unlinkSync(filepath); } catch (e) {}
+      // ensure returned path points to converted file
+      return '/uploads/' + outFilename;
+    }
+  } catch (e) {
+    console.error('HEIC conversion failed:', e && e.message ? e.message : e);
+    // fallthrough to return original file
   }
   return '/uploads/' + file.filename;
 }
@@ -646,6 +667,11 @@ app.post('/api/forum/:slug/view', async (req, res) => {
 app.post('/api/forums', authMiddleware, async (req, res) => {
   try {
     const { title, content, banner_image, allow_comments, tagIds, customTags, banner_fit, images, thumbnail } = req.body;
+    // Censor title & content
+    const censTitle = await applyCensor(title);
+    if (censTitle.blocked) return res.status(400).json({ error: 'Başlık yasaklı kelime içeriyor' });
+    const censContent = await applyCensor(content);
+    if (censContent.blocked) return res.status(400).json({ error: 'İçerik yasaklı kelime içeriyor' });
     if (!title || !content) return res.status(400).json({ error: 'Başlık ve içerik zorunlu' });
     const limitErr = await checkDailyLimit(req.user.id, req.user, 'forums');
     if (limitErr) return res.status(429).json({ error: limitErr });
@@ -657,7 +683,7 @@ app.post('/api/forums', authMiddleware, async (req, res) => {
     const customTagsStr = allCustomTags.join(',');
     const { rows } = await query(
       'INSERT INTO forums (user_id,title,content,banner_image,slug,allow_comments,custom_tags,banner_fit,images,thumbnail) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id',
-      [req.user.id, title, content, banner_image || '', tempSlug, allow_comments !== false ? 1 : 0, customTagsStr, banner_fit || 'cover', JSON.stringify(images || []), thumbnail || '']);
+      [req.user.id, censTitle.text, censContent.text, banner_image || '', tempSlug, allow_comments !== false ? 1 : 0, customTagsStr, banner_fit || 'cover', JSON.stringify(images || []), thumbnail || '']);
     const id = rows[0].id;
     const realSlug = makeSlug(title, id);
     await query('UPDATE forums SET slug=$1 WHERE id=$2', [realSlug, id]);
@@ -683,13 +709,18 @@ app.put('/api/forum/:slug', authMiddleware, async (req, res) => {
   if (forum.user_id != req.user.id) return res.status(403).json({ error: 'Yetki yok' });
   const { title, content, banner_image, allow_comments, tagIds, customTags, banner_fit, images, thumbnail } = req.body;
   // İçerik içindeki #tag'ları da custom_tags'e merge et
+  // Censor updated title/content
   const newContent = content || forum.content;
+  const censTitle = await applyCensor(title || forum.title);
+  if (censTitle.blocked) return res.status(400).json({ error: 'Başlık yasaklı kelime içeriyor' });
+  const censContent = await applyCensor(newContent);
+  if (censContent.blocked) return res.status(400).json({ error: 'İçerik yasaklı kelime içeriyor' });
   const contentHashtags = (newContent.match(/#([a-zA-Z0-9_\u00c7\u00e7\u011e\u011f\u0130\u0131\u00d6\u00f6\u015e\u015f\u00dc\u00fc]+)/g) || []).map(t => t.slice(1).toLowerCase());
   const manualTagsPut = customTags !== undefined ? (Array.isArray(customTags) ? customTags : customTags.split(',').map(t => t.trim()).filter(Boolean)) : (forum.custom_tags ? forum.custom_tags.split(',').map(t => t.trim()).filter(Boolean) : []);
   const allCustomTagsPut = [...new Set([...manualTagsPut.map(t => t.toLowerCase()), ...contentHashtags])];
   const customTagsStr = allCustomTagsPut.join(',');
   await query('UPDATE forums SET title=$1,content=$2,banner_image=$3,allow_comments=$4,custom_tags=$5,banner_fit=$6,images=$7,thumbnail=$8,updated_at=NOW() WHERE id=$9',
-    [title||forum.title, content||forum.content, banner_image??forum.banner_image,
+    [censTitle.text||forum.title, censContent.text||forum.content, banner_image??forum.banner_image,
      allow_comments!==undefined?(allow_comments?1:0):forum.allow_comments, customTagsStr,
      banner_fit||forum.banner_fit||'cover',
      JSON.stringify(images !== undefined ? images : ((() => { try { return JSON.parse(forum.images||'[]'); } catch{return [];} })())),
@@ -754,11 +785,15 @@ app.post('/api/forum/:slug/comments', authMiddleware, async (req, res) => {
   if (!forum.allow_comments) return res.status(403).json({ error: 'Yorumlar kapalı' });
   const { content } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: 'Yorum boş olamaz' });
+  const cens = await applyCensor(content);
+  if (cens.blocked) return res.status(400).json({ error: 'Yorum yasaklı kelime içeriyor' });
   const { rows } = await query('INSERT INTO forum_comments (forum_id,user_id,content) VALUES ($1,$2,$3) RETURNING id', [forum.id, req.user.id, content.trim()]);
+  // replace stored content with censored text
+  await query('UPDATE forum_comments SET content=$1 WHERE id=$2', [cens.text, rows[0].id]);
   await query('UPDATE users SET comment_count=comment_count+1 WHERE id=$1', [req.user.id]);
   await updateUserLevel(req.user.id);
-  // @mention bildirimleri
-  await parseMentionsAndNotify(content, req.user, 'comment_mention', '/forum/' + req.params.slug, forum.title).catch(() => {});
+  // @mention bildirimleri (use censored text)
+  await parseMentionsAndNotify(cens.text, req.user, 'comment_mention', '/forum/' + req.params.slug, forum.title).catch(() => {});
   const { rows: cRows } = await query(`SELECT fc.*, u.username, u.avatar, u.name_color, u.is_vip, u.level_id FROM forum_comments fc LEFT JOIN users u ON fc.user_id=u.id WHERE fc.id=$1`, [rows[0].id]);
   res.json(cRows[0]);
 });
@@ -871,13 +906,17 @@ app.post('/api/book/:slug/pages', authMiddleware, async (req, res) => {
   if (book.user_id != req.user.id) return res.status(403).json({ error: 'Yetki yok' });
   const { title, content, chapter_id, image_url } = req.body;
   if (!title || !content) return res.status(400).json({ error: 'Başlık ve içerik zorunlu' });
+  const censTitle = await applyCensor(title);
+  if (censTitle.blocked) return res.status(400).json({ error: 'Başlık yasaklı kelime içeriyor' });
+  const censContent = await applyCensor(content);
+  if (censContent.blocked) return res.status(400).json({ error: 'İçerik yasaklı kelime içeriyor' });
   const limitErr = await checkDailyLimit(req.user.id, req.user, 'book_pages');
   if (limitErr) return res.status(429).json({ error: limitErr });
   const { rows: cnt } = await query('SELECT COUNT(*) as c FROM book_pages WHERE book_id=$1', [book.id]);
   const pageNum = parseInt(cnt[0].c) + 1;
   const tempSlug = slugify(title, { lower: true, strict: false, locale: 'tr' }).substring(0, 40) + '-' + Date.now();
   const { rows } = await query('INSERT INTO book_pages (book_id,chapter_id,title,content,page_num,slug,image_url) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
-    [book.id, chapter_id||null, title, content, pageNum, tempSlug, image_url||'']);
+    [book.id, chapter_id||null, censTitle.text, censContent.text, pageNum, tempSlug, image_url||'']);
   const id = rows[0].id;
   const realSlug = makeSlug(title, id);
   await query('UPDATE book_pages SET slug=$1 WHERE id=$2', [realSlug, id]);
@@ -1113,8 +1152,10 @@ app.post('/api/group/:slug/messages', authMiddleware, async (req, res) => {
   if (!m.length) return res.status(403).json({ error: 'Üye değilsiniz' });
   const { content, image_url } = req.body;
   if (!content?.trim() && !image_url) return res.status(400).json({ error: 'Mesaj boş olamaz' });
+  const cens = await applyCensor(content || '');
+  if (cens.blocked) return res.status(400).json({ error: 'Mesaj yasaklı kelime içeriyor' });
   const { rows } = await query('INSERT INTO group_messages (group_id,user_id,content,image_url) VALUES ($1,$2,$3,$4) RETURNING id',
-    [group.id, req.user.id, content||'', image_url||'']);
+    [group.id, req.user.id, cens.text || '', image_url||'']);
   const { rows: msg } = await query(`SELECT gm.*, u.username, u.avatar, u.name_color, u.is_vip FROM group_messages gm LEFT JOIN users u ON gm.user_id=u.id WHERE gm.id=$1`, [rows[0].id]);
   res.json(msg[0]);
 });
@@ -2634,9 +2675,11 @@ app.post('/api/conversation/:username/messages', authMiddleware, upload.single('
     try { image_url = await handleUpload(req.file); } catch (e) {}
   }
   if (!content?.trim() && !image_url && !shared_forum_id) return res.status(400).json({ error: 'Mesaj boş olamaz' });
+  const cens = await applyCensor(content || '');
+  if (cens.blocked) return res.status(400).json({ error: 'Mesaj yasaklı kelime içeriyor' });
   const { rows: msgRows } = await query(
     'INSERT INTO dm_messages (conversation_id, sender_id, content, image_url, shared_forum_id, reply_to_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-    [conv.id, uid, content||'', image_url, shared_forum_id||null, reply_to_id||null]
+    [conv.id, uid, cens.text||'', image_url, shared_forum_id||null, reply_to_id||null]
   );
   await query('UPDATE dm_conversations SET last_message_at=NOW() WHERE id=$1', [conv.id]);
   // Forum paylaşım sayısını artır
@@ -2644,8 +2687,8 @@ app.post('/api/conversation/:username/messages', authMiddleware, upload.single('
     await query('UPDATE forums SET share_count=COALESCE(share_count,0)+1 WHERE id=$1', [shared_forum_id]);
   }
   // DM @mention bildirimleri
-  if (content?.trim()) {
-    await parseMentionsAndNotify(content, req.user, 'dm_mention', '/mesajlar/' + req.params.username).catch(() => {});
+  if (cens.text?.trim()) {
+    await parseMentionsAndNotify(cens.text, req.user, 'dm_mention', '/mesajlar/' + req.params.username).catch(() => {});
   }
   const { rows: full } = await query(`
     SELECT m.*, u.username as sender_username, u.avatar as sender_avatar, u.name_color as sender_name_color,
