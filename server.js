@@ -39,7 +39,14 @@ if (process.env.CLOUDINARY_URL) {
 const USE_CLOUDINARY = !!(process.env.CLOUDINARY_URL || process.env.CLOUDINARY_CLOUD_NAME);
 
 // Fallback: local disk (Railway volume veya geliştirme)
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
+let UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
+// Prefer Railway persistent path if available and env not explicitly set
+try {
+  if (!process.env.UPLOAD_DIR) {
+    if (fs.existsSync('/app/persistent/uploads')) UPLOAD_DIR = '/app/persistent/uploads';
+    else if (fs.existsSync('/data/uploads')) UPLOAD_DIR = '/data/uploads';
+  }
+} catch (e) {}
 if (!USE_CLOUDINARY) {
   try {
     if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -1865,8 +1872,14 @@ app.post('/api/songs', authMiddleware, upload.fields([
   if (!title || !artist_name) return res.status(400).json({ error: 'Başlık ve sanatçı adı gerekli' });
   if (!req.files?.audio?.[0]) return res.status(400).json({ error: 'Ses dosyası gerekli' });
   let audio_url = '', cover_url = '';
-  try { audio_url = await handleUpload(req.files.audio[0]); } catch (e) { return res.status(500).json({ error: 'Ses yüklenemedi: ' + e.message }); }
-  if (req.files?.cover?.[0]) { try { cover_url = await handleUpload(req.files.cover[0]); } catch {} }
+  try {
+    audio_url = await handleUpload(req.files.audio[0]);
+  } catch (e) {
+    console.error('Audio upload failed:', e && e.message ? e.message : e);
+    try { console.error('req.files.audio:', JSON.stringify((req.files && req.files.audio && req.files.audio[0]) || req.files || {})); } catch(err){}
+    return res.status(500).json({ error: 'Ses yüklenemedi: ' + (e && e.message ? e.message : String(e)) });
+  }
+  if (req.files?.cover?.[0]) { try { cover_url = await handleUpload(req.files.cover[0]); } catch (e) { console.error('Cover upload failed:', e && e.message ? e.message : e); } }
   const { rows } = await query(
     `INSERT INTO songs (uploader_id, song_type, title, artist_name, distributor, genre, lyrics, cover_url, audio_url, share_reason, slug)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'tmp') RETURNING id`,
